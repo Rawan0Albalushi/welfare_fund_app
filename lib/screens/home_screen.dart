@@ -4,6 +4,7 @@ import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../widgets/common/campaign_card.dart';
 import '../models/campaign.dart';
+import 'quick_donate_amount_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -103,8 +104,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onQuickDonate() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ميزة التبرع السريع قريباً!')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const QuickDonateAmountScreen(),
+      ),
     );
   }
 
@@ -311,34 +315,34 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: _buildModernCircleFeature(
-                            icon: Icons.favorite,
-                            label: 'التبرع السريع',
-                            gradient: LinearGradient(
-                              colors: [AppColors.primary, AppColors.primaryLight],
-                            ),
-                            onTap: _onQuickDonate,
+                          child:                         _buildModernCircleFeature(
+                          icon: Icons.favorite,
+                          label: 'التبرع السريع',
+                          gradient: const LinearGradient(
+                            colors: [AppColors.primary, AppColors.primaryLight],
                           ),
+                          onTap: _onQuickDonate,
+                        ),
                         ),
                         Expanded(
-                          child: _buildModernCircleFeature(
-                            icon: Icons.card_giftcard,
-                            label: 'اهداء التبرع',
-                            gradient: LinearGradient(
-                              colors: [AppColors.accent, AppColors.accentLight],
-                            ),
-                            onTap: _onGiftDonation,
+                          child:                         _buildModernCircleFeature(
+                          icon: Icons.card_giftcard,
+                          label: 'اهداء التبرع',
+                          gradient: const LinearGradient(
+                            colors: [AppColors.accent, AppColors.accentLight],
                           ),
+                          onTap: _onGiftDonation,
+                        ),
                         ),
                         Expanded(
-                          child: _buildModernCircleFeature(
-                            icon: Icons.history,
-                            label: 'تبرعاتي',
-                            gradient: LinearGradient(
-                              colors: [AppColors.secondary, AppColors.secondaryLight],
-                            ),
-                            onTap: _onMyDonations,
+                          child:                         _buildModernCircleFeature(
+                          icon: Icons.history,
+                          label: 'تبرعاتي',
+                          gradient: const LinearGradient(
+                            colors: [AppColors.secondary, AppColors.secondaryLight],
                           ),
+                          onTap: _onMyDonations,
+                        ),
                         ),
                       ],
                     ),
@@ -346,151 +350,152 @@ class _HomeScreenState extends State<HomeScreen> {
                   
                   const SizedBox(height: AppConstants.largePadding),
                   
-                  // Modern Student Help Banner - Image Background, Centered Content
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.25),
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Stack(
-                        children: [
-                          // Background Image
-                          Container(
-                            width: double.infinity,
-                            height: 200,
-                            decoration: const BoxDecoration(
-                              image: DecorationImage(
-                                image: NetworkImage(
-                                  'https://images.pexels.com/photos/5905708/pexels-photo-5905708.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                                ),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          // Overlay for better text readability
-                          Container(
-                            width: double.infinity,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  AppColors.primary.withOpacity(0.7),
-                                  AppColors.secondary.withOpacity(0.6),
-                                ],
-                              ),
-                            ),
-                          ),
-                          // Centered Content
-                          SizedBox(
-                            width: double.infinity,
-                            height: 200,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'قدّم طلبك وابدأ رحلتك بثقة',
-                                  style: AppTextStyles.titleLarge.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    height: 1.2,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black.withOpacity(0.25),
-                                        blurRadius: 8,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'نحن هنا لنمكِّنك من مواصلة تعليمك',
-                                  style: AppTextStyles.bodyMedium.copyWith(
-                                    color: Colors.white.withOpacity(0.95),
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black.withOpacity(0.18),
-                                        blurRadius: 6,
-                                        offset: Offset(0, 1),
-                                      ),
-                                    ],
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 18),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                                  child: Container(
-                                    width: double.infinity,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.13),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap: _onRegister,
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Center(
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.edit_note,
-                                                color: AppColors.primary,
-                                                size: 20,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                'سجل الآن',
-                                                style: AppTextStyles.buttonMedium.copyWith(
-                                                  color: AppColors.primary,
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 15,
-                                                  shadows: [
-                                                    Shadow(
-                                                      color: Colors.black.withOpacity(0.08),
-                                                      blurRadius: 2,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                                     // Modern Student Help Banner - Image Background with Gradient Overlay
+                   Container(
+                     width: double.infinity,
+                     decoration: BoxDecoration(
+                       borderRadius: BorderRadius.circular(20),
+                       boxShadow: [
+                         BoxShadow(
+                           color: AppColors.primary.withOpacity(0.25),
+                           blurRadius: 15,
+                           offset: const Offset(0, 8),
+                         ),
+                       ],
+                     ),
+                     child: ClipRRect(
+                       borderRadius: BorderRadius.circular(20),
+                       child: Stack(
+                         children: [
+                           // Background Image
+                           Container(
+                             width: double.infinity,
+                             height: 200,
+                             decoration: const BoxDecoration(
+                               image: DecorationImage(
+                                 image: NetworkImage(
+                                   'https://images.pexels.com/photos/5905708/pexels-photo-5905708.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                                 ),
+                                 fit: BoxFit.cover,
+                               ),
+                             ),
+                           ),
+                           // Gradient Overlay for better text readability
+                           Container(
+                             width: double.infinity,
+                             height: 200,
+                             decoration: BoxDecoration(
+                               gradient: LinearGradient(
+                                 begin: Alignment.topLeft,
+                                 end: Alignment.bottomRight,
+                                 colors: [
+                                   AppColors.primary.withOpacity(0.7),
+                                   AppColors.secondary.withOpacity(0.6),
+                                   Colors.black.withOpacity(0.4),
+                                 ],
+                               ),
+                             ),
+                           ),
+                           // Centered Content
+                           SizedBox(
+                             width: double.infinity,
+                             height: 200,
+                             child: Column(
+                               mainAxisAlignment: MainAxisAlignment.center,
+                               crossAxisAlignment: CrossAxisAlignment.center,
+                               children: [
+                                 Text(
+                                   'قدّم طلبك وابدأ رحلتك بثقة',
+                                   style: AppTextStyles.titleLarge.copyWith(
+                                     fontWeight: FontWeight.bold,
+                                     color: Colors.white,
+                                     height: 1.2,
+                                     shadows: [
+                                       Shadow(
+                                         color: Colors.black.withOpacity(0.3),
+                                         blurRadius: 8,
+                                         offset: Offset(0, 2),
+                                       ),
+                                     ],
+                                   ),
+                                   textAlign: TextAlign.center,
+                                 ),
+                                 const SizedBox(height: 8),
+                                 Text(
+                                   'نحن هنا لنمكِّنك من مواصلة تعليمك',
+                                   style: AppTextStyles.bodyMedium.copyWith(
+                                     color: Colors.white.withOpacity(0.95),
+                                     shadows: [
+                                       Shadow(
+                                         color: Colors.black.withOpacity(0.2),
+                                         blurRadius: 6,
+                                         offset: Offset(0, 1),
+                                       ),
+                                     ],
+                                   ),
+                                   textAlign: TextAlign.center,
+                                 ),
+                                 const SizedBox(height: 18),
+                                 Padding(
+                                   padding: const EdgeInsets.symmetric(horizontal: 32),
+                                   child: Container(
+                                     width: double.infinity,
+                                     height: 48,
+                                     decoration: BoxDecoration(
+                                       color: Colors.white,
+                                       borderRadius: BorderRadius.circular(12),
+                                       boxShadow: [
+                                         BoxShadow(
+                                           color: Colors.black.withOpacity(0.15),
+                                           blurRadius: 8,
+                                           offset: const Offset(0, 4),
+                                         ),
+                                       ],
+                                     ),
+                                     child: Material(
+                                       color: Colors.transparent,
+                                       child: InkWell(
+                                         onTap: _onRegister,
+                                         borderRadius: BorderRadius.circular(12),
+                                         child: Center(
+                                           child: Row(
+                                             mainAxisAlignment: MainAxisAlignment.center,
+                                             mainAxisSize: MainAxisSize.min,
+                                             children: [
+                                               Icon(
+                                                 Icons.edit_note,
+                                                 color: AppColors.primary,
+                                                 size: 20,
+                                               ),
+                                               const SizedBox(width: 8),
+                                               Text(
+                                                 'سجل الآن',
+                                                 style: AppTextStyles.buttonMedium.copyWith(
+                                                   color: AppColors.primary,
+                                                   fontWeight: FontWeight.w600,
+                                                   fontSize: 15,
+                                                   shadows: [
+                                                     Shadow(
+                                                       color: Colors.black.withOpacity(0.08),
+                                                       blurRadius: 2,
+                                                     ),
+                                                   ],
+                                                 ),
+                                               ),
+                                             ],
+                                           ),
+                                         ),
+                                       ),
+                                     ),
+                                   ),
+                                 ),
+                               ],
+                             ),
+                           ),
+                         ],
+                       ),
+                     ),
+                   ),
                   
                   const SizedBox(height: AppConstants.extraLargePadding),
                   
