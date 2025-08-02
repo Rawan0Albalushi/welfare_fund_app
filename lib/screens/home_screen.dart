@@ -6,6 +6,7 @@ import '../widgets/common/campaign_card.dart';
 import '../models/campaign.dart';
 import 'quick_donate_amount_screen.dart';
 import 'gift_donation_screen.dart';
+import 'my_donations_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -123,8 +124,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onMyDonations() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ميزة تبرعاتي قريباً!')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MyDonationsScreen(),
+      ),
     );
   }
 
