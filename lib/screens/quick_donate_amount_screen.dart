@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
-import 'quick_donate_success_screen.dart';
-import 'gift_donation_screen.dart';
+import 'donation_success_screen.dart';
 
 class QuickDonateAmountScreen extends StatefulWidget {
   const QuickDonateAmountScreen({super.key});
@@ -110,22 +109,12 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => QuickDonateSuccessScreen(
-          amount: _selectedAmount,
-          category: _selectedCategory!,
-          isAnonymous: false,
-        ),
-      ),
-    );
-  }
-
-  void _onGiftDonation() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => GiftDonationScreen(
+        builder: (context) => DonationSuccessScreen(
           amount: _selectedAmount,
           campaignTitle: _selectedCategory != null 
+              ? _categories.firstWhere((cat) => cat['id'] == _selectedCategory)['title']
+              : null,
+          campaignCategory: _selectedCategory != null 
               ? _categories.firstWhere((cat) => cat['id'] == _selectedCategory)['title']
               : null,
         ),
@@ -389,20 +378,20 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
             ),
             const SizedBox(height: AppConstants.defaultPadding),
 
-                         // Categories Grid
-             GridView.count(
-               shrinkWrap: true,
-               physics: const NeverScrollableScrollPhysics(),
-               crossAxisCount: 2,
-               crossAxisSpacing: 12,
-               mainAxisSpacing: 12,
-               childAspectRatio: 1.0,
-               children: _categories.map((category) => _buildCategoryCard(
-                 category: category,
-                 isSelected: _selectedCategory == category['id'],
-                 onTap: () => _onCategorySelected(category['id']),
-               )).toList(),
-             ),
+            // Categories Grid
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.0,
+              children: _categories.map((category) => _buildCategoryCard(
+                category: category,
+                isSelected: _selectedCategory == category['id'],
+                onTap: () => _onCategorySelected(category['id']),
+              )).toList(),
+            ),
 
             const SizedBox(height: AppConstants.extraLargePadding),
 
@@ -460,39 +449,6 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
             ),
 
             const SizedBox(height: AppConstants.extraLargePadding),
-
-            // Gift Donation Button
-            if (_selectedAmount > 0 && _selectedCategory != null) ...[
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton(
-                  onPressed: _onGiftDonation,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary, width: 2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.card_giftcard, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'إهداء التبرع',
-                        style: AppTextStyles.buttonMedium.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
 
             // Continue Button
             SizedBox(

@@ -7,6 +7,7 @@ import '../models/campaign.dart';
 import 'quick_donate_amount_screen.dart';
 import 'gift_donation_screen.dart';
 import 'my_donations_screen.dart';
+import 'campaign_donation_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -139,8 +140,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onCampaignTap(Campaign campaign) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('عرض ${campaign.title}')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CampaignDonationScreen(campaign: campaign),
+      ),
     );
   }
 
