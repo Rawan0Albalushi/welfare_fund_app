@@ -8,6 +8,7 @@ import 'quick_donate_amount_screen.dart';
 import 'gift_donation_screen.dart';
 import 'my_donations_screen.dart';
 import 'campaign_donation_screen.dart';
+import 'student_registration_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -134,8 +135,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onRegister() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ميزة التسجيل قريباً!')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const StudentRegistrationScreen(),
+      ),
     );
   }
 
