@@ -5,8 +5,14 @@ import 'constants/app_text_styles.dart';
 import 'constants/app_constants.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
+import 'services/auth_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Auth Service
+  await AuthService().initialize();
+  
   runApp(const StudentWelfareFundApp());
 }
 

@@ -9,6 +9,7 @@ import 'gift_donation_screen.dart';
 import 'my_donations_screen.dart';
 import 'campaign_donation_screen.dart';
 import 'student_registration_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -682,9 +683,18 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          if (index == 2) { // الإعدادات
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SettingsScreen(),
+              ),
+            );
+          } else {
+            setState(() {
+              _currentIndex = index;
+            });
+          }
         },
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primary,
@@ -699,8 +709,8 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'تبرعاتي',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'الملف الشخصي',
+            icon: Icon(Icons.settings),
+            label: 'الإعدادات',
           ),
         ],
       ),

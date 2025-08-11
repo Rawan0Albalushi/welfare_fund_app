@@ -5,6 +5,8 @@ import 'dart:io';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
+import '../services/auth_service.dart';
+import '../services/student_registration_service.dart';
 
 class StudentRegistrationScreen extends StatefulWidget {
   const StudentRegistrationScreen({super.key});
@@ -39,6 +41,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   String _selectedIncomeLevel = 'منخفض';
   String _selectedFamilySize = '1-3';
   String? _selectedImagePath;
+  
+  // Services
+  final AuthService _authService = AuthService();
+  final StudentRegistrationService _studentService = StudentRegistrationService();
 
 
 
@@ -221,7 +227,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     }
   }
 
-  void _submitRegistration() {
+  void _submitRegistration() async {
     if (_formKey.currentState!.validate()) {
       // Show loading dialog
       showDialog(
@@ -269,11 +275,53 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         ),
       );
 
-      // Simulate API call
-      Future.delayed(const Duration(seconds: 2), () {
+      try {
+        // Submit student application for welfare fund support
+        await _studentService.submitStudentApplication(
+          fullName: _fullNameController.text.trim(),
+          studentId: _studentIdController.text.trim(),
+          phone: _phoneController.text.trim(),
+          university: _universityController.text.trim(),
+          college: _collegeController.text.trim(),
+          major: _majorController.text.trim(),
+          academicYear: _academicYearController.text,
+          gpa: double.tryParse(_gpaController.text) ?? 0.0,
+          gender: _selectedGender,
+          maritalStatus: _selectedMaritalStatus,
+          incomeLevel: _selectedIncomeLevel,
+          familySize: _selectedFamilySize,
+          email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
+          idCardImagePath: _selectedImagePath,
+        );
+
+        // Close loading dialog
         Navigator.of(context).pop();
+        
+        // Show success dialog
         _showSuccessDialog();
-      });
+      } catch (error) {
+        // Close loading dialog
+        Navigator.of(context).pop();
+        
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                error.toString(),
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.surface,
+                ),
+              ),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      }
     }
   }
 
