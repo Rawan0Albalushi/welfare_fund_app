@@ -7,7 +7,7 @@ class AuthService {
   AuthService._internal();
 
   late Dio _dio;
-  static const String _baseUrl = 'http://192.168.125.231:8000/api/v1';
+  static const String _baseUrl = 'http://192.168.100.130:8000/api/v1';
   static const String _tokenKey = 'auth_token';
 
   Future<void> initialize() async {
@@ -99,6 +99,25 @@ class AuthService {
   Future<Map<String, dynamic>> getCurrentUser() async {
     try {
       final response = await _dio.get('/auth/me');
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  // Update user profile
+  Future<Map<String, dynamic>> updateProfile({
+    required String name,
+    required String phone,
+    String? email,
+  }) async {
+    try {
+      final response = await _dio.patch('/me/edit/profile', data: {
+        'name': name,
+        'phone': phone,
+        if (email != null && email.isNotEmpty) 'email': email,
+      });
+
       return response.data;
     } on DioException catch (e) {
       throw _handleDioError(e);

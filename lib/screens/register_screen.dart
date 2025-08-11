@@ -102,63 +102,21 @@ class _RegisterScreenState extends State<RegisterScreen>
             position: _slideAnimation,
             child: CustomScrollView(
               slivers: [
-                // App Bar
+                // App Bar - Matching Login Screen Design
                 SliverAppBar(
-                  expandedHeight: 200,
-                  floating: false,
-                  pinned: true,
-                  backgroundColor: AppColors.surface,
+                  backgroundColor: Colors.transparent,
                   elevation: 0,
-                  flexibleSpace: FlexibleSpaceBar(
-                    title: Text(
-                      'إنشاء حساب جديد',
-                      style: AppTextStyles.headlineLarge.copyWith(
-                        color: AppColors.surface,
-                      ),
-                    ),
-                    centerTitle: true,
-                    background: Container(
-                      decoration: const BoxDecoration(
-                        gradient: AppColors.modernGradient,
-                      ),
-                      child: Stack(
-                        children: [
-                          // Background Pattern
-                          Positioned(
-                            top: -50,
-                            right: -50,
-                            child: Container(
-                              width: 150,
-                              height: 150,
-                              decoration: BoxDecoration(
-                                color: AppColors.surface.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: -30,
-                            left: -30,
-                            child: Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                color: AppColors.surface.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                   leading: IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios,
-                      color: AppColors.surface,
-                    ),
+                    icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
                     onPressed: () => Navigator.pop(context),
                   ),
+                  title: Text(
+                    'إنشاء حساب جديد',
+                    style: AppTextStyles.headlineMedium.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  centerTitle: true,
                 ),
 
                 // Register Form
@@ -166,92 +124,47 @@ class _RegisterScreenState extends State<RegisterScreen>
                   padding: const EdgeInsets.all(20),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      const SizedBox(height: 30),
-
-                      // Welcome Text
-                      ScaleTransition(
-                        scale: _scaleAnimation,
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.textTertiary.withOpacity(0.1),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Container(
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  gradient: AppColors.primaryGradient,
-                                  borderRadius: BorderRadius.circular(40),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary.withOpacity(0.3),
-                                      blurRadius: 15,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.person_add,
-                                  color: AppColors.surface,
-                                  size: 40,
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                'انضم إلينا اليوم',
-                                style: AppTextStyles.headlineMedium,
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'أنشئ حسابك وساهم في مساعدة الطلاب',
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 20),
 
                       // Register Form
                       ScaleTransition(
                         scale: _scaleAnimation,
                         child: Container(
-                          padding: const EdgeInsets.all(25),
+                          padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
                             color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.textTertiary.withOpacity(0.1),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.surfaceVariant,
+                              width: 1,
+                            ),
                           ),
                           child: Form(
                             key: _formKey,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'معلومات الحساب',
-                                  style: AppTextStyles.headlineSmall,
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 4,
+                                      height: 20,
+                                      decoration: BoxDecoration(
+                                        gradient: AppColors.modernGradient,
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'معلومات الحساب',
+                                      style: AppTextStyles.headlineSmall.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                                                 const SizedBox(height: 25),
+                                const SizedBox(height: 24),
 
                                  // Name Field
                                  _buildTextField(
@@ -283,8 +196,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                                     if (value == null || value.isEmpty) {
                                       return 'يرجى إدخال رقم الهاتف';
                                     }
-                                    if (value.length < 10) {
-                                      return 'رقم الهاتف يجب أن يكون 10 أرقام على الأقل';
+                                    if (value.length != 8) {
+                                      return 'رقم الهاتف يجب أن يكون 8 أرقام';
                                     }
                                     return null;
                                   },
