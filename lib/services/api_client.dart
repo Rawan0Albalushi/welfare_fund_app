@@ -1,19 +1,17 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
   ApiClient._internal();
 
-  late Dio _dio;
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  Dio? _dio;
+  static const String _tokenKey = 'auth_token';
 
   Future<void> initialize() async {
-    await dotenv.load(fileName: ".env");
-    
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000/api/v1';
+    // Use default URL to avoid dotenv issues
+    final baseUrl = 'http://192.168.228.231:8000/api/v1';
     print('API Base URL: $baseUrl'); // Debug print
     
     _dio = Dio(BaseOptions(
@@ -27,10 +25,11 @@ class ApiClient {
     ));
 
     // Add interceptor for automatic token handling
-    _dio.interceptors.add(InterceptorsWrapper(
+    _dio!.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         // Add auth token to all requests
-        final token = await _storage.read(key: 'auth_token');
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString(_tokenKey);
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
@@ -39,7 +38,8 @@ class ApiClient {
       onError: (error, handler) async {
         // Handle 401 errors by clearing token and redirecting to login
         if (error.response?.statusCode == 401) {
-          await _storage.delete(key: 'auth_token');
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove(_tokenKey);
           // You can add navigation logic here if needed
         }
         handler.next(error);
@@ -47,18 +47,26 @@ class ApiClient {
     ));
   }
 
-  Dio get dio => _dio;
+  Dio get dio {
+    if (_dio == null) {
+      throw Exception('ApiClient not initialized. Please call initialize() first.');
+    }
+    return _dio!;
+  }
 
   Future<void> setAuthToken(String token) async {
-    await _storage.write(key: 'auth_token', value: token);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tokenKey, token);
   }
 
   Future<String?> getAuthToken() async {
-    return await _storage.read(key: 'auth_token');
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_tokenKey);
   }
 
   Future<void> clearAuthToken() async {
-    await _storage.delete(key: 'auth_token');
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenKey);
   }
 
   Future<bool> isAuthenticated() async {

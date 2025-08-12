@@ -1,17 +1,19 @@
 import 'package:dio/dio.dart';
+import 'dart:typed_data';
 import 'api_client.dart';
 
 class StudentRegistrationService {
   final ApiClient _apiClient = ApiClient();
 
-  // Submit student application for welfare fund support
-  Future<Map<String, dynamic>> submitStudentApplication({
+  // POST /api/v1/students/registration - Submit student registration
+  Future<Map<String, dynamic>> submitStudentRegistration({
     required String fullName,
     required String studentId,
     required String phone,
     required String university,
     required String college,
     required String major,
+    required String program,
     required String academicYear,
     required double gpa,
     required String gender,
@@ -20,37 +22,62 @@ class StudentRegistrationService {
     required String familySize,
     String? email,
     String? idCardImagePath,
+    Uint8List? idCardImageBytes,
+    String? address,
+    String? emergencyContact,
+    String? emergencyPhone,
+    String? financialNeed,
+    String? previousSupport,
   }) async {
     try {
-      // Create FormData for file upload if image is provided
-      FormData? formData;
+      // Convert academic year string to number
+      int academicYearNumber = _convertAcademicYearToNumber(academicYear);
+      
+      // Convert family size string to number
+      int familySizeNumber = _convertFamilySizeToNumber(familySize);
+      
+      // Convert income level to number
+      double familyIncome = _convertIncomeLevelToNumber(incomeLevel);
+      
       Map<String, dynamic> data = {
-        'full_name': fullName,
-        'student_id': studentId,
-        'phone': phone,
-        'university': university,
-        'college': college,
-        'major': major,
-        'academic_year': academicYear,
-        'gpa': gpa.toString(),
-        'gender': gender,
-        'marital_status': maritalStatus,
-        'income_level': incomeLevel,
-        'family_size': familySize,
-        if (email != null && email.isNotEmpty) 'email': email,
+        'program_id': 1, // Default program ID
+        'personal[full_name]': fullName,
+        'personal[student_id]': studentId,
+        'personal[email]': email ?? '',
+        'personal[phone]': phone,
+        'personal[gender]': gender == 'ذكر' ? 'male' : 'female',
+        'academic[university]': university,
+        'academic[college]': college,
+        'academic[major]': major,
+        'academic[program]': program,
+        'academic[academic_year]': academicYearNumber,
+        'academic[gpa]': gpa,
+        'financial[income_level]': _convertIncomeLevelToEnglish(incomeLevel),
+        'financial[family_size]': familySize,
       };
 
-      if (idCardImagePath != null) {
-        formData = FormData.fromMap(data);
+      // Print the data being sent to API
+      print('API Data being sent (form-data format):');
+      data.forEach((key, value) {
+        print('$key: $value');
+      });
+
+      // Always use FormData for multipart/form-data
+      FormData formData = FormData.fromMap(data);
+      
+      if (idCardImageBytes != null) {
         formData.files.add(MapEntry(
           'id_card_image',
-          await MultipartFile.fromFile(idCardImagePath),
+          MultipartFile.fromBytes(
+            idCardImageBytes,
+            filename: 'id_card.jpg',
+          ),
         ));
       }
 
       final response = await _apiClient.dio.post(
-        '/student-applications/submit',
-        data: formData ?? data,
+        '/students/registration',
+        data: formData,
       );
 
       return response.data;
@@ -59,35 +86,157 @@ class StudentRegistrationService {
     }
   }
 
-  // Get student application status
-  Future<Map<String, dynamic>> getApplicationStatus(String studentId) async {
+  // GET /api/v1/students/registration - Get all student registrations (for admin)
+  Future<List<Map<String, dynamic>>> getAllStudentRegistrations({
+    int? page,
+    int? limit,
+    String? status,
+    String? search,
+  }) async {
     try {
-      final response = await _apiClient.dio.get('/student-applications/status/$studentId');
+      Map<String, dynamic> queryParams = {};
+      if (page != null) queryParams['page'] = page;
+      if (limit != null) queryParams['limit'] = limit;
+      if (status != null) queryParams['status'] = status;
+      if (search != null) queryParams['search'] = search;
+
+      final response = await _apiClient.dio.get(
+        '/students/registration',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+
+      return List<Map<String, dynamic>>.from(response.data['data'] ?? []);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  // GET /api/v1/students/registration/{id} - Get specific student registration
+  Future<Map<String, dynamic>> getStudentRegistrationById(String id) async {
+    try {
+      final response = await _apiClient.dio.get('/students/registration/$id');
       return response.data;
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
   }
 
-  // Update student application
-  Future<Map<String, dynamic>> updateApplication({
-    required String studentId,
+  // POST /api/v1/students/registration/{id}/documents - Upload documents for student registration
+  Future<Map<String, dynamic>> uploadStudentDocuments({
+    required String registrationId,
+    String? idCardImagePath,
+    Uint8List? idCardImageBytes,
+    String? transcriptPath,
+    Uint8List? transcriptBytes,
+    String? incomeCertificatePath,
+    Uint8List? incomeCertificateBytes,
+    String? familyCardPath,
+    Uint8List? familyCardBytes,
+    String? otherDocumentsPath,
+    Uint8List? otherDocumentsBytes,
+  }) async {
+    try {
+      Map<String, dynamic> data = {};
+      FormData formData = FormData.fromMap(data);
+
+      // Add files if provided
+      if (idCardImageBytes != null) {
+        formData.files.add(MapEntry(
+          'id_card_image',
+          MultipartFile.fromBytes(
+            idCardImageBytes,
+            filename: 'id_card.jpg',
+          ),
+        ));
+      }
+
+      if (transcriptBytes != null) {
+        formData.files.add(MapEntry(
+          'transcript',
+          MultipartFile.fromBytes(
+            transcriptBytes,
+            filename: 'transcript.pdf',
+          ),
+        ));
+      }
+
+      if (incomeCertificateBytes != null) {
+        formData.files.add(MapEntry(
+          'income_certificate',
+          MultipartFile.fromBytes(
+            incomeCertificateBytes,
+            filename: 'income_certificate.pdf',
+          ),
+        ));
+      }
+
+      if (familyCardBytes != null) {
+        formData.files.add(MapEntry(
+          'family_card',
+          MultipartFile.fromBytes(
+            familyCardBytes,
+            filename: 'family_card.pdf',
+          ),
+        ));
+      }
+
+      if (otherDocumentsBytes != null) {
+        formData.files.add(MapEntry(
+          'other_documents',
+          MultipartFile.fromBytes(
+            otherDocumentsBytes,
+            filename: 'other_documents.pdf',
+          ),
+        ));
+      }
+
+      final response = await _apiClient.dio.post(
+        '/students/registration/$registrationId/documents',
+        data: formData,
+      );
+
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  // Get current user's student registration
+  Future<Map<String, dynamic>?> getCurrentUserRegistration() async {
+    try {
+      final response = await _apiClient.dio.get('/students/registration/my-registration');
+      return response.data;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return null; // No registration found
+      }
+      throw _handleDioError(e);
+    }
+  }
+
+  // Update student registration
+  Future<Map<String, dynamic>> updateStudentRegistration({
+    required String registrationId,
     required Map<String, dynamic> data,
     String? idCardImagePath,
+    Uint8List? idCardImageBytes,
   }) async {
     try {
       FormData? formData;
       
-      if (idCardImagePath != null) {
+      if (idCardImageBytes != null) {
         formData = FormData.fromMap(data);
         formData.files.add(MapEntry(
           'id_card_image',
-          await MultipartFile.fromFile(idCardImagePath),
+          MultipartFile.fromBytes(
+            idCardImageBytes,
+            filename: 'id_card.jpg',
+          ),
         ));
       }
 
       final response = await _apiClient.dio.put(
-        '/student-applications/update/$studentId',
+        '/students/registration/$registrationId',
         data: formData ?? data,
       );
 
@@ -97,13 +246,73 @@ class StudentRegistrationService {
     }
   }
 
-  // Get user's submitted applications
-  Future<List<Map<String, dynamic>>> getUserApplications() async {
+  // Delete student registration
+  Future<void> deleteStudentRegistration(String registrationId) async {
     try {
-      final response = await _apiClient.dio.get('/student-applications/my-applications');
-      return List<Map<String, dynamic>>.from(response.data['applications'] ?? []);
+      await _apiClient.dio.delete('/students/registration/$registrationId');
     } on DioException catch (e) {
       throw _handleDioError(e);
+    }
+  }
+
+  // Helper methods for data conversion
+  int _convertAcademicYearToNumber(String academicYear) {
+    switch (academicYear) {
+      case 'السنة الأولى':
+        return 1;
+      case 'السنة الثانية':
+        return 2;
+      case 'السنة الثالثة':
+        return 3;
+      case 'السنة الرابعة':
+        return 4;
+      case 'السنة الخامسة':
+        return 5;
+      case 'السنة السادسة':
+        return 6;
+      default:
+        return 1;
+    }
+  }
+
+  int _convertFamilySizeToNumber(String familySize) {
+    switch (familySize) {
+      case '1-3':
+        return 3;
+      case '4-6':
+        return 6;
+      case '7-9':
+        return 8;
+      case '10+':
+        return 10;
+      default:
+        return 3;
+    }
+  }
+
+  double _convertIncomeLevelToNumber(String incomeLevel) {
+    switch (incomeLevel) {
+      case 'منخفض':
+        return 2000.0;
+      case 'متوسط':
+        return 5000.0;
+      case 'مرتفع':
+        return 10000.0;
+      default:
+        return 5000.0;
+    }
+  }
+
+  String _convertIncomeLevelToEnglish(String incomeLevel) {
+    switch (incomeLevel) {
+      case 'منخفض':
+        return 'low';
+      case 'متوسط':
+        return 'medium';
+      case 'مرتفع':
+        return 'high';
+      default:
+        return 'medium';
     }
   }
 

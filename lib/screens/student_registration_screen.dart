@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../services/auth_service.dart';
 import '../services/student_registration_service.dart';
+
 
 class StudentRegistrationScreen extends StatefulWidget {
   const StudentRegistrationScreen({super.key});
@@ -31,6 +34,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   final _universityController = TextEditingController();
   final _collegeController = TextEditingController();
   final _majorController = TextEditingController();
+  final _programController = TextEditingController();
   final _academicYearController = TextEditingController();
   final _gpaController = TextEditingController();
 
@@ -41,6 +45,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   String _selectedIncomeLevel = 'منخفض';
   String _selectedFamilySize = '1-3';
   String? _selectedImagePath;
+  Uint8List? _selectedImageBytes;
   
   // Services
   final AuthService _authService = AuthService();
@@ -103,8 +108,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       curve: Curves.easeOutCubic,
     ));
     
-    _animationController.forward();
-    _progressAnimationController.forward();
+    // سيتم استدعاء startAnimations من _initializeScreen إذا كان المستخدم مسجل دخول
+    
+    // فحص المصادقة بعد تهيئة جميع العناصر
+    _initializeScreen();
   }
 
   @override
@@ -118,11 +125,26 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     _universityController.dispose();
     _collegeController.dispose();
     _majorController.dispose();
+    _programController.dispose();
     _academicYearController.dispose();
     _gpaController.dispose();
 
     super.dispose();
   }
+
+  Future<void> _initializeScreen() async {
+    print('Initializing screen, starting animations...');
+    _startAnimations();
+  }
+
+  void _startAnimations() {
+    _animationController.forward();
+    _progressAnimationController.forward();
+  }
+
+
+
+
 
 
 
@@ -171,8 +193,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       );
       
       if (image != null) {
+        final bytes = await image.readAsBytes();
         setState(() {
           _selectedImagePath = image.path;
+          _selectedImageBytes = bytes;
         });
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -204,8 +228,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       );
       
       if (image != null) {
+        final bytes = await image.readAsBytes();
         setState(() {
           _selectedImagePath = image.path;
+          _selectedImageBytes = bytes;
         });
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -228,7 +254,59 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   }
 
   void _submitRegistration() async {
+    // التحقق من الحقول المطلوبة
+    if (_selectedGender.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('يرجى اختيار الجنس'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    
+    if (_selectedMaritalStatus.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('يرجى اختيار الحالة الاجتماعية'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    
+    if (_selectedIncomeLevel.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('يرجى اختيار مستوى الدخل'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    
+    if (_selectedFamilySize.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('يرجى اختيار حجم الأسرة'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    
+    if (_programController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('يرجى إدخال اسم البرنامج'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    
     if (_formKey.currentState!.validate()) {
+      print('User authenticated, proceeding with registration');
       // Show loading dialog
       showDialog(
         context: context,
@@ -276,14 +354,32 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       );
 
       try {
-        // Submit student application for welfare fund support
-        await _studentService.submitStudentApplication(
+        // Print registration data for debugging
+        print('Submitting registration with data:');
+        print('Full Name: ${_fullNameController.text.trim()}');
+        print('Student ID: ${_studentIdController.text.trim()}');
+        print('Phone: ${_phoneController.text.trim()}');
+        print('University: ${_universityController.text.trim()}');
+        print('College: ${_collegeController.text.trim()}');
+        print('Major: ${_majorController.text.trim()}');
+        print('Program: ${_programController.text.trim()}');
+        print('Academic Year: ${_academicYearController.text}');
+        print('GPA: ${_gpaController.text}');
+        print('Gender: $_selectedGender');
+        print('Marital Status: $_selectedMaritalStatus');
+        print('Income Level: $_selectedIncomeLevel');
+        print('Family Size: $_selectedFamilySize');
+        print('Email: ${_emailController.text.trim()}');
+        
+        // Submit student registration
+        await _studentService.submitStudentRegistration(
           fullName: _fullNameController.text.trim(),
           studentId: _studentIdController.text.trim(),
           phone: _phoneController.text.trim(),
           university: _universityController.text.trim(),
           college: _collegeController.text.trim(),
           major: _majorController.text.trim(),
+          program: _programController.text.trim(),
           academicYear: _academicYearController.text,
           gpa: double.tryParse(_gpaController.text) ?? 0.0,
           gender: _selectedGender,
@@ -292,6 +388,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
           familySize: _selectedFamilySize,
           email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
           idCardImagePath: _selectedImagePath,
+          idCardImageBytes: _selectedImageBytes,
         );
 
         // Close loading dialog
@@ -305,10 +402,11 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         
         // Show error message
         if (mounted) {
+          print('Registration error: $error');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                error.toString(),
+                'خطأ في التسجيل: ${error.toString()}',
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: AppColors.surface,
                 ),
@@ -670,6 +768,25 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'يرجى إدخال التخصص';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                controller: _programController,
+                                label: 'البرنامج',
+                                hint: 'أدخل اسم البرنامج',
+                                icon: Icons.school,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'يرجى إدخال اسم البرنامج';
                                   }
                                   return null;
                                 },
@@ -1055,11 +1172,25 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: Image.file(
-                    File(_selectedImagePath!),
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
+                                  child: _selectedImageBytes != null
+                    ? Image.memory(
+                        _selectedImageBytes!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(
+                              Icons.check_circle,
+                              color: AppColors.success,
+                              size: 20,
+                            ),
+                          );
+                        },
+                      )
+                    : Container(
                         decoration: BoxDecoration(
                           color: AppColors.success.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
@@ -1069,9 +1200,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                           color: AppColors.success,
                           size: 20,
                         ),
-                      );
-                    },
-                  ),
+                      ),
                 ),
               )
             : Container(

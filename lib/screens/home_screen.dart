@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadSampleCampaigns();
-    _authService.initialize();
+    // AuthService is already initialized in main.dart
   }
 
   void _loadSampleCampaigns() {
@@ -476,13 +476,28 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _onRegister() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const StudentRegistrationScreen(),
-      ),
-    );
+  void _onRegister() async {
+    try {
+      final isAuthenticated = await _authService.isAuthenticated();
+      print('Auth check result for student registration: $isAuthenticated');
+      
+      if (!isAuthenticated) {
+        print('User not authenticated, showing bottom sheet');
+        _showLoginBottomSheet();
+        return;
+      }
+      
+      print('User authenticated, proceeding to student registration');
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const StudentRegistrationScreen(),
+        ),
+      );
+    } catch (error) {
+      print('Error checking authentication: $error');
+      _showLoginBottomSheet();
+    }
   }
 
   void _onCampaignTap(Campaign campaign) {

@@ -36,6 +36,10 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
+    
+    // Ensure AuthService is initialized
+    _ensureAuthServiceInitialized();
+    
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -83,6 +87,15 @@ class _LoginScreenState extends State<LoginScreen>
     _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _ensureAuthServiceInitialized() async {
+    try {
+      await _authService.initialize();
+      print('AuthService initialized in LoginScreen');
+    } catch (e) {
+      print('Error initializing AuthService in LoginScreen: $e');
+    }
   }
 
   @override
@@ -502,6 +515,11 @@ class _LoginScreenState extends State<LoginScreen>
       HapticFeedback.lightImpact();
 
       try {
+        // Ensure AuthService is initialized
+        if (_authService == null) {
+          throw Exception('AuthService is null');
+        }
+        
         // Call login API
         await _authService.login(
           phone: _phoneController.text.trim(),

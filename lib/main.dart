@@ -6,12 +6,22 @@ import 'constants/app_constants.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'services/auth_service.dart';
+import 'services/api_client.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Auth Service
-  await AuthService().initialize();
+  try {
+    // Initialize API Client
+    await ApiClient().initialize();
+    print('API Client initialized successfully');
+    
+    // Initialize Auth Service
+    await AuthService().initialize();
+    print('Auth Service initialized successfully');
+  } catch (e) {
+    print('Error during initialization: $e');
+  }
   
   runApp(const StudentWelfareFundApp());
 }

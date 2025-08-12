@@ -73,6 +73,12 @@ class _SplashScreenState extends State<SplashScreen>
     _slideController.forward();
     await Future.delayed(const Duration(milliseconds: 500));
     _scaleController.forward();
+    
+    // Navigate to home after animations complete
+    await Future.delayed(const Duration(milliseconds: 2000));
+    if (mounted) {
+      _navigateToHome();
+    }
   }
 
   @override

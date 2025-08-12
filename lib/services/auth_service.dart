@@ -6,13 +6,16 @@ class AuthService {
   factory AuthService() => _instance;
   AuthService._internal();
 
-  late Dio _dio;
-  static const String _baseUrl = 'http://192.168.100.130:8000/api/v1';
+  Dio? _dio;
   static const String _tokenKey = 'auth_token';
 
   Future<void> initialize() async {
+    // Use default URL to avoid dotenv issues
+    final baseUrl = 'http://192.168.228.231:8000/api/v1';
+    print('AuthService: Using base URL: $baseUrl');
+    
     _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
+      baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
       headers: {
@@ -22,7 +25,7 @@ class AuthService {
     ));
 
     // Add interceptor for automatic token handling
-    _dio.interceptors.add(InterceptorsWrapper(
+    _dio!.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         // Add auth token to all requests
         final token = await _getToken();
@@ -39,6 +42,8 @@ class AuthService {
         handler.next(error);
       },
     ));
+    
+    print('AuthService: Dio initialized successfully');
   }
 
   // Register user
@@ -49,8 +54,12 @@ class AuthService {
     required String name,
     String? email,
   }) async {
+    if (_dio == null) {
+      throw Exception('AuthService not initialized. Please call initialize() first.');
+    }
+    
     try {
-             final response = await _dio.post('/auth/register', data: {
+             final response = await _dio!.post('/auth/register', data: {
          'phone': phone,
          'password': password,
          'password_confirmation': passwordConfirmation,
@@ -76,8 +85,12 @@ class AuthService {
     required String phone,
     required String password,
   }) async {
+    if (_dio == null) {
+      throw Exception('AuthService not initialized. Please call initialize() first.');
+    }
+    
     try {
-      final response = await _dio.post('/auth/login', data: {
+      final response = await _dio!.post('/auth/login', data: {
         'phone': phone,
         'password': password,
       });
@@ -98,7 +111,7 @@ class AuthService {
   // Get current user profile
   Future<Map<String, dynamic>> getCurrentUser() async {
     try {
-      final response = await _dio.get('/auth/me');
+      final response = await _dio!.get('/auth/me');
       return response.data;
     } on DioException catch (e) {
       throw _handleDioError(e);
@@ -112,7 +125,7 @@ class AuthService {
     String? email,
   }) async {
     try {
-      final response = await _dio.patch('/me/edit/profile', data: {
+      final response = await _dio!.patch('/me/edit/profile', data: {
         'name': name,
         'phone': phone,
         if (email != null && email.isNotEmpty) 'email': email,
@@ -127,7 +140,7 @@ class AuthService {
   // Logout user
   Future<void> logout() async {
     try {
-      await _dio.post('/auth/logout');
+      await _dio!.post('/auth/logout');
     } on DioException catch (e) {
       // Even if logout fails on server, clear local token
       print('Logout error: ${e.message}');
