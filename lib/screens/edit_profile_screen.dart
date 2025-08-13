@@ -31,7 +31,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
   final _emailController = TextEditingController();
 
   // Form State
-  bool _isLoading = false;
+  final bool _isLoading = false;
   bool _isSaving = false;
   
   // Auth Service
@@ -178,7 +178,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                     width: 2,
                                   ),
                                 ),
-                                child: Icon(
+                                child: const Icon(
                                   Icons.person,
                                   size: 40,
                                   color: AppColors.surface,
@@ -369,28 +369,28 @@ class _EditProfileScreenState extends State<EditProfileScreen>
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
+              borderSide: const BorderSide(
                 color: AppColors.surfaceVariant,
                 width: 1.5,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
+              borderSide: const BorderSide(
                 color: AppColors.surfaceVariant,
                 width: 1.5,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
+              borderSide: const BorderSide(
                 color: AppColors.primary,
                 width: 2,
               ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
+              borderSide: const BorderSide(
                 color: AppColors.error,
                 width: 1.5,
               ),

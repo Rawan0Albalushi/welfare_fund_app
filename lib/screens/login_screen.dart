@@ -32,6 +32,10 @@ class _LoginScreenState extends State<LoginScreen>
   bool _isPasswordVisible = false;
   bool _rememberMe = false;
   bool _isLoading = false;
+  
+  // Application status variables
+  String status = 'pending'; // Default status
+  String? rejectionReason; // Rejection reason if applicable
 
   @override
   void initState() {
@@ -226,7 +230,7 @@ class _LoginScreenState extends State<LoginScreen>
                                             borderRadius: BorderRadius.circular(4),
                                           ),
                                         ),
-                                        Text(
+                                        const Text(
                                           'تذكرني',
                                           style: AppTextStyles.bodyMedium,
                                         ),
@@ -356,28 +360,28 @@ class _LoginScreenState extends State<LoginScreen>
                 : null,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
+              borderSide: const BorderSide(
                 color: AppColors.surfaceVariant,
                 width: 1.5,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
+              borderSide: const BorderSide(
                 color: AppColors.surfaceVariant,
                 width: 1.5,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
+              borderSide: const BorderSide(
                 color: AppColors.primary,
                 width: 2,
               ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
+              borderSide: const BorderSide(
                 color: AppColors.error,
                 width: 1.5,
               ),
@@ -516,11 +520,6 @@ class _LoginScreenState extends State<LoginScreen>
 
       try {
         // Ensure AuthService is initialized
-        if (_authService == null) {
-          throw Exception('AuthService is null');
-        }
-        
-        // Call login API
         await _authService.login(
           phone: _phoneController.text.trim(),
           password: _passwordController.text,
@@ -530,7 +529,7 @@ class _LoginScreenState extends State<LoginScreen>
           _isLoading = false;
         });
 
-        // Navigate to home screen on success
+        // Navigate to home screen on successful login
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

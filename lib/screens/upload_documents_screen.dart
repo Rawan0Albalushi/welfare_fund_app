@@ -52,16 +52,16 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
-                  leading: Icon(Icons.camera_alt, color: AppColors.primary),
-                  title: Text('التقاط صورة من الكاميرا'),
+                  leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                  title: const Text('التقاط صورة من الكاميرا'),
                   onTap: () {
                     Navigator.pop(context);
                     _pickDocumentFromCamera(documentType, onPicked);
                   },
                 ),
                 ListTile(
-                  leading: Icon(Icons.photo_library, color: AppColors.primary),
-                  title: Text('اختيار من المعرض'),
+                  leading: const Icon(Icons.photo_library, color: AppColors.primary),
+                  title: const Text('اختيار من المعرض'),
                   onTap: () {
                     Navigator.pop(context);
                     _pickDocumentFromGallery(documentType, onPicked);
@@ -280,7 +280,7 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
                 ),
               ),
               if (documentPath != null)
-                Icon(
+                const Icon(
                   Icons.check_circle,
                   color: AppColors.success,
                   size: 24,
@@ -388,7 +388,7 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
                   ),
                   child: Column(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.upload_file,
                         color: AppColors.primary,
                         size: 48,

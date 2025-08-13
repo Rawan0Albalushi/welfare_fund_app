@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
-import '../constants/app_constants.dart';
 
 class GiftDonationDetailsScreen extends StatefulWidget {
   final String categoryId;
@@ -84,11 +83,11 @@ class _GiftDonationDetailsScreenState extends State<GiftDonationDetailsScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: AppColors.surface,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.check_circle_outline,
                     size: 48,
                     color: AppColors.success,
@@ -297,7 +296,7 @@ class _GiftDonationDetailsScreenState extends State<GiftDonationDetailsScreen> {
                       },
                       activeColor: AppColors.primary,
                     ),
-                    Expanded(
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -373,11 +372,11 @@ class _GiftDonationDetailsScreenState extends State<GiftDonationDetailsScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : Row(
+                      : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.send, size: 20),
-                            const SizedBox(width: 8),
+                            Icon(Icons.send, size: 20),
+                            SizedBox(width: 8),
                             Text(
                               'إرسال الإهداء',
                               style: AppTextStyles.buttonLarge,

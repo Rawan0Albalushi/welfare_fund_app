@@ -179,11 +179,11 @@ class _StudentRegistrationsListScreenState extends State<StudentRegistrationsLis
                     prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppColors.textTertiary),
+                      borderSide: const BorderSide(color: AppColors.textTertiary),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppColors.textTertiary),
+                      borderSide: const BorderSide(color: AppColors.textTertiary),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -229,7 +229,7 @@ class _StudentRegistrationsListScreenState extends State<StudentRegistrationsLis
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.error_outline,
                               size: 64,
                               color: AppColors.error,
@@ -269,7 +269,7 @@ class _StudentRegistrationsListScreenState extends State<StudentRegistrationsLis
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.person_off,
                                   size: 64,
                                   color: AppColors.textSecondary,
@@ -421,7 +421,7 @@ class _StudentRegistrationsListScreenState extends State<StudentRegistrationsLis
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.school, size: 16, color: AppColors.textSecondary),
+                    const Icon(Icons.school, size: 16, color: AppColors.textSecondary),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -436,7 +436,7 @@ class _StudentRegistrationsListScreenState extends State<StudentRegistrationsLis
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.phone, size: 16, color: AppColors.textSecondary),
+                    const Icon(Icons.phone, size: 16, color: AppColors.textSecondary),
                     const SizedBox(width: 8),
                     Text(
                       registration.phone,
@@ -450,7 +450,7 @@ class _StudentRegistrationsListScreenState extends State<StudentRegistrationsLis
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today, size: 16, color: AppColors.textSecondary),
+                      const Icon(Icons.calendar_today, size: 16, color: AppColors.textSecondary),
                       const SizedBox(width: 8),
                       Text(
                         'تاريخ التسجيل: ${registration.createdAt!.toString().split(' ')[0]}',
@@ -464,7 +464,7 @@ class _StudentRegistrationsListScreenState extends State<StudentRegistrationsLis
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
+                    const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
                     const SizedBox(width: 8),
                     Text(
                       'اضغط لعرض التفاصيل',

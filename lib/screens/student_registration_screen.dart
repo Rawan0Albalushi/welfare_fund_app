@@ -12,7 +12,14 @@ import '../services/student_registration_service.dart';
 
 
 class StudentRegistrationScreen extends StatefulWidget {
-  const StudentRegistrationScreen({super.key});
+  final Map<String, dynamic>? existingData;
+  final bool isReadOnly;
+
+  const StudentRegistrationScreen({
+    super.key,
+    this.existingData,
+    this.isReadOnly = false,
+  });
 
   @override
   State<StudentRegistrationScreen> createState() => _StudentRegistrationScreenState();
@@ -41,7 +48,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
 
   // Form Values
   String _selectedGender = 'ذكر';
-  String _selectedMaritalStatus = 'أعزب';
+  final String _selectedMaritalStatus = 'أعزب';
   String _selectedIncomeLevel = 'منخفض';
   String _selectedFamilySize = '1-3';
   String? _selectedImagePath;
@@ -107,11 +114,69 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       parent: _animationController,
       curve: Curves.easeOutCubic,
     ));
-    
-    // سيتم استدعاء startAnimations من _initializeScreen إذا كان المستخدم مسجل دخول
+
+    // Load existing data if provided
+    if (widget.existingData != null) {
+      _loadExistingData();
+    }
     
     // فحص المصادقة بعد تهيئة جميع العناصر
     _initializeScreen();
+  }
+
+  void _loadExistingData() {
+    final data = widget.existingData!;
+    
+    // Load personal data
+    _fullNameController.text = data['personal']?['full_name'] ?? '';
+    _studentIdController.text = data['personal']?['student_id'] ?? '';
+    _emailController.text = data['personal']?['email'] ?? '';
+    _phoneController.text = data['personal']?['phone'] ?? '';
+    
+    // Load academic data
+    _universityController.text = data['academic']?['university'] ?? '';
+    _collegeController.text = data['academic']?['college'] ?? '';
+    _majorController.text = data['academic']?['major'] ?? '';
+    _programController.text = data['academic']?['program'] ?? '';
+    _academicYearController.text = _convertAcademicYearToString(data['academic']?['academic_year'] ?? 1);
+    _gpaController.text = (data['academic']?['gpa'] ?? 0.0).toString();
+    
+    // Load financial data
+    _selectedIncomeLevel = _convertIncomeLevelToArabic(data['financial']?['income_level'] ?? 'low');
+    _selectedFamilySize = _convertFamilySizeToString(data['financial']?['family_size'] ?? 3);
+    
+    // Load gender
+    _selectedGender = data['personal']?['gender'] == 'male' ? 'ذكر' : 'أنثى';
+  }
+
+  String _convertAcademicYearToString(dynamic year) {
+    final yearNum = year is int ? year : int.tryParse(year.toString()) ?? 1;
+    switch (yearNum) {
+      case 1: return 'السنة الأولى';
+      case 2: return 'السنة الثانية';
+      case 3: return 'السنة الثالثة';
+      case 4: return 'السنة الرابعة';
+      case 5: return 'السنة الخامسة';
+      case 6: return 'السنة السادسة';
+      default: return 'السنة الأولى';
+    }
+  }
+
+  String _convertIncomeLevelToArabic(String level) {
+    switch (level.toLowerCase()) {
+      case 'low': return 'منخفض';
+      case 'medium': return 'متوسط';
+      case 'high': return 'مرتفع';
+      default: return 'منخفض';
+    }
+  }
+
+  String _convertFamilySizeToString(dynamic size) {
+    final sizeNum = size is int ? size : int.tryParse(size.toString()) ?? 3;
+    if (sizeNum <= 3) return '1-3';
+    if (sizeNum <= 6) return '4-6';
+    if (sizeNum <= 9) return '7-9';
+    return '10+';
   }
 
   @override
@@ -156,21 +221,21 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('اختر مصدر الصورة'),
+          title: const Text('اختر مصدر الصورة'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: Icon(Icons.camera_alt, color: AppColors.primary),
-                title: Text('التقاط صورة من الكاميرا'),
+                leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                title: const Text('التقاط صورة من الكاميرا'),
                 onTap: () {
                   Navigator.pop(context);
                   _pickImageFromCamera();
                 },
               ),
               ListTile(
-                leading: Icon(Icons.photo_library, color: AppColors.primary),
-                title: Text('اختيار من المعرض'),
+                leading: const Icon(Icons.photo_library, color: AppColors.primary),
+                title: const Text('اختيار من المعرض'),
                 onTap: () {
                   Navigator.pop(context);
                   _pickImageFromGallery();
@@ -200,7 +265,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         });
         
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('تم التقاط صورة البطاقة الشخصية بنجاح'),
             backgroundColor: AppColors.success,
             duration: Duration(seconds: 2),
@@ -209,7 +274,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('حدث خطأ أثناء التقاط الصورة'),
           backgroundColor: AppColors.error,
           duration: Duration(seconds: 2),
@@ -235,7 +300,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         });
         
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('تم رفع صورة البطاقة الشخصية بنجاح'),
             backgroundColor: AppColors.success,
             duration: Duration(seconds: 2),
@@ -244,7 +309,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('حدث خطأ أثناء رفع الصورة'),
           backgroundColor: AppColors.error,
           duration: Duration(seconds: 2),
@@ -257,7 +322,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     // التحقق من الحقول المطلوبة
     if (_selectedGender.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('يرجى اختيار الجنس'),
           backgroundColor: AppColors.error,
         ),
@@ -267,7 +332,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     if (_selectedMaritalStatus.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('يرجى اختيار الحالة الاجتماعية'),
           backgroundColor: AppColors.error,
         ),
@@ -277,7 +342,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     if (_selectedIncomeLevel.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('يرجى اختيار مستوى الدخل'),
           backgroundColor: AppColors.error,
         ),
@@ -287,7 +352,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     if (_selectedFamilySize.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('يرجى اختيار حجم الأسرة'),
           backgroundColor: AppColors.error,
         ),
@@ -297,7 +362,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     if (_programController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('يرجى إدخال اسم البرنامج'),
           backgroundColor: AppColors.error,
         ),
@@ -443,7 +508,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                   color: AppColors.success.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(50),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.check_circle,
                   color: AppColors.success,
                   size: 48,
@@ -551,7 +616,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                           color: AppColors.surface.withOpacity(0.2),
                                           borderRadius: BorderRadius.circular(20),
                                         ),
-                                        child: Text(
+                                        child: const Text(
                                           'تسجيل الطالب',
                                           style: TextStyle(
                                             fontSize: 12,
@@ -603,7 +668,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Expanded(
+                                  const Expanded(
                                     child: Text(
                                       'املأ النموذج التالي لتسجيل طلبك',
                                       style: TextStyle(
@@ -818,7 +883,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                 label: 'المعدل التراكمي',
                                 hint: 'أدخل المعدل التراكمي',
                                 icon: Icons.grade,
-                                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                 inputFormatters: [
                                   FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
                                 ],
@@ -929,7 +994,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.send,
                                   size: 20,
                                 ),
@@ -960,7 +1025,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                           ),
                           child: Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.privacy_tip_outlined,
                                 color: AppColors.info,
                                 size: 20,
@@ -1111,7 +1176,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
           ),
         ),
         style: AppTextStyles.bodyLarge,
-        icon: Icon(
+        icon: const Icon(
           Icons.keyboard_arrow_down,
           color: AppColors.primary,
         ),
@@ -1182,7 +1247,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                               color: AppColors.success.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: Icon(
+                            child: const Icon(
                               Icons.check_circle,
                               color: AppColors.success,
                               size: 20,
@@ -1195,7 +1260,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                           color: AppColors.success.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.check_circle,
                           color: AppColors.success,
                           size: 20,
@@ -1209,7 +1274,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                   color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.upload,
                   color: AppColors.primary,
                   size: 20,
@@ -1227,5 +1292,3 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     );
   }
 }
-
- 

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
-import '../constants/app_constants.dart';
 
 class MyDonationsScreen extends StatefulWidget {
   const MyDonationsScreen({super.key});
@@ -449,7 +448,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.card_giftcard,
                               size: 12,
                               color: AppColors.primary,
@@ -489,11 +488,11 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.surfaceVariant,
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: const Icon(
               Icons.history,
               size: 48,
               color: AppColors.textSecondary,

@@ -5,6 +5,7 @@ import '../constants/app_constants.dart';
 import '../widgets/common/campaign_card.dart';
 import '../models/campaign.dart';
 import '../services/auth_service.dart';
+import '../services/student_registration_service.dart';
 import 'quick_donate_amount_screen.dart';
 import 'gift_donation_screen.dart';
 import 'my_donations_screen.dart';
@@ -24,15 +25,21 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final AuthService _authService = AuthService();
+  final StudentRegistrationService _studentService = StudentRegistrationService();
   List<Campaign> _campaigns = [];
   List<Campaign> _allCampaigns = []; // جميع الحملات الأصلية
   int _currentIndex = 0; // Home tab is active (الرئيسية في index 0)
   String _selectedFilter = 'الكل'; // Track selected filter
+  
+  // Application status variables
+  Map<String, dynamic>? _applicationData;
+  bool _isCheckingApplication = false;
 
   @override
   void initState() {
     super.initState();
     _loadSampleCampaigns();
+    _checkApplicationStatus();
     // AuthService is already initialized in main.dart
   }
 
@@ -249,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 
                 // Enhanced Title with gradient
                 ShaderMask(
-                  shaderCallback: (bounds) => LinearGradient(
+                  shaderCallback: (bounds) => const LinearGradient(
                     colors: [
                       AppColors.primary,
                       AppColors.secondary,
@@ -297,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: double.infinity,
                     height: 56,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
@@ -476,6 +483,29 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _checkApplicationStatus() async {
+    try {
+      final isAuthenticated = await _authService.isAuthenticated();
+      if (!isAuthenticated) return;
+      
+      setState(() {
+        _isCheckingApplication = true;
+      });
+      
+      final application = await _studentService.getCurrentUserRegistration();
+      
+      setState(() {
+        _applicationData = application;
+        _isCheckingApplication = false;
+      });
+    } catch (error) {
+      print('Error checking application status: $error');
+      setState(() {
+        _isCheckingApplication = false;
+      });
+    }
+  }
+
   void _onRegister() async {
     try {
       final isAuthenticated = await _authService.isAuthenticated();
@@ -487,16 +517,310 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
       
-      print('User authenticated, proceeding to student registration');
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const StudentRegistrationScreen(),
-        ),
-      );
+      // If user has a registration, show it in read-only mode
+      if (_applicationData != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StudentRegistrationScreen(
+              existingData: _applicationData,
+              isReadOnly: true,
+            ),
+          ),
+        );
+      } else {
+        // No registration, navigate to registration screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const StudentRegistrationScreen(),
+          ),
+        );
+      }
     } catch (error) {
       print('Error checking authentication: $error');
       _showLoginBottomSheet();
+    }
+  }
+
+  void _showApplicationStatus(Map<String, dynamic> application) {
+    final status = application['status'] ?? 'unknown';
+    final rejectionReason = application['rejection_reason'];
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        content: Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Application Status
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(status).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _getStatusColor(status).withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _getStatusIcon(status),
+                          color: _getStatusColor(status),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'حالة طلبك:',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: _getStatusColor(status),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _getStatusText(status),
+                      style: AppTextStyles.bodyLarge.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: _getStatusColor(status),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _getStatusDescription(status),
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    
+                    // Rejection reason if applicable
+                    if (status.toLowerCase() == 'rejected' && rejectionReason != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.error.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: AppColors.error,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'سبب الرفض:',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.error,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              rejectionReason,
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.surface,
+                        foregroundColor: AppColors.textPrimary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: AppColors.textTertiary.withOpacity(0.3),
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        'إغلاق',
+                        style: AppTextStyles.buttonMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  if (status.toLowerCase() == 'rejected')
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const StudentRegistrationScreen(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.surface,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'إعادة التقديم',
+                          style: AppTextStyles.buttonMedium.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'under_review':
+        return 'تحت المراجعة';
+      case 'approved':
+        return 'تم القبول';
+      case 'rejected':
+        return 'تم الرفض';
+      case 'pending':
+        return 'في الانتظار';
+      default:
+        return status;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'under_review':
+        return AppColors.warning;
+      case 'approved':
+        return AppColors.success;
+      case 'rejected':
+        return AppColors.error;
+      case 'pending':
+        return AppColors.info;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'under_review':
+        return Icons.hourglass_empty;
+      case 'approved':
+        return Icons.check_circle;
+      case 'rejected':
+        return Icons.cancel;
+      case 'pending':
+        return Icons.schedule;
+      default:
+        return Icons.info;
+    }
+  }
+
+  String _getStatusDescription(String status) {
+    switch (status.toLowerCase()) {
+      case 'under_review':
+        return 'طلبك قيد المراجعة من قبل اللجنة المختصة.';
+      case 'approved':
+        return 'مبروك! تم قبول طلبك. سيتم التواصل معك قريباً.';
+      case 'rejected':
+        return 'للأسف تم رفض طلبك. يمكنك تعديل البيانات وإعادة التقديم.';
+      case 'pending':
+        return 'طلبك في قائمة الانتظار. سيتم مراجعته قريباً.';
+      default:
+        return 'حالة الطلب غير معروفة.';
+    }
+  }
+
+  String _getButtonText() {
+    if (_isCheckingApplication) {
+      return 'جاري التحقق...';
+    }
+    
+    if (_applicationData == null) {
+      return 'سجل الآن';
+    }
+    
+    final status = _applicationData!['status'] ?? 'unknown';
+    switch (status.toLowerCase()) {
+      case 'under_review':
+        return 'تحت المراجعة';
+      case 'approved':
+        return 'تم القبول';
+      case 'rejected':
+        return 'إعادة التقديم';
+      case 'pending':
+        return 'في الانتظار';
+      default:
+        return 'عرض الطلب';
+    }
+  }
+
+  Color _getButtonColor() {
+    if (_applicationData == null) {
+      return AppColors.primary;
+    }
+    
+    final status = _applicationData!['status'] ?? 'unknown';
+    switch (status.toLowerCase()) {
+      case 'under_review':
+        return AppColors.warning;
+      case 'approved':
+        return AppColors.success;
+      case 'rejected':
+        return AppColors.error;
+      case 'pending':
+        return AppColors.info;
+      default:
+        return AppColors.primary;
     }
   }
 
@@ -787,7 +1111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                        Shadow(
                                          color: Colors.black.withOpacity(0.3),
                                          blurRadius: 8,
-                                         offset: Offset(0, 2),
+                                         offset: const Offset(0, 2),
                                        ),
                                      ],
                                    ),
@@ -802,7 +1126,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                        Shadow(
                                          color: Colors.black.withOpacity(0.2),
                                          blurRadius: 6,
-                                         offset: Offset(0, 1),
+                                         offset: const Offset(0, 1),
                                        ),
                                      ],
                                    ),
@@ -835,16 +1159,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                              mainAxisAlignment: MainAxisAlignment.center,
                                              mainAxisSize: MainAxisSize.min,
                                              children: [
-                                               Icon(
+                                               const Icon(
                                                  Icons.edit_note,
                                                  color: AppColors.primary,
                                                  size: 20,
                                                ),
                                                const SizedBox(width: 8),
                                                Text(
-                                                 'سجل الآن',
+                                                 _getButtonText(),
                                                  style: AppTextStyles.buttonMedium.copyWith(
-                                                   color: AppColors.primary,
+                                                   color: _getButtonColor(),
                                                    fontWeight: FontWeight.w600,
                                                    fontSize: 15,
                                                    shadows: [
@@ -880,7 +1204,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: AppConstants.defaultPadding),
                   
                   // Modern Filters
-                  Container(
+                  SizedBox(
                     height: 50,
                     child: ListView(
                       scrollDirection: Axis.horizontal,
@@ -942,7 +1266,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: AppConstants.defaultPadding),
                     
                     // Recent Donations List
-                    Container(
+                    SizedBox(
                       height: 180,
                       child: ListView(
                         scrollDirection: Axis.horizontal,
@@ -1237,7 +1561,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: AppColors.primary.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.favorite,
                     size: 12,
                     color: AppColors.primary,

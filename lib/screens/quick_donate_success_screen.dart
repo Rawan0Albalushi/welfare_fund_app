@@ -281,7 +281,7 @@ class _QuickDonateSuccessScreenState extends State<QuickDonateSuccessScreen>
                 ),
                 child: Column(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.volunteer_activism,
                       color: AppColors.success,
                       size: 32,
@@ -351,7 +351,7 @@ class _QuickDonateSuccessScreenState extends State<QuickDonateSuccessScreen>
                 ),
                 child: Column(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.favorite,
                       color: AppColors.primary,
                       size: 24,

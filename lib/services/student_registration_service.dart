@@ -204,10 +204,26 @@ class StudentRegistrationService {
   // Get current user's student registration
   Future<Map<String, dynamic>?> getCurrentUserRegistration() async {
     try {
+      print('Calling API: /students/registration/my-registration');
       final response = await _apiClient.dio.get('/students/registration/my-registration');
+      print('API Response: ${response.data}');
+      
+      // Extract data from response
+      print('Response data type: ${response.data.runtimeType}');
+      print('Response data keys: ${response.data.keys}');
+      
+      if (response.data['data'] != null) {
+        print('Returning data from response.data[\'data\']');
+        return response.data['data'];
+      }
+      print('Returning full response.data');
       return response.data;
     } on DioException catch (e) {
+      print('DioException in getCurrentUserRegistration: ${e.message}');
+      print('Response status: ${e.response?.statusCode}');
+      print('Response data: ${e.response?.data}');
       if (e.response?.statusCode == 404) {
+        print('No registration found (404)');
         return null; // No registration found
       }
       throw _handleDioError(e);

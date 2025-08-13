@@ -71,7 +71,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
   void _proceedToDonation() {
     if (_selectedAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('يرجى اختيار مبلغ للتبرع'),
           backgroundColor: AppColors.error,
         ),
@@ -459,7 +459,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                         ),
                         child: Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.security,
                               color: AppColors.info,
                               size: 20,

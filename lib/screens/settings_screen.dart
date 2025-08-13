@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../services/auth_service.dart';
-import 'login_screen.dart';
-import 'register_screen.dart';
+import 'login_screen.dart' as login;
 import 'edit_profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -267,7 +266,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
@@ -743,7 +742,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const LoginScreen(),
+                builder: (context) => const login.LoginScreen(),
               ),
             ).then((_) => _checkAuthStatus());
           },

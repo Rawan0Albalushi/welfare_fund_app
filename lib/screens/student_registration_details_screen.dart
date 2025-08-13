@@ -106,7 +106,7 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.error_outline,
                         size: 64,
                         color: AppColors.error,
@@ -146,7 +146,7 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.person_off,
                             size: 64,
                             color: AppColors.textSecondary,

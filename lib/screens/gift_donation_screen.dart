@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
-import '../constants/app_constants.dart';
 import 'gift_donation_details_screen.dart';
 
 class GiftDonationScreen extends StatefulWidget {
@@ -250,7 +248,7 @@ class _GiftDonationScreenState extends State<GiftDonationScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: _filteredPrograms.length,
-                  separatorBuilder: (context, index) => Divider(
+                  separatorBuilder: (context, index) => const Divider(
                     height: 1,
                     color: AppColors.surfaceVariant,
                   ),
@@ -280,7 +278,7 @@ class _GiftDonationScreenState extends State<GiftDonationScreen> {
                         ),
                       ),
                       trailing: isSelected
-                          ? Icon(
+                          ? const Icon(
                               Icons.check_circle,
                               color: AppColors.primary,
                               size: 24,
@@ -312,11 +310,11 @@ class _GiftDonationScreenState extends State<GiftDonationScreen> {
                   ),
                   elevation: 0,
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.arrow_forward_ios, size: 20),
-                    const SizedBox(width: 8),
+                    Icon(Icons.arrow_forward_ios, size: 20),
+                    SizedBox(width: 8),
                     Text(
                       'التالي',
                       style: AppTextStyles.buttonLarge,
