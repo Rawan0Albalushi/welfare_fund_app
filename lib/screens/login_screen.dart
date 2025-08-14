@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../services/auth_service.dart';
+import '../providers/auth_provider.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -519,36 +521,57 @@ class _LoginScreenState extends State<LoginScreen>
       HapticFeedback.lightImpact();
 
       try {
-        // Ensure AuthService is initialized
-        await _authService.login(
-          phone: _phoneController.text.trim(),
-          password: _passwordController.text,
+        // Get AuthProvider and login
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final success = await authProvider.login(
+          _phoneController.text.trim(),
+          _passwordController.text,
         );
 
         setState(() {
           _isLoading = false;
         });
 
-        // Navigate to home screen on successful login
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'تم تسجيل الدخول بنجاح',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.surface,
+        if (success) {
+          // Navigate to home screen on successful login
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'تم تسجيل الدخول بنجاح',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.surface,
+                  ),
+                ),
+                backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            );
+            
+            // Navigate to home screen
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'فشل في تسجيل الدخول. يرجى التحقق من البيانات',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.surface,
+                  ),
+                ),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-            ),
-          );
-          
-          // Navigate to home screen
-          Navigator.pushReplacementNamed(context, '/home');
+            );
+          }
         }
       } catch (error) {
         setState(() {

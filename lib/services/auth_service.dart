@@ -11,7 +11,7 @@ class AuthService {
 
   Future<void> initialize() async {
     // Use default URL to avoid dotenv issues
-    const baseUrl = 'http://192.168.100.130:8000/api/v1';
+    const baseUrl = 'http://192.168.131.231:8000/api';
     print('AuthService: Using base URL: $baseUrl');
     
     _dio = Dio(BaseOptions(
@@ -112,6 +112,8 @@ class AuthService {
   Future<Map<String, dynamic>> getCurrentUser() async {
     try {
       final response = await _dio!.get('/auth/me');
+      print('AuthService: getCurrentUser response: ${response.data}');
+      print('AuthService: getCurrentUser response keys: ${response.data.keys}');
       return response.data;
     } on DioException catch (e) {
       throw _handleDioError(e);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
@@ -6,6 +7,7 @@ import '../widgets/common/campaign_card.dart';
 import '../models/campaign.dart';
 import '../services/auth_service.dart';
 import '../services/student_registration_service.dart';
+import '../providers/auth_provider.dart';
 import 'quick_donate_amount_screen.dart';
 import 'gift_donation_screen.dart';
 import 'my_donations_screen.dart';
@@ -40,7 +42,18 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadSampleCampaigns();
     _checkApplicationStatus();
-    // AuthService is already initialized in main.dart
+    
+    // Listen to auth changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      authProvider.addListener(_onAuthStateChanged);
+    });
+  }
+
+  void _onAuthStateChanged() {
+    // Update application status when auth state changes
+    print('HomeScreen: Auth state changed, updating application status...');
+    _checkApplicationStatus();
   }
 
   void _loadSampleCampaigns() {
@@ -116,6 +129,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    // Remove auth listener
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      authProvider.removeListener(_onAuthStateChanged);
+    } catch (e) {
+      // Ignore if provider is not available
+    }
+    
     _searchController.dispose();
     super.dispose();
   }
@@ -140,7 +161,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onMyDonations() async {
     try {
-      final isAuthenticated = await _authService.isAuthenticated();
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final isAuthenticated = authProvider.isAuthenticated;
       
       if (!mounted) return; // تحقق من أن الـ widget لا يزال موجوداً
       
@@ -485,19 +507,40 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _checkApplicationStatus() async {
     try {
-      final isAuthenticated = await _authService.isAuthenticated();
-      if (!isAuthenticated) return;
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final isAuthenticated = authProvider.isAuthenticated;
+      print('HomeScreen: Checking application status, isAuthenticated: $isAuthenticated');
+      if (!isAuthenticated) {
+        print('HomeScreen: User not authenticated, clearing application data');
+        setState(() {
+          _applicationData = null;
+          _isCheckingApplication = false;
+        });
+        return;
+      }
       
       setState(() {
         _isCheckingApplication = true;
       });
       
+      print('HomeScreen: Fetching latest application data from server...');
       final application = await _studentService.getCurrentUserRegistration();
+      
+      // Debug: Print application data
+      print('=== Application Status Debug ===');
+      print('Application data: $application');
+      if (application != null) {
+        print('Status: ${application['status']}');
+        print('Rejection reason: ${application['rejection_reason']}');
+      }
+      print('===============================');
       
       setState(() {
         _applicationData = application;
         _isCheckingApplication = false;
       });
+      
+      print('HomeScreen: Application status updated successfully');
     } catch (error) {
       print('Error checking application status: $error');
       setState(() {
@@ -508,7 +551,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onRegister() async {
     try {
-      final isAuthenticated = await _authService.isAuthenticated();
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final isAuthenticated = authProvider.isAuthenticated;
       print('Auth check result for student registration: $isAuthenticated');
       
       if (!isAuthenticated) {
@@ -519,12 +563,18 @@ class _HomeScreenState extends State<HomeScreen> {
       
       // If user has a registration, show it in read-only mode
       if (_applicationData != null) {
+        // Debug: Print data being passed to registration screen
+        print('=== Navigation Debug ===');
+        print('Passing data to registration screen: $_applicationData');
+        print('Status: ${_applicationData!['status']}');
+        print('========================');
+        
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => StudentRegistrationScreen(
               existingData: _applicationData,
-              isReadOnly: true,
+              isReadOnly: false, // Allow editing for re-submission
             ),
           ),
         );
@@ -723,7 +773,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _getStatusText(String status) {
     switch (status.toLowerCase()) {
       case 'under_review':
-        return 'تحت المراجعة';
+        return 'طلبك قيد المراجعة';
       case 'approved':
         return 'تم القبول';
       case 'rejected':
@@ -790,16 +840,27 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     
     final status = _applicationData!['status'] ?? 'unknown';
+    
+    // Debug: Print button text decision
+    print('=== Button Text Debug ===');
+    print('Status: $status');
+    print('Status lowercase: ${status.toLowerCase()}');
+    
     switch (status.toLowerCase()) {
       case 'under_review':
+        print('Button text: تحت المراجعة');
         return 'تحت المراجعة';
       case 'approved':
+        print('Button text: تم القبول');
         return 'تم القبول';
       case 'rejected':
+        print('Button text: إعادة التقديم');
         return 'إعادة التقديم';
       case 'pending':
+        print('Button text: في الانتظار');
         return 'في الانتظار';
       default:
+        print('Button text: عرض الطلب (default)');
         return 'عرض الطلب';
     }
   }
@@ -835,9 +896,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final isAuthenticated = authProvider.isAuthenticated;
+        final userProfile = authProvider.userProfile;
+        
+        print('HomeScreen: Building with isAuthenticated: $isAuthenticated');
+        print('HomeScreen: User profile: ${userProfile?.keys}');
+        
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: Column(
         children: [
           // Modern Compact Header Section
           Container(
@@ -1396,6 +1465,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+        );
+      },
     );
   }
 

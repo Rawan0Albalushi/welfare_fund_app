@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
+import '../providers/auth_provider.dart';
 import 'home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -72,6 +74,10 @@ class _SplashScreenState extends State<SplashScreen>
     _slideController.forward();
     await Future.delayed(const Duration(milliseconds: 500));
     _scaleController.forward();
+    
+    // Initialize auth provider
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.initialize();
     
     // Navigate to home after animations complete
     await Future.delayed(const Duration(milliseconds: 2000));

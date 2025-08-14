@@ -28,6 +28,7 @@ class StudentRegistrationService {
     String? emergencyPhone,
     String? financialNeed,
     String? previousSupport,
+    int? programId,
   }) async {
     try {
       // Convert academic year string to number
@@ -40,7 +41,7 @@ class StudentRegistrationService {
       double familyIncome = _convertIncomeLevelToNumber(incomeLevel);
       
       Map<String, dynamic> data = {
-        'program_id': 1, // Default program ID
+        'program_id': programId ?? 1, // Use selected program ID or default to 1
         'personal[full_name]': fullName,
         'personal[student_id]': studentId,
         'personal[email]': email ?? '',
@@ -76,7 +77,7 @@ class StudentRegistrationService {
       }
 
       final response = await _apiClient.dio.post(
-        '/students/registration',
+        '/v1/students/registration',
         data: formData,
       );
 
@@ -101,7 +102,7 @@ class StudentRegistrationService {
       if (search != null) queryParams['search'] = search;
 
       final response = await _apiClient.dio.get(
-        '/students/registration',
+        '/v1/students/registration',
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
 
@@ -114,7 +115,7 @@ class StudentRegistrationService {
   // GET /api/v1/students/registration/{id} - Get specific student registration
   Future<Map<String, dynamic>> getStudentRegistrationById(String id) async {
     try {
-      final response = await _apiClient.dio.get('/students/registration/$id');
+      final response = await _apiClient.dio.get('/v1/students/registration/$id');
       return response.data;
     } on DioException catch (e) {
       throw _handleDioError(e);
@@ -191,7 +192,7 @@ class StudentRegistrationService {
       }
 
       final response = await _apiClient.dio.post(
-        '/students/registration/$registrationId/documents',
+        '/v1/students/registration/$registrationId/documents',
         data: formData,
       );
 
@@ -204,8 +205,8 @@ class StudentRegistrationService {
   // Get current user's student registration
   Future<Map<String, dynamic>?> getCurrentUserRegistration() async {
     try {
-      print('Calling API: /students/registration/my-registration');
-      final response = await _apiClient.dio.get('/students/registration/my-registration');
+      print('Calling API: /v1/students/registration/my-registration');
+      final response = await _apiClient.dio.get('/v1/students/registration/my-registration');
       print('API Response: ${response.data}');
       
       // Extract data from response
@@ -252,7 +253,7 @@ class StudentRegistrationService {
       }
 
       final response = await _apiClient.dio.put(
-        '/students/registration/$registrationId',
+        '/v1/students/registration/$registrationId',
         data: formData ?? data,
       );
 
@@ -265,8 +266,47 @@ class StudentRegistrationService {
   // Delete student registration
   Future<void> deleteStudentRegistration(String registrationId) async {
     try {
-      await _apiClient.dio.delete('/students/registration/$registrationId');
+      await _apiClient.dio.delete('/v1/students/registration/$registrationId');
     } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  // GET /api/v1/programs/support - Get all support programs
+  Future<List<Map<String, dynamic>>> getSupportPrograms() async {
+    try {
+      final response = await _apiClient.dio.get('/v1/programs/support');
+      
+      print('API Response for programs: ${response.data}');
+      print('Response data type: ${response.data.runtimeType}');
+      
+      if (response.data['data'] != null) {
+        final programs = List<Map<String, dynamic>>.from(response.data['data']);
+        print('Raw programs data: $programs');
+        
+        // Print each program details
+        for (int i = 0; i < programs.length; i++) {
+          final program = programs[i];
+          print('Program $i: id=${program['id']}, title=${program['title']}, type=${program.runtimeType}');
+        }
+        
+        return programs;
+      } else if (response.data is List) {
+        // Handle case where response.data is directly a list
+        final programs = List<Map<String, dynamic>>.from(response.data);
+        print('Direct list response: $programs');
+        return programs;
+      }
+      
+      print('No data field found in response');
+      return [];
+    } on DioException catch (e) {
+      print('Error fetching support programs: ${e.message}');
+      print('Response status: ${e.response?.statusCode}');
+      print('Response data: ${e.response?.data}');
+      if (e.response?.statusCode == 404) {
+        return []; // Return empty list if no programs found
+      }
       throw _handleDioError(e);
     }
   }

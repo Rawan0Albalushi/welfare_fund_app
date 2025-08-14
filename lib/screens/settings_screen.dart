@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
+import '../constants/app_constants.dart';
 import '../services/auth_service.dart';
+import '../providers/auth_provider.dart';
 import 'login_screen.dart' as login;
 import 'edit_profile_screen.dart';
 
@@ -19,10 +22,6 @@ class _SettingsScreenState extends State<SettingsScreen>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  // Settings state
-  bool _isAuthenticated = false;
-  Map<String, dynamic>? _userProfile;
-  
   // Auth Repository
   final AuthService _authService = AuthService();
 
@@ -61,73 +60,65 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Future<void> _checkAuthStatus() async {
-    try {
-      await _authService.initialize();
-      final isAuth = await _authService.isAuthenticated();
-      if (isAuth) {
-        final userProfile = await _authService.getCurrentUser();
-        setState(() {
-          _isAuthenticated = true;
-          _userProfile = userProfile['data'] ?? userProfile;
-        });
-      } else {
-        setState(() {
-          _isAuthenticated = false;
-          _userProfile = null;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isAuthenticated = false;
-        _userProfile = null;
-      });
-    }
+    // Auth status is now managed by AuthProvider
+    // No need to check here as it's handled globally
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'الإعدادات',
-          style: AppTextStyles.headlineMedium.copyWith(
-            color: AppColors.textPrimary,
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final isAuthenticated = authProvider.isAuthenticated;
+        final userProfile = authProvider.userProfile;
+        
+        print('SettingsScreen: Building with isAuthenticated: $isAuthenticated');
+        print('SettingsScreen: User profile: ${userProfile?.keys}');
+        print('SettingsScreen: Full user profile: $userProfile');
+        
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              'الإعدادات',
+              style: AppTextStyles.headlineMedium.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+            centerTitle: true,
           ),
-        ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  
-                  // Conditional content based on authentication status
-                  if (_isAuthenticated) ...[
-                    _buildAuthenticatedUserContent(),
-                  ] else ...[
-                    _buildGuestUserContent(),
-                  ],
-                  
-                  const SizedBox(height: 30),
-                ],
+          body: SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      
+                      // Conditional content based on authentication status
+                      if (isAuthenticated) ...[
+                        _buildAuthenticatedUserContent(userProfile),
+                      ] else ...[
+                        _buildGuestUserContent(),
+                      ],
+                      
+                      const SizedBox(height: 30),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -155,17 +146,17 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  Widget _buildAuthenticatedUserContent() {
+  Widget _buildAuthenticatedUserContent(Map<String, dynamic>? userProfile) {
     return Column(
       children: [
         // Profile Section for Authenticated Users
-        _buildAuthenticatedProfileSection(),
+        _buildAuthenticatedProfileSection(userProfile),
         const SizedBox(height: 30),
         
         // Account Settings
         _buildSectionTitle('إعدادات الحساب'),
         const SizedBox(height: 15),
-        _buildAccountSettingsCard(),
+        _buildAccountSettingsCard(userProfile),
         const SizedBox(height: 25),
         
 
@@ -258,10 +249,16 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  Widget _buildAuthenticatedProfileSection() {
-    final userName = _userProfile?['name'] ?? 'المستخدم';
-    final userEmail = _userProfile?['email'] ?? '';
-    final userPhone = _userProfile?['phone'] ?? '';
+  Widget _buildAuthenticatedProfileSection(Map<String, dynamic>? userProfile) {
+    print('SettingsScreen: Building profile section with userProfile: $userProfile');
+    
+    final userName = userProfile?['name'] ?? userProfile?['user']?['name'] ?? 'المستخدم';
+    final userEmail = userProfile?['email'] ?? userProfile?['user']?['email'] ?? '';
+    final userPhone = userProfile?['phone'] ?? userProfile?['user']?['phone'] ?? '';
+    
+    print('SettingsScreen: Extracted userName: $userName');
+    print('SettingsScreen: Extracted userEmail: $userEmail');
+    print('SettingsScreen: Extracted userPhone: $userPhone');
     
     return Container(
       padding: const EdgeInsets.all(24),
@@ -382,7 +379,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  Widget _buildAccountSettingsCard() {
+  Widget _buildAccountSettingsCard(Map<String, dynamic>? userProfile) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -406,7 +403,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 context,
                 MaterialPageRoute(
                   builder: (context) => EditProfileScreen(
-                    userProfile: _userProfile,
+                    userProfile: userProfile,
                   ),
                 ),
               );
@@ -942,17 +939,12 @@ class _SettingsScreenState extends State<SettingsScreen>
         ),
       );
 
-      // Call logout API
-      await _authService.logout();
+      // Get auth provider and logout
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.logout();
 
       // Close loading dialog
       Navigator.of(context).pop();
-
-      // Update state
-      setState(() {
-        _isAuthenticated = false;
-        _userProfile = null;
-      });
 
       // Show success message
       if (mounted) {
@@ -970,6 +962,14 @@ class _SettingsScreenState extends State<SettingsScreen>
               borderRadius: BorderRadius.circular(16),
             ),
           ),
+        );
+      }
+
+      // Navigate back to home screen and clear navigation stack
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          AppConstants.homeRoute,
+          (route) => false,
         );
       }
     } catch (error) {

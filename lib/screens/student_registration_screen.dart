@@ -45,6 +45,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   final _academicYearController = TextEditingController();
   final _gpaController = TextEditingController();
 
+  // Programs data
+  List<Map<String, dynamic>> _programs = [];
+  String? _selectedProgramId;
+  bool _isLoadingPrograms = false;
 
   // Form Values
   String _selectedGender = 'ذكر';
@@ -53,6 +57,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   String _selectedFamilySize = '1-3';
   String? _selectedImagePath;
   Uint8List? _selectedImageBytes;
+  
+  // Application Status
+  String _applicationStatus = 'pending'; // pending, under_review, approved, rejected
+  String? _rejectionReason; // سبب الرفض
   
   // Services
   final AuthService _authService = AuthService();
@@ -122,10 +130,36 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     // فحص المصادقة بعد تهيئة جميع العناصر
     _initializeScreen();
+    
+    // Load programs from API
+    _loadPrograms().then((_) {
+      print('Programs loaded: ${_programs.length} programs');
+      if (_programs.isNotEmpty) {
+        print('Available programs: ${_programs.map((p) => '${p['id']}: ${p['name']}').join(', ')}');
+      }
+    }).catchError((error) {
+      print('Error loading programs: $error');
+    });
   }
 
   void _loadExistingData() {
     final data = widget.existingData!;
+    
+    // Debug: Print data being loaded
+    print('=== Loading Existing Data Debug ===');
+    print('Data: $data');
+    print('Status: ${data['status']}');
+    print('Rejection reason: ${data['rejection_reason']}');
+    print('===================================');
+    
+    // Load application status
+    _applicationStatus = data['status'] ?? 'pending';
+    _rejectionReason = data['rejection_reason']; // Load rejection reason
+    
+    // Debug: Print final loaded status
+    print('Final loaded status: $_applicationStatus');
+    print('Is read-only: $_isReadOnly');
+    print('Is rejected: $_isRejected');
     
     // Load personal data
     _fullNameController.text = data['personal']?['full_name'] ?? '';
@@ -138,8 +172,14 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     _collegeController.text = data['academic']?['college'] ?? '';
     _majorController.text = data['academic']?['major'] ?? '';
     _programController.text = data['academic']?['program'] ?? '';
+    _selectedProgramId = data['program_id']?.toString();
     _academicYearController.text = _convertAcademicYearToString(data['academic']?['academic_year'] ?? 1);
     _gpaController.text = (data['academic']?['gpa'] ?? 0.0).toString();
+    
+    // Load programs first if not already loaded
+    if (_programs.isEmpty) {
+      _loadPrograms();
+    }
     
     // Load financial data
     _selectedIncomeLevel = _convertIncomeLevelToArabic(data['financial']?['income_level'] ?? 'low');
@@ -179,6 +219,289 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     return '10+';
   }
 
+  // Check if the form should be read-only
+  // Returns true for: under_review, approved, accepted
+  // Returns false for: pending, rejected (allows editing)
+  bool get _isReadOnly {
+    return widget.isReadOnly || 
+           _applicationStatus.toLowerCase() == 'under_review' || 
+           _applicationStatus.toLowerCase() == 'approved' ||
+           _applicationStatus.toLowerCase() == 'accepted';
+    // Note: rejected status allows editing for re-submission
+  }
+
+  // Check if the form should show rejection status
+  bool get _isRejected {
+    return _applicationStatus.toLowerCase() == 'rejected';
+  }
+
+  // Get status text in Arabic
+  String _getStatusText(String status) {
+    // Debug: Print status text decision
+    print('=== Status Text Debug ===');
+    print('Status: $status');
+    
+    switch (status.toLowerCase()) {
+      case 'pending':
+        print('Status text: في الانتظار');
+        return 'في الانتظار';
+      case 'under_review':
+        print('Status text: قيد المراجعة');
+        return 'قيد المراجعة';
+      case 'approved':
+      case 'accepted':
+        print('Status text: تم القبول');
+        return 'تم القبول';
+      case 'rejected':
+        print('Status text: تم الرفض');
+        return 'تم الرفض';
+      default:
+        print('Status text: في الانتظار (default)');
+        return 'في الانتظار';
+    }
+  }
+
+  // Get status color
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return AppColors.warning;
+      case 'under_review':
+        return AppColors.info;
+      case 'approved':
+      case 'accepted':
+        return AppColors.success;
+      case 'rejected':
+        return AppColors.error;
+      default:
+        return AppColors.warning;
+    }
+  }
+
+  // Build status indicator widget
+  Widget _buildStatusIndicator() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _getStatusColor(_applicationStatus).withOpacity(0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: _getStatusColor(_applicationStatus).withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(_applicationStatus),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  _getStatusIcon(_applicationStatus),
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'حالة الطلب',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _getStatusText(_applicationStatus),
+                      style: AppTextStyles.titleMedium.copyWith(
+                        color: _getStatusColor(_applicationStatus),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (_isReadOnly) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.textTertiary.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        color: AppColors.info,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _getStatusDescription(_applicationStatus),
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _refreshApplicationStatus,
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('تحديث حالة الطلب'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.surface,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (_isRejected && _rejectionReason != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.error.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: AppColors.error,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'سبب الرفض:',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _rejectionReason!,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textPrimary,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Get status icon
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Icons.schedule;
+      case 'under_review':
+        return Icons.hourglass_empty;
+      case 'approved':
+      case 'accepted':
+        return Icons.check_circle;
+      case 'rejected':
+        return Icons.cancel;
+      default:
+        return Icons.schedule;
+    }
+  }
+
+  // Get status description
+  String _getStatusDescription(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'طلبك في قائمة الانتظار. سيتم مراجعته قريباً من قبل اللجنة المختصة.';
+      case 'under_review':
+        return 'طلبك قيد المراجعة من قبل اللجنة المختصة. لا يمكن تعديل البيانات في هذه المرحلة.';
+      case 'approved':
+      case 'accepted':
+        return 'مبروك! تم قبول طلبك. سيتم التواصل معك قريباً لتأكيد التفاصيل.';
+      case 'rejected':
+        return 'للأسف تم رفض طلبك. اضغط على زر إعادة التسجيل لتعديل البيانات وإعادة التقديم.';
+      default:
+        return 'طلبك في قائمة الانتظار. سيتم مراجعته قريباً.';
+    }
+  }
+
+  // Allow editing for rejected applications
+  void _allowEditing() {
+    setState(() {
+      _applicationStatus = 'pending'; // Reset to pending to allow editing
+      _rejectionReason = null; // Clear rejection reason
+    });
+    
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'تم تفعيل التعديل. يمكنك الآن تعديل البيانات وإعادة التسجيل',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -205,6 +528,75 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   void _startAnimations() {
     _animationController.forward();
     _progressAnimationController.forward();
+  }
+
+  // Load programs from API
+  Future<void> _loadPrograms() async {
+    setState(() {
+      _isLoadingPrograms = true;
+    });
+
+    try {
+      final programs = await _studentService.getSupportPrograms();
+      
+      print('Raw programs received: $programs');
+      print('Programs length: ${programs.length}');
+      
+      // Validate programs data
+      final validPrograms = programs.where((program) {
+        // Check for different possible field names
+        final hasId = program['id'] != null;
+        final hasName = program['title'] != null; // الباكند يستخدم 'title' بدلاً من 'name'
+        
+        print('Program validation: id=$hasId, name=$hasName, program=$program');
+        print('Available keys: ${program.keys.toList()}');
+        
+        return hasId && hasName;
+      }).map((program) {
+        // Normalize the data structure
+        return {
+          'id': program['id'],
+          'name': program['title'], // استخدام 'title' من الباكند
+          'description': program['description'] ?? '',
+        };
+      }).toList();
+      
+      setState(() {
+        _programs = validPrograms;
+        _isLoadingPrograms = false;
+      });
+      
+      print('Loaded ${validPrograms.length} valid programs out of ${programs.length} total');
+      if (validPrograms.isNotEmpty) {
+        print('Valid programs: ${validPrograms.map((p) => '${p['id']}: ${p['name']}').join(', ')}');
+      } else {
+        print('No valid programs found. All programs: ${programs.map((p) => p.toString()).join(', ')}');
+      }
+    } catch (error) {
+      print('Error loading programs: $error');
+      setState(() {
+        _isLoadingPrograms = false;
+      });
+      
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'خطأ في تحميل البرامج: ${error.toString()}',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: Colors.white,
+              ),
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    }
   }
 
 
@@ -319,6 +711,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   }
 
   void _submitRegistration() async {
+    // This function handles both new registration and re-submission after rejection
     // التحقق من الحقول المطلوبة
     if (_selectedGender.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -360,10 +753,35 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       return;
     }
     
-    if (_programController.text.trim().isEmpty) {
+    if (_programs.isEmpty && !_isLoadingPrograms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('يرجى إدخال اسم البرنامج'),
+          content: Text('لا توجد برامج متاحة. يرجى المحاولة مرة أخرى'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    
+    if (_selectedProgramId == null || _selectedProgramId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى اختيار البرنامج'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    
+    // Verify that the selected program exists in the programs list
+    final selectedProgramExists = _programs.any(
+      (program) => program['id']?.toString() == _selectedProgramId,
+    );
+    
+    if (!selectedProgramExists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('البرنامج المحدد غير صحيح. يرجى اختيار برنامج آخر'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -454,6 +872,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
           email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
           idCardImagePath: _selectedImagePath,
           idCardImageBytes: _selectedImageBytes,
+          programId: _selectedProgramId != null ? int.tryParse(_selectedProgramId!) : 1,
         );
 
         // Close loading dialog
@@ -491,6 +910,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
 
 
   void _showSuccessDialog() {
+    // تحديث حالة الطلب فوراً
+    _updateApplicationStatus();
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -537,8 +959,12 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                 height: 50,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pop();
+                    Navigator.of(context).pop(); // Close success dialog
+                    // Navigate back to home screen and clear navigation stack
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      AppConstants.homeRoute,
+                      (route) => false,
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
@@ -700,6 +1126,11 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Application Status Indicator (if data exists)
+                        if (widget.existingData != null) ...[
+                          _buildStatusIndicator(),
+                          const SizedBox(height: 24),
+                        ],
                         // Personal Information Section
                         _buildSectionHeader(
                           title: 'المعلومات الشخصية',
@@ -841,24 +1272,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextField(
-                                controller: _programController,
-                                label: 'البرنامج',
-                                hint: 'أدخل اسم البرنامج',
-                                icon: Icons.school,
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'يرجى إدخال اسم البرنامج';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
+                        _buildProgramDropdown(),
                         const SizedBox(height: 16),
                         Row(
                           children: [
@@ -979,35 +1393,35 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                 offset: const Offset(0, 6),
                               ),
                             ],
+                                                  ),
+                        child: ElevatedButton(
+                          onPressed: _isReadOnly ? null : _submitRegistration,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: AppColors.surface,
+                            elevation: 0,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
-                          child: ElevatedButton(
-                            onPressed: _submitRegistration,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              foregroundColor: AppColors.surface,
-                              elevation: 0,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _isReadOnly ? Icons.lock_outline : (_isRejected ? Icons.refresh : Icons.send),
+                                size: 20,
                               ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.send,
-                                  size: 20,
+                              const SizedBox(width: 8),
+                              Text(
+                                _isReadOnly ? 'لا يمكن التعديل' : (_isRejected ? 'إعادة التسجيل' : 'تسجيل'),
+                                style: AppTextStyles.buttonLarge.copyWith(
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'سجل الآن',
-                                  style: AppTextStyles.buttonLarge.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
+                        ),
                         ),
                         
                         const SizedBox(height: 24),
@@ -1099,10 +1513,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: _isReadOnly ? AppColors.surfaceVariant : AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.textTertiary.withOpacity(0.2),
+          color: _isReadOnly ? AppColors.textTertiary.withOpacity(0.3) : AppColors.textTertiary.withOpacity(0.2),
           width: 1,
         ),
       ),
@@ -1111,14 +1525,18 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         keyboardType: keyboardType,
         maxLines: maxLines,
         inputFormatters: inputFormatters,
-        validator: validator,
-        style: AppTextStyles.bodyLarge,
+        validator: _isReadOnly ? null : validator,
+        enabled: !_isReadOnly,
+        readOnly: _isReadOnly,
+        style: AppTextStyles.bodyLarge.copyWith(
+          color: _isReadOnly ? AppColors.textSecondary : AppColors.textPrimary,
+        ),
         decoration: InputDecoration(
           labelText: label,
-          hintText: hint,
+          hintText: _isReadOnly ? null : hint,
           prefixIcon: Icon(
             icon,
-            color: AppColors.primary,
+            color: _isReadOnly ? AppColors.textSecondary : AppColors.primary,
             size: 20,
           ),
           border: InputBorder.none,
@@ -1127,11 +1545,16 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
             vertical: 16,
           ),
           labelStyle: AppTextStyles.labelMedium.copyWith(
-            color: AppColors.textSecondary,
+            color: _isReadOnly ? AppColors.textSecondary : AppColors.textSecondary,
           ),
           hintStyle: AppTextStyles.bodyMedium.copyWith(
             color: AppColors.textTertiary,
           ),
+          suffixIcon: _isReadOnly ? const Icon(
+            Icons.lock_outline,
+            color: AppColors.textSecondary,
+            size: 16,
+          ) : null,
         ),
       ),
     );
@@ -1145,43 +1568,423 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: _isReadOnly ? AppColors.surfaceVariant : AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.textTertiary.withOpacity(0.2),
+          color: _isReadOnly ? AppColors.textTertiary.withOpacity(0.3) : AppColors.textTertiary.withOpacity(0.2),
           width: 1,
         ),
       ),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        items: items.map((String item) {
-          return DropdownMenuItem<String>(
-            value: item,
-            child: Text(
-              item,
-              style: AppTextStyles.bodyMedium,
+      child: _isReadOnly 
+        ? Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_outline,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        value ?? '',
+                        style: AppTextStyles.bodyLarge.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.lock_outline,
+                  color: AppColors.textSecondary,
+                  size: 16,
+                ),
+              ],
             ),
-          );
-        }).toList(),
-        onChanged: onChanged,
-        decoration: InputDecoration(
-          labelText: label,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
+          )
+        : DropdownButtonFormField<String>(
+            value: value,
+            items: items.map((String item) {
+              return DropdownMenuItem<String>(
+                value: item,
+                child: Text(
+                  item,
+                  style: AppTextStyles.bodyMedium,
+                ),
+              );
+            }).toList(),
+            onChanged: onChanged,
+            decoration: InputDecoration(
+              labelText: label,
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              labelStyle: AppTextStyles.labelMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            style: AppTextStyles.bodyLarge,
+            icon: const Icon(
+              Icons.keyboard_arrow_down,
+              color: AppColors.primary,
+            ),
           ),
-          labelStyle: AppTextStyles.labelMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        style: AppTextStyles.bodyLarge,
-        icon: const Icon(
-          Icons.keyboard_arrow_down,
-          color: AppColors.primary,
+    );
+  }
+
+  Widget _buildProgramDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _isReadOnly ? AppColors.surfaceVariant : AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _isReadOnly ? AppColors.textTertiary.withOpacity(0.3) : AppColors.textTertiary.withOpacity(0.2),
+          width: 1,
         ),
       ),
+      child: _isReadOnly 
+        ? Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.school,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'البرنامج',
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _getSelectedProgramName(),
+                        style: AppTextStyles.bodyLarge.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.lock_outline,
+                  color: AppColors.textSecondary,
+                  size: 16,
+                ),
+              ],
+            ),
+          )
+        : _isLoadingPrograms
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                children: [
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'جاري تحميل البرامج...',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : _programs.isEmpty
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: AppColors.error,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'لا توجد برامج متاحة',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.error,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _loadPrograms,
+                        icon: const Icon(Icons.refresh, size: 16),
+                        label: const Text('إعادة تحميل البرامج'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.surface,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : DropdownButtonFormField<String>(
+                value: _selectedProgramId,
+                items: _programs.map((program) {
+                  return DropdownMenuItem<String>(
+                    value: program['id']?.toString(),
+                    child: Text(
+                      program['name'] ?? 'برنامج غير محدد',
+                      style: AppTextStyles.bodyMedium,
+                    ),
+                  );
+                }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedProgramId = value;
+                  // Update program name in text controller for display
+                  if (value != null) {
+                    final selectedProgram = _programs.firstWhere(
+                      (program) => program['id']?.toString() == value,
+                      orElse: () => {},
+                    );
+                    _programController.text = selectedProgram['name'] ?? '';
+                  } else {
+                    _programController.text = '';
+                  }
+                });
+              },
+              decoration: InputDecoration(
+                labelText: 'البرنامج',
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                labelStyle: AppTextStyles.labelMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                prefixIcon: const Icon(
+                  Icons.school,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              style: AppTextStyles.bodyLarge,
+              icon: const Icon(
+                Icons.keyboard_arrow_down,
+                color: AppColors.primary,
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'يرجى اختيار البرنامج';
+                }
+                return null;
+              },
+            ),
     );
+  }
+
+  String _getSelectedProgramName() {
+    if (_selectedProgramId == null) return 'لم يتم اختيار برنامج';
+    
+    final selectedProgram = _programs.firstWhere(
+      (program) => program['id']?.toString() == _selectedProgramId,
+      orElse: () => {},
+    );
+    
+    return selectedProgram['name'] ?? 'برنامج غير محدد';
+  }
+
+  // تحديث حالة الطلب فوراً بعد التسجيل
+  void _updateApplicationStatus() {
+    setState(() {
+      // تحديث حالة الطلب إلى "pending" (في الانتظار)
+      _applicationStatus = 'pending';
+      _rejectionReason = null; // مسح سبب الرفض إذا كان موجوداً
+    });
+    
+    print('StudentRegistrationScreen: Application status updated to: $_applicationStatus');
+    print('StudentRegistrationScreen: Will navigate to home screen after success dialog');
+    
+    // إظهار رسالة نجاح إضافية
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'تم تحديث حالة الطلب إلى: في الانتظار',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  // دالة مساعدة لتحويل السنة الدراسية إلى رقم
+  int _convertAcademicYearToNumber(String academicYear) {
+    switch (academicYear) {
+      case 'السنة الأولى':
+        return 1;
+      case 'السنة الثانية':
+        return 2;
+      case 'السنة الثالثة':
+        return 3;
+      case 'السنة الرابعة':
+        return 4;
+      case 'السنة الخامسة':
+        return 5;
+      case 'السنة السادسة':
+        return 6;
+      default:
+        return 1;
+    }
+  }
+
+  // دالة مساعدة لتحويل مستوى الدخل إلى الإنجليزية
+  String _convertIncomeLevelToEnglish(String incomeLevel) {
+    switch (incomeLevel) {
+      case 'منخفض':
+        return 'low';
+      case 'متوسط':
+        return 'medium';
+      case 'مرتفع':
+        return 'high';
+      default:
+        return 'medium';
+    }
+  }
+
+  // إعادة تحميل حالة الطلب من الخادم
+  Future<void> _refreshApplicationStatus() async {
+    try {
+      // إظهار مؤشر التحميل
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text('جاري تحديث حالة الطلب...'),
+            ],
+          ),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      // جلب أحدث حالة الطلب من الخادم
+      final currentRegistration = await _studentService.getCurrentUserRegistration();
+      
+      if (currentRegistration != null) {
+        setState(() {
+          _applicationStatus = currentRegistration['status'] ?? 'pending';
+          _rejectionReason = currentRegistration['rejection_reason'];
+        });
+        
+        // إظهار رسالة نجاح
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'تم تحديث حالة الطلب: ${_getStatusText(_applicationStatus)}',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: Colors.white,
+              ),
+            ),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else {
+        // إظهار رسالة خطأ
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'لم يتم العثور على طلب تسجيل',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: Colors.white,
+              ),
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (error) {
+      print('Error refreshing application status: $error');
+      
+      // إظهار رسالة خطأ
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'خطأ في تحديث حالة الطلب: ${error.toString()}',
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   Widget _buildDocumentUploadTile({
