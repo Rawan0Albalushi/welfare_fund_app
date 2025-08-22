@@ -51,32 +51,83 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
   }
 
   String _getStatusText(String status) {
-    switch (status.toLowerCase()) {
+    // Normalize status
+    String normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
       case 'pending':
+      case 'في الانتظار':
+        return 'في الانتظار';
+      case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
         return 'قيد المراجعة';
       case 'approved':
-        return 'مقبول';
+      case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
+        return 'تم القبول';
       case 'rejected':
-        return 'مرفوض';
-      case 'under_review':
-        return 'قيد الدراسة';
+      case 'مرفوض':
+      case 'تم الرفض':
+        return 'تم الرفض';
       default:
-        return status;
+        print('Warning: Unknown status in _getStatusText: $status, defaulting to في الانتظار');
+        return 'في الانتظار';
     }
   }
 
   Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
+    // Normalize status
+    String normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
       case 'pending':
+      case 'في الانتظار':
         return AppColors.warning;
+      case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
+        return AppColors.info;
       case 'approved':
+      case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
         return AppColors.success;
       case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
         return AppColors.error;
-      case 'under_review':
-        return AppColors.info;
       default:
-        return AppColors.textSecondary;
+        print('Warning: Unknown status in _getStatusColor: $status, defaulting to warning color');
+        return AppColors.warning;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    // Normalize status
+    String normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
+      case 'pending':
+      case 'في الانتظار':
+        return Icons.schedule;
+      case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
+        return Icons.info;
+      case 'approved':
+      case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
+        return Icons.check_circle;
+      case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
+        return Icons.cancel;
+      default:
+        print('Warning: Unknown status in _getStatusIcon: $status, defaulting to schedule icon');
+        return Icons.schedule;
     }
   }
 
@@ -180,11 +231,7 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
                             child: Column(
                               children: [
                                 Icon(
-                                  _registration!.status.toLowerCase() == 'approved'
-                                      ? Icons.check_circle
-                                      : _registration!.status.toLowerCase() == 'rejected'
-                                          ? Icons.cancel
-                                          : Icons.schedule,
+                                  _getStatusIcon(_registration!.status),
                                   color: _getStatusColor(_registration!.status),
                                   size: 48,
                                 ),

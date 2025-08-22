@@ -149,15 +149,51 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     print('=== Loading Existing Data Debug ===');
     print('Data: $data');
     print('Status: ${data['status']}');
+    print('Status type: ${data['status']?.runtimeType}');
     print('Rejection reason: ${data['rejection_reason']}');
+    print('Rejection reason type: ${data['rejection_reason']?.runtimeType}');
     print('===================================');
     
-    // Load application status
-    _applicationStatus = data['status'] ?? 'pending';
-    _rejectionReason = data['rejection_reason']; // Load rejection reason
+    // Load and normalize application status
+    String rawStatus = data['status']?.toString() ?? 'pending';
+    String normalizedStatus = rawStatus.toLowerCase();
+    
+    // Normalize status values
+    switch (normalizedStatus) {
+      case 'pending':
+      case 'في الانتظار':
+        _applicationStatus = 'pending';
+        break;
+      case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
+        _applicationStatus = 'under_review';
+        break;
+      case 'approved':
+      case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
+        _applicationStatus = 'approved';
+        break;
+      case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
+        _applicationStatus = 'rejected';
+        break;
+      default:
+        print('Warning: Unknown status: $rawStatus, defaulting to pending');
+        _applicationStatus = 'pending';
+    }
+    
+    // Load rejection reason
+    _rejectionReason = data['rejection_reason']?.toString();
+    if (_rejectionReason != null && _rejectionReason!.isEmpty) {
+      _rejectionReason = null;
+    }
     
     // Debug: Print final loaded status
     print('Final loaded status: $_applicationStatus');
+    print('Final rejection reason: $_rejectionReason');
     print('Is read-only: $_isReadOnly');
     print('Is rejected: $_isRejected');
     
@@ -178,7 +214,57 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     // Load programs first if not already loaded
     if (_programs.isEmpty) {
+      print('StudentRegistrationScreen: Programs not loaded yet, loading programs first...');
       _loadPrograms();
+      
+      // After loading programs, try to select the correct program
+      if (_selectedProgramId != null && _programs.isNotEmpty) {
+        final programExists = _programs.any((program) => program['id']?.toString() == _selectedProgramId);
+        if (!programExists) {
+          print('StudentRegistrationScreen: Selected program ID $_selectedProgramId not found in loaded programs');
+          print('StudentRegistrationScreen: Available program IDs: ${_programs.map((p) => p['id']).join(', ')}');
+          
+          // Auto-select first program if the selected one doesn't exist
+          if (_programs.isNotEmpty) {
+            _selectedProgramId = _programs.first['id']?.toString();
+            _programController.text = _programs.first['name'] ?? '';
+            print('StudentRegistrationScreen: Auto-selected first program: ${_programs.first['name']}');
+          }
+        } else {
+          // Update program controller text with the correct program name
+          final selectedProgram = _programs.firstWhere(
+            (program) => program['id']?.toString() == _selectedProgramId,
+            orElse: () => {},
+          );
+          if (selectedProgram.isNotEmpty) {
+            _programController.text = selectedProgram['name'] ?? '';
+            print('StudentRegistrationScreen: Updated program controller with: ${selectedProgram['name']}');
+          }
+        }
+      }
+    } else {
+      // Programs already loaded, try to select the correct program
+      if (_selectedProgramId != null) {
+        final programExists = _programs.any((program) => program['id']?.toString() == _selectedProgramId);
+        if (!programExists) {
+          print('StudentRegistrationScreen: Selected program ID $_selectedProgramId not found in already loaded programs');
+          if (_programs.isNotEmpty) {
+            _selectedProgramId = _programs.first['id']?.toString();
+            _programController.text = _programs.first['name'] ?? '';
+            print('StudentRegistrationScreen: Auto-selected first program: ${_programs.first['name']}');
+          }
+        } else {
+          // Update program controller text with the correct program name
+          final selectedProgram = _programs.firstWhere(
+            (program) => program['id']?.toString() == _selectedProgramId,
+            orElse: () => {},
+          );
+          if (selectedProgram.isNotEmpty) {
+            _programController.text = selectedProgram['name'] ?? '';
+            print('StudentRegistrationScreen: Updated program controller with: ${selectedProgram['name']}');
+          }
+        }
+      }
     }
     
     // Load financial data
@@ -223,16 +309,28 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   // Returns true for: under_review, approved, accepted
   // Returns false for: pending, rejected (allows editing)
   bool get _isReadOnly {
+    // Normalize status
+    String normalizedStatus = _applicationStatus.toLowerCase();
+    
     return widget.isReadOnly || 
-           _applicationStatus.toLowerCase() == 'under_review' || 
-           _applicationStatus.toLowerCase() == 'approved' ||
-           _applicationStatus.toLowerCase() == 'accepted';
+           normalizedStatus == 'under_review' || 
+           normalizedStatus == 'قيد المراجعة' ||
+           normalizedStatus == 'قيد الدراسة' ||
+           normalizedStatus == 'approved' ||
+           normalizedStatus == 'accepted' ||
+           normalizedStatus == 'مقبول' ||
+           normalizedStatus == 'تم القبول';
     // Note: rejected status allows editing for re-submission
   }
 
   // Check if the form should show rejection status
   bool get _isRejected {
-    return _applicationStatus.toLowerCase() == 'rejected';
+    // Normalize status
+    String normalizedStatus = _applicationStatus.toLowerCase();
+    
+    return normalizedStatus == 'rejected' ||
+           normalizedStatus == 'مرفوض' ||
+           normalizedStatus == 'تم الرفض';
   }
 
   // Get status text in Arabic
@@ -241,18 +339,28 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     print('=== Status Text Debug ===');
     print('Status: $status');
     
-    switch (status.toLowerCase()) {
+    // Normalize status
+    String normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
       case 'pending':
+      case 'في الانتظار':
         print('Status text: في الانتظار');
         return 'في الانتظار';
       case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
         print('Status text: قيد المراجعة');
         return 'قيد المراجعة';
       case 'approved':
       case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
         print('Status text: تم القبول');
         return 'تم القبول';
       case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
         print('Status text: تم الرفض');
         return 'تم الرفض';
       default:
@@ -263,15 +371,25 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
 
   // Get status color
   Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
+    // Normalize status
+    String normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
       case 'pending':
+      case 'في الانتظار':
         return AppColors.warning;
       case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
         return AppColors.info;
       case 'approved':
       case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
         return AppColors.success;
       case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
         return AppColors.error;
       default:
         return AppColors.warning;
@@ -445,15 +563,25 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
 
   // Get status icon
   IconData _getStatusIcon(String status) {
-    switch (status.toLowerCase()) {
+    // Normalize status
+    String normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
       case 'pending':
+      case 'في الانتظار':
         return Icons.schedule;
       case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
         return Icons.hourglass_empty;
       case 'approved':
       case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
         return Icons.check_circle;
       case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
         return Icons.cancel;
       default:
         return Icons.schedule;
@@ -462,15 +590,25 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
 
   // Get status description
   String _getStatusDescription(String status) {
-    switch (status.toLowerCase()) {
+    // Normalize status
+    String normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
       case 'pending':
+      case 'في الانتظار':
         return 'طلبك في قائمة الانتظار. سيتم مراجعته قريباً من قبل اللجنة المختصة.';
       case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
         return 'طلبك قيد المراجعة من قبل اللجنة المختصة. لا يمكن تعديل البيانات في هذه المرحلة.';
       case 'approved':
       case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
         return 'مبروك! تم قبول طلبك. سيتم التواصل معك قريباً لتأكيد التفاصيل.';
       case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
         return 'للأسف تم رفض طلبك. اضغط على زر إعادة التسجيل لتعديل البيانات وإعادة التقديم.';
       default:
         return 'طلبك في قائمة الانتظار. سيتم مراجعته قريباً.';
@@ -537,26 +675,27 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     });
 
     try {
+      print('StudentRegistrationScreen: Loading programs from API...');
       final programs = await _studentService.getSupportPrograms();
       
-      print('Raw programs received: $programs');
-      print('Programs length: ${programs.length}');
+      print('StudentRegistrationScreen: Raw programs received: $programs');
+      print('StudentRegistrationScreen: Programs length: ${programs.length}');
       
       // Validate programs data
       final validPrograms = programs.where((program) {
         // Check for different possible field names
         final hasId = program['id'] != null;
-        final hasName = program['title'] != null; // الباكند يستخدم 'title' بدلاً من 'name'
+        final hasName = program['name'] != null;
         
-        print('Program validation: id=$hasId, name=$hasName, program=$program');
-        print('Available keys: ${program.keys.toList()}');
+        print('StudentRegistrationScreen: Program validation: id=$hasId, name=$hasName, program=$program');
+        print('StudentRegistrationScreen: Available keys: ${program.keys.toList()}');
         
         return hasId && hasName;
       }).map((program) {
         // Normalize the data structure
         return {
           'id': program['id'],
-          'name': program['title'], // استخدام 'title' من الباكند
+          'name': program['name'],
           'description': program['description'] ?? '',
         };
       }).toList();
@@ -566,14 +705,43 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         _isLoadingPrograms = false;
       });
       
-      print('Loaded ${validPrograms.length} valid programs out of ${programs.length} total');
+      print('StudentRegistrationScreen: Loaded ${validPrograms.length} valid programs out of ${programs.length} total');
       if (validPrograms.isNotEmpty) {
-        print('Valid programs: ${validPrograms.map((p) => '${p['id']}: ${p['name']}').join(', ')}');
+        print('StudentRegistrationScreen: Valid programs: ${validPrograms.map((p) => '${p['id']}: ${p['name']}').join(', ')}');
+        
+        // Auto-select first program if none selected
+        if (_selectedProgramId == null && validPrograms.isNotEmpty) {
+          setState(() {
+            _selectedProgramId = validPrograms.first['id']?.toString();
+            _programController.text = validPrograms.first['name'] ?? '';
+          });
+          print('StudentRegistrationScreen: Auto-selected first program: ${validPrograms.first['name']}');
+        }
       } else {
-        print('No valid programs found. All programs: ${programs.map((p) => p.toString()).join(', ')}');
+        print('StudentRegistrationScreen: No valid programs found. All programs: ${programs.map((p) => p.toString()).join(', ')}');
+        
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'لم يتم العثور على برامج دعم متاحة. يرجى التواصل مع الإدارة لإضافة برامج الدعم.',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       }
     } catch (error) {
-      print('Error loading programs: $error');
+      print('StudentRegistrationScreen: Error loading programs: $error');
       setState(() {
         _isLoadingPrograms = false;
       });
@@ -583,7 +751,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'خطأ في تحميل البرامج: ${error.toString()}',
+              'خطأ في تحميل برامج الدعم: ${error.toString()}',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: Colors.white,
               ),
@@ -592,6 +760,14 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'إعادة المحاولة',
+              textColor: Colors.white,
+              onPressed: () {
+                _loadPrograms();
+              },
             ),
           ),
         );
@@ -1816,14 +1992,30 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   }
 
   String _getSelectedProgramName() {
-    if (_selectedProgramId == null) return 'لم يتم اختيار برنامج';
+    if (_selectedProgramId == null) {
+      print('StudentRegistrationScreen: No program selected');
+      return 'لم يتم اختيار برنامج';
+    }
+    
+    print('StudentRegistrationScreen: Looking for program with ID: $_selectedProgramId');
+    print('StudentRegistrationScreen: Available programs: ${_programs.map((p) => '${p['id']}: ${p['name']}').join(', ')}');
     
     final selectedProgram = _programs.firstWhere(
       (program) => program['id']?.toString() == _selectedProgramId,
-      orElse: () => {},
+      orElse: () {
+        print('StudentRegistrationScreen: Program not found with ID: $_selectedProgramId');
+        return {};
+      },
     );
     
-    return selectedProgram['name'] ?? 'برنامج غير محدد';
+    if (selectedProgram.isEmpty) {
+      print('StudentRegistrationScreen: Selected program is empty');
+      return 'برنامج غير محدد';
+    }
+    
+    final programName = selectedProgram['name'] ?? 'برنامج غير محدد';
+    print('StudentRegistrationScreen: Selected program name: $programName');
+    return programName;
   }
 
   // تحديث حالة الطلب فوراً بعد التسجيل

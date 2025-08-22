@@ -7,6 +7,7 @@ import '../widgets/common/campaign_card.dart';
 import '../models/campaign.dart';
 import '../services/auth_service.dart';
 import '../services/student_registration_service.dart';
+import '../services/campaign_service.dart';
 import '../providers/auth_provider.dart';
 import 'quick_donate_amount_screen.dart';
 import 'gift_donation_screen.dart';
@@ -28,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final AuthService _authService = AuthService();
   final StudentRegistrationService _studentService = StudentRegistrationService();
+  final CampaignService _campaignService = CampaignService();
   List<Campaign> _campaigns = [];
   List<Campaign> _allCampaigns = []; // جميع الحملات الأصلية
   int _currentIndex = 0; // Home tab is active (الرئيسية في index 0)
@@ -36,11 +38,12 @@ class _HomeScreenState extends State<HomeScreen> {
   // Application status variables
   Map<String, dynamic>? _applicationData;
   bool _isCheckingApplication = false;
+  bool _isLoadingCampaigns = false;
 
   @override
   void initState() {
     super.initState();
-    _loadSampleCampaigns();
+    _loadCampaignsFromAPI(); // Load from API instead of sample data
     _checkApplicationStatus();
     
     // Listen to auth changes
@@ -56,76 +59,97 @@ class _HomeScreenState extends State<HomeScreen> {
     _checkApplicationStatus();
   }
 
-  void _loadSampleCampaigns() {
-    _campaigns = [
-      Campaign(
-        id: '1',
-        title: 'مساعدة كبار السن',
-        description: 'مساعدة كبار السن في الحصول على الرعاية الصحية والاحتياجات الأساسية',
-        imageUrl: '',
-        targetAmount: 50000,
-        currentAmount: 35000,
-        startDate: DateTime.now().subtract(const Duration(days: 30)),
-        endDate: DateTime.now().add(const Duration(days: 60)),
-        isActive: true,
-        category: 'الإعانة الشهرية',
-        donorCount: 245,
-      ),
-      Campaign(
-        id: '2',
-        title: 'مساعدة الأسر المحتاجة',
-        description: 'توفير الغذاء والملابس للأسر المحتاجة في المجتمع',
-        imageUrl: '',
-        targetAmount: 25000,
-        currentAmount: 18000,
-        startDate: DateTime.now().subtract(const Duration(days: 15)),
-        endDate: DateTime.now().add(const Duration(days: 45)),
-        isActive: true,
-        category: 'السكن والنقل',
-        donorCount: 189,
-      ),
-      Campaign(
-        id: '3',
-        title: 'تعليم الأطفال',
-        description: 'توفير التعليم والكتب الدراسية للأطفال المحتاجين',
-        imageUrl: '',
-        targetAmount: 75000,
-        currentAmount: 42000,
-        startDate: DateTime.now().subtract(const Duration(days: 45)),
-        endDate: DateTime.now().add(const Duration(days: 30)),
-        isActive: true,
-        category: 'فرص التعليم',
-        donorCount: 312,
-      ),
-      Campaign(
-        id: '4',
-        title: 'توفير أجهزة لطلاب الجامعات',
-        description: 'شراء أجهزة كمبيوتر محمول للطلاب ذوي الدخل المحدود لدعم دراستهم.',
-        imageUrl: '',
-        targetAmount: 40000,
-        currentAmount: 12000,
-        startDate: DateTime.now().subtract(const Duration(days: 10)),
-        endDate: DateTime.now().add(const Duration(days: 50)),
-        isActive: true,
-        category: 'شراء أجهزة',
-        donorCount: 98,
-      ),
-      Campaign(
-        id: '5',
-        title: 'دعم رسوم اختبارات الطلاب',
-        description: 'المساهمة في دفع رسوم اختبارات نهاية العام للطلاب المحتاجين.',
-        imageUrl: '',
-        targetAmount: 20000,
-        currentAmount: 5000,
-        startDate: DateTime.now().subtract(const Duration(days: 5)),
-        endDate: DateTime.now().add(const Duration(days: 25)),
-        isActive: true,
-        category: 'رسوم الاختبارات',
-        donorCount: 54,
-      ),
-    ];
-    _allCampaigns = List.from(_campaigns); // حفظ نسخة من جميع الحملات
+  Future<void> _loadCampaignsFromAPI() async {
+    try {
+      print('HomeScreen: Loading campaigns from API...');
+      setState(() {
+        _isLoadingCampaigns = true;
+      });
+      
+      List<Campaign> allCampaigns = [];
+      
+      // Load only charity campaigns for the home page (for general users)
+      try {
+        final charityCampaigns = await _campaignService.getCharityCampaigns();
+        allCampaigns.addAll(charityCampaigns);
+        print('HomeScreen: Successfully loaded ${charityCampaigns.length} charity campaigns from API');
+        print('HomeScreen: Charity campaigns are for general users to donate directly');
+      } catch (error) {
+        print('HomeScreen: Failed to load charity campaigns: $error');
+      }
+      
+      // Note: Student programs are loaded separately in student registration screens
+      // They are for students who want to register for support, not for general donation
+      
+      // Only use data from API - no fallback
+      if (allCampaigns.isNotEmpty) {
+        setState(() {
+          _campaigns = allCampaigns;
+          _allCampaigns = List.from(allCampaigns);
+          _isLoadingCampaigns = false;
+        });
+        
+        print('HomeScreen: Successfully loaded ${allCampaigns.length} total campaigns from API');
+        print('HomeScreen: Campaign IDs: ${allCampaigns.map((c) => c.id).toList()}');
+        print('HomeScreen: Campaign titles: ${allCampaigns.map((c) => c.title).toList()}');
+      } else {
+        // No data from API - show empty state
+        print('HomeScreen: No data from API, showing empty state');
+        setState(() {
+          _campaigns = [];
+          _allCampaigns = [];
+          _isLoadingCampaigns = false;
+        });
+        
+        // Show message to user
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'لا توجد حملات متاحة حالياً',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.surface,
+                ),
+              ),
+              backgroundColor: AppColors.warning,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      print('HomeScreen: Error loading campaigns from API: $error');
+      setState(() {
+        _campaigns = [];
+        _allCampaigns = [];
+        _isLoadingCampaigns = false;
+      });
+      
+      // Show error message to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'حدث خطأ في تحميل البرامج',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.surface,
+              ),
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    }
   }
+
+
 
   @override
   void dispose() {
@@ -531,7 +555,26 @@ class _HomeScreenState extends State<HomeScreen> {
       print('Application data: $application');
       if (application != null) {
         print('Status: ${application['status']}');
+        print('Status type: ${application['status'].runtimeType}');
         print('Rejection reason: ${application['rejection_reason']}');
+        print('Rejection reason type: ${application['rejection_reason']?.runtimeType}');
+        
+        // Validate status format
+        String status = application['status']?.toString().toLowerCase() ?? 'pending';
+        print('Normalized status: $status');
+        
+        // Ensure status is one of the expected values
+        switch (status) {
+          case 'pending':
+          case 'under_review':
+          case 'approved':
+          case 'rejected':
+            print('Status is valid: $status');
+            break;
+          default:
+            print('Warning: Unknown status: $status, defaulting to pending');
+            application['status'] = 'pending';
+        }
       }
       print('===============================');
       
@@ -771,62 +814,110 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _getStatusText(String status) {
-    switch (status.toLowerCase()) {
+    // Normalize status
+    String normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
+      case 'pending':
+      case 'في الانتظار':
+        return 'في الانتظار';
       case 'under_review':
-        return 'طلبك قيد المراجعة';
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
+        return 'قيد المراجعة';
       case 'approved':
+      case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
         return 'تم القبول';
       case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
         return 'تم الرفض';
-      case 'pending':
-        return 'في الانتظار';
       default:
-        return status;
+        print('Warning: Unknown status in _getStatusText: $status, defaulting to في الانتظار');
+        return 'في الانتظار';
     }
   }
 
   Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
+    // Normalize status
+    String normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
+      case 'pending':
+      case 'في الانتظار':
+        return AppColors.info;
       case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
         return AppColors.warning;
       case 'approved':
+      case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
         return AppColors.success;
       case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
         return AppColors.error;
-      case 'pending':
-        return AppColors.info;
       default:
-        return AppColors.textSecondary;
+        print('Warning: Unknown status in _getStatusColor: $status, defaulting to info color');
+        return AppColors.info;
     }
   }
 
   IconData _getStatusIcon(String status) {
-    switch (status.toLowerCase()) {
+    // Normalize status
+    String normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
+      case 'pending':
+      case 'في الانتظار':
+        return Icons.schedule;
       case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
         return Icons.hourglass_empty;
       case 'approved':
+      case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
         return Icons.check_circle;
       case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
         return Icons.cancel;
-      case 'pending':
-        return Icons.schedule;
       default:
-        return Icons.info;
+        print('Warning: Unknown status in _getStatusIcon: $status, defaulting to schedule icon');
+        return Icons.schedule;
     }
   }
 
   String _getStatusDescription(String status) {
-    switch (status.toLowerCase()) {
+    // Normalize status
+    String normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
+      case 'pending':
+      case 'في الانتظار':
+        return 'طلبك في قائمة الانتظار. سيتم مراجعته قريباً.';
       case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
         return 'طلبك قيد المراجعة من قبل اللجنة المختصة.';
       case 'approved':
+      case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
         return 'مبروك! تم قبول طلبك. سيتم التواصل معك قريباً.';
       case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
         return 'للأسف تم رفض طلبك. يمكنك تعديل البيانات وإعادة التقديم.';
-      case 'pending':
-        return 'طلبك في قائمة الانتظار. سيتم مراجعته قريباً.';
       default:
-        return 'حالة الطلب غير معروفة.';
+        print('Warning: Unknown status in _getStatusDescription: $status, defaulting to pending description');
+        return 'طلبك في قائمة الانتظار. سيتم مراجعته قريباً.';
     }
   }
 
@@ -846,19 +937,30 @@ class _HomeScreenState extends State<HomeScreen> {
     print('Status: $status');
     print('Status lowercase: ${status.toLowerCase()}');
     
-    switch (status.toLowerCase()) {
+    // Normalize status
+    String normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
+      case 'pending':
+      case 'في الانتظار':
+        print('Button text: في الانتظار');
+        return 'في الانتظار';
       case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
         print('Button text: تحت المراجعة');
         return 'تحت المراجعة';
       case 'approved':
+      case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
         print('Button text: تم القبول');
         return 'تم القبول';
       case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
         print('Button text: إعادة التقديم');
         return 'إعادة التقديم';
-      case 'pending':
-        print('Button text: في الانتظار');
-        return 'في الانتظار';
       default:
         print('Button text: عرض الطلب (default)');
         return 'عرض الطلب';
@@ -871,15 +973,27 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     
     final status = _applicationData!['status'] ?? 'unknown';
-    switch (status.toLowerCase()) {
+    
+    // Normalize status
+    String normalizedStatus = status.toLowerCase();
+    
+    switch (normalizedStatus) {
+      case 'pending':
+      case 'في الانتظار':
+        return AppColors.info;
       case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
         return AppColors.warning;
       case 'approved':
+      case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
         return AppColors.success;
       case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
         return AppColors.error;
-      case 'pending':
-        return AppColors.info;
       default:
         return AppColors.primary;
     }

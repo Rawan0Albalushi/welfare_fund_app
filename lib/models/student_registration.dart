@@ -58,6 +58,38 @@ class StudentRegistration {
   });
 
   factory StudentRegistration.fromJson(Map<String, dynamic> json) {
+    // Normalize status
+    String rawStatus = json['status']?.toString() ?? 'pending';
+    String normalizedStatus = rawStatus.toLowerCase();
+    
+    // Normalize status values
+    String finalStatus;
+    switch (normalizedStatus) {
+      case 'pending':
+      case 'في الانتظار':
+        finalStatus = 'pending';
+        break;
+      case 'under_review':
+      case 'قيد المراجعة':
+      case 'قيد الدراسة':
+        finalStatus = 'under_review';
+        break;
+      case 'approved':
+      case 'accepted':
+      case 'مقبول':
+      case 'تم القبول':
+        finalStatus = 'approved';
+        break;
+      case 'rejected':
+      case 'مرفوض':
+      case 'تم الرفض':
+        finalStatus = 'rejected';
+        break;
+      default:
+        print('Warning: Unknown status in StudentRegistration.fromJson: $rawStatus, defaulting to pending');
+        finalStatus = 'pending';
+    }
+    
     return StudentRegistration(
       id: json['id']?.toString(),
       fullName: json['full_name'] ?? '',
@@ -83,7 +115,7 @@ class StudentRegistration {
       incomeCertificatePath: json['income_certificate_path'],
       familyCardPath: json['family_card_path'],
       otherDocumentsPath: json['other_documents_path'],
-      status: json['status'] ?? 'pending',
+      status: finalStatus,
       createdAt: json['created_at'] != null 
           ? DateTime.tryParse(json['created_at']) 
           : null,

@@ -10,6 +10,9 @@ class Campaign {
   final bool isActive;
   final String category;
   final int donorCount;
+  final String? type; // 'student_program' or 'charity_campaign'
+  final bool? isUrgentFlag; // For urgent campaigns (renamed to avoid conflict)
+  final bool? isFeatured; // For featured campaigns
 
   Campaign({
     required this.id,
@@ -23,6 +26,9 @@ class Campaign {
     required this.isActive,
     required this.category,
     required this.donorCount,
+    this.type,
+    this.isUrgentFlag,
+    this.isFeatured,
   });
 
   double get progressPercentage {
@@ -36,6 +42,9 @@ class Campaign {
   }
 
   bool get isUrgent {
+    // If explicitly set as urgent, return true
+    if (isUrgentFlag == true) return true;
+    // Otherwise, check if remaining days <= 7
     return remainingDays <= 7;
   }
 
@@ -56,6 +65,9 @@ class Campaign {
       isActive: json['isActive'] as bool,
       category: json['category'] as String,
       donorCount: json['donorCount'] as int,
+      type: json['type'] as String?,
+      isUrgentFlag: json['isUrgentFlag'] as bool?,
+      isFeatured: json['isFeatured'] as bool?,
     );
   }
 
@@ -72,6 +84,9 @@ class Campaign {
       'isActive': isActive,
       'category': category,
       'donorCount': donorCount,
+      'type': type,
+      'isUrgentFlag': isUrgentFlag,
+      'isFeatured': isFeatured,
     };
   }
 
@@ -87,6 +102,9 @@ class Campaign {
     bool? isActive,
     String? category,
     int? donorCount,
+    String? type,
+    bool? isUrgentFlag,
+    bool? isFeatured,
   }) {
     return Campaign(
       id: id ?? this.id,
@@ -100,6 +118,9 @@ class Campaign {
       isActive: isActive ?? this.isActive,
       category: category ?? this.category,
       donorCount: donorCount ?? this.donorCount,
+      type: type ?? this.type,
+      isUrgentFlag: isUrgentFlag ?? this.isUrgentFlag,
+      isFeatured: isFeatured ?? this.isFeatured,
     );
   }
 } 

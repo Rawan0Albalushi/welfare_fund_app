@@ -213,12 +213,65 @@ class StudentRegistrationService {
       print('Response data type: ${response.data.runtimeType}');
       print('Response data keys: ${response.data.keys}');
       
+      Map<String, dynamic> registrationData;
+      
       if (response.data['data'] != null) {
         print('Returning data from response.data[\'data\']');
-        return response.data['data'];
+        registrationData = Map<String, dynamic>.from(response.data['data']);
+      } else {
+        print('Returning full response.data');
+        registrationData = Map<String, dynamic>.from(response.data);
       }
-      print('Returning full response.data');
-      return response.data;
+      
+      // Ensure status is properly formatted
+      if (registrationData.containsKey('status')) {
+        String status = registrationData['status']?.toString().toLowerCase() ?? 'pending';
+        // Normalize status values
+        switch (status) {
+          case 'pending':
+          case 'في الانتظار':
+            registrationData['status'] = 'pending';
+            break;
+          case 'under_review':
+          case 'قيد المراجعة':
+          case 'قيد الدراسة':
+            registrationData['status'] = 'under_review';
+            break;
+          case 'approved':
+          case 'accepted':
+          case 'مقبول':
+          case 'تم القبول':
+            registrationData['status'] = 'approved';
+            break;
+          case 'rejected':
+          case 'مرفوض':
+          case 'تم الرفض':
+            registrationData['status'] = 'rejected';
+            break;
+          default:
+            registrationData['status'] = 'pending';
+        }
+      } else {
+        registrationData['status'] = 'pending';
+      }
+      
+      // Ensure rejection_reason is properly handled
+      if (registrationData.containsKey('rejection_reason')) {
+        String? rejectionReason = registrationData['rejection_reason']?.toString();
+        if (rejectionReason != null && rejectionReason.isNotEmpty) {
+          registrationData['rejection_reason'] = rejectionReason;
+        } else {
+          registrationData['rejection_reason'] = null;
+        }
+      } else {
+        registrationData['rejection_reason'] = null;
+      }
+      
+      print('Processed registration data: $registrationData');
+      print('Final status: ${registrationData['status']}');
+      print('Final rejection reason: ${registrationData['rejection_reason']}');
+      
+      return registrationData;
     } on DioException catch (e) {
       print('DioException in getCurrentUserRegistration: ${e.message}');
       print('Response status: ${e.response?.statusCode}');
@@ -275,39 +328,98 @@ class StudentRegistrationService {
   // GET /api/v1/programs/support - Get all support programs
   Future<List<Map<String, dynamic>>> getSupportPrograms() async {
     try {
+      print('Calling API: /v1/programs/support');
       final response = await _apiClient.dio.get('/v1/programs/support');
       
       print('API Response for programs: ${response.data}');
       print('Response data type: ${response.data.runtimeType}');
+      print('Response status code: ${response.statusCode}');
+      
+      List<Map<String, dynamic>> programs = [];
       
       if (response.data['data'] != null) {
-        final programs = List<Map<String, dynamic>>.from(response.data['data']);
-        print('Raw programs data: $programs');
+        // Handle Laravel Resource format
+        final data = response.data['data'];
+        print('Data field found: $data');
+        print('Data type: ${data.runtimeType}');
         
-        // Print each program details
-        for (int i = 0; i < programs.length; i++) {
-          final program = programs[i];
-          print('Program $i: id=${program['id']}, title=${program['title']}, type=${program.runtimeType}');
+        if (data is List) {
+          programs = List<Map<String, dynamic>>.from(data);
+        } else if (data is Map) {
+          // Single program case
+          programs = [Map<String, dynamic>.from(data)];
         }
-        
-        return programs;
       } else if (response.data is List) {
-        // Handle case where response.data is directly a list
-        final programs = List<Map<String, dynamic>>.from(response.data);
+        // Handle direct list response
+        programs = List<Map<String, dynamic>>.from(response.data);
         print('Direct list response: $programs');
-        return programs;
+      } else if (response.data is Map) {
+        // Handle single object response
+        programs = [Map<String, dynamic>.from(response.data)];
+        print('Single object response: $programs');
       }
       
-      print('No data field found in response');
-      return [];
+      print('Raw programs data: $programs');
+      print('Programs count: ${programs.length}');
+      
+      // Print each program details for debugging
+      for (int i = 0; i < programs.length; i++) {
+        final program = programs[i];
+        print('Program $i:');
+        print('  - Raw data: $program');
+        print('  - Keys: ${program.keys.toList()}');
+        print('  - ID: ${program['id']} (type: ${program['id']?.runtimeType})');
+        print('  - Title: ${program['title']} (type: ${program['title']?.runtimeType})');
+        print('  - Name: ${program['name']} (type: ${program['name']?.runtimeType})');
+        print('  - Description: ${program['description']} (type: ${program['description']?.runtimeType})');
+      }
+      
+      // Validate and normalize programs
+      final validPrograms = programs.where((program) {
+        // Check for different possible field names
+        final hasId = program['id'] != null;
+        final hasTitle = program['title'] != null;
+        final hasName = program['name'] != null;
+        
+        final isValid = hasId && (hasTitle || hasName);
+        
+        print('Program validation: id=$hasId, title=$hasTitle, name=$hasName, valid=$isValid');
+        
+        return isValid;
+      }).map((program) {
+        // Normalize the data structure
+        return {
+          'id': program['id'],
+          'name': program['title'] ?? program['name'] ?? 'برنامج غير محدد',
+          'description': program['description'] ?? '',
+          'original_data': program, // Keep original data for debugging
+        };
+      }).toList();
+      
+      print('Valid programs count: ${validPrograms.length}');
+      if (validPrograms.isNotEmpty) {
+        print('Valid programs: ${validPrograms.map((p) => '${p['id']}: ${p['name']}').join(', ')}');
+      } else {
+        print('No valid programs found. All programs: ${programs.map((p) => p.toString()).join(', ')}');
+      }
+      
+      return validPrograms;
     } on DioException catch (e) {
       print('Error fetching support programs: ${e.message}');
       print('Response status: ${e.response?.statusCode}');
       print('Response data: ${e.response?.data}');
+      print('Request URL: ${e.requestOptions.uri}');
+      print('Request method: ${e.requestOptions.method}');
+      
       if (e.response?.statusCode == 404) {
-        return []; // Return empty list if no programs found
+        print('No programs found (404) - Support category not found');
+        throw Exception('Support category not found. Please contact the administrator to add support programs.');
       }
+      
       throw _handleDioError(e);
+    } catch (error) {
+      print('Unexpected error fetching support programs: $error');
+      throw Exception('Failed to load support programs. Please try again later.');
     }
   }
 

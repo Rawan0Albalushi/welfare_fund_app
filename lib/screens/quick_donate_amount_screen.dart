@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
+import '../services/campaign_service.dart';
 import 'donation_success_screen.dart';
 
 class QuickDonateAmountScreen extends StatefulWidget {
@@ -16,10 +17,15 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
   final TextEditingController _customAmountController = TextEditingController();
   bool _isCustomAmount = false;
   String? _selectedCategory;
+  bool _isLoadingCategories = false;
+  bool _isLoadingAmounts = false;
 
-  final List<double> _presetAmounts = [25.0, 50.0, 100.0, 200.0, 500.0, 1000.0];
+  List<double> _presetAmounts = [25.0, 50.0, 100.0, 200.0, 500.0, 1000.0];
+  List<Map<String, dynamic>> _categories = [];
+  final CampaignService _campaignService = CampaignService();
 
-  final List<Map<String, dynamic>> _categories = [
+  // Fallback categories if API fails
+  final List<Map<String, dynamic>> _fallbackCategories = [
     {
       'id': 'education',
       'title': 'فرص التعليم',
@@ -54,6 +60,60 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
   void initState() {
     super.initState();
     _customAmountController.text = _selectedAmount.toString();
+    _loadDataFromAPI();
+  }
+
+  Future<void> _loadDataFromAPI() async {
+    try {
+      setState(() {
+        _isLoadingCategories = true;
+        _isLoadingAmounts = true;
+      });
+
+      // Load categories from API
+      try {
+        final categories = await _campaignService.getCategories();
+        setState(() {
+          _categories = categories.map((category) => {
+            'id': category['id'].toString(),
+            'title': category['name'],
+            'description': category['description'],
+            'icon': Icons.category,
+            'color': AppColors.primary,
+          }).toList();
+          _isLoadingCategories = false;
+        });
+        print('QuickDonate: Successfully loaded ${categories.length} categories from API');
+      } catch (error) {
+        print('QuickDonate: Error loading categories, using fallback: $error');
+        setState(() {
+          _categories = _fallbackCategories;
+          _isLoadingCategories = false;
+        });
+      }
+
+      // Load quick amounts from API
+      try {
+        final amounts = await _campaignService.getQuickDonationAmounts();
+        setState(() {
+          _presetAmounts = amounts;
+          _isLoadingAmounts = false;
+        });
+        print('QuickDonate: Successfully loaded ${amounts.length} quick amounts from API');
+      } catch (error) {
+        print('QuickDonate: Error loading quick amounts, using fallback: $error');
+        setState(() {
+          _isLoadingAmounts = false;
+        });
+      }
+    } catch (error) {
+      print('QuickDonate: Error loading data from API: $error');
+      setState(() {
+        _categories = _fallbackCategories;
+        _isLoadingCategories = false;
+        _isLoadingAmounts = false;
+      });
+    }
   }
 
   @override

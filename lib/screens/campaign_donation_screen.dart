@@ -3,6 +3,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../models/campaign.dart';
+import '../services/campaign_service.dart';
 import 'donation_success_screen.dart';
 
 class CampaignDonationScreen extends StatefulWidget {
@@ -26,6 +27,8 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
   double _selectedAmount = 0;
   final List<double> _quickAmounts = [50, 100, 200, 500, 1000];
   final TextEditingController _customAmountController = TextEditingController();
+  final CampaignService _campaignService = CampaignService();
+  bool _isProcessingDonation = false;
 
   @override
   void initState() {
@@ -68,7 +71,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
     });
   }
 
-  void _proceedToDonation() {
+  Future<void> _proceedToDonation() async {
     if (_selectedAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -79,17 +82,58 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
       return;
     }
 
-    // الانتقال لشاشة نجاح التبرع
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DonationSuccessScreen(
-          amount: _selectedAmount,
-          campaignTitle: widget.campaign.title,
-          campaignCategory: widget.campaign.category,
-        ),
-      ),
-    );
+    setState(() {
+      _isProcessingDonation = true;
+    });
+
+    try {
+      // Determine item type based on campaign type
+      final itemType = widget.campaign.type == 'student_program' ? 'program' : 'campaign';
+      
+      // Create donation using unified donation system
+      await _campaignService.createDonation(
+        itemId: widget.campaign.id,
+        itemType: itemType,
+        amount: _selectedAmount,
+        donorName: 'متبرع', // You can add form fields for donor info later
+        donorPhone: '+96812345678', // You can add form fields for donor info later
+        donorEmail: 'donor@example.com', // You can add form fields for donor info later
+        message: 'تبرع خيري',
+      );
+
+      setState(() {
+        _isProcessingDonation = false;
+      });
+
+      // Navigate to success screen
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DonationSuccessScreen(
+              amount: _selectedAmount,
+              campaignTitle: widget.campaign.title,
+              campaignCategory: widget.campaign.category,
+            ),
+          ),
+        );
+      }
+    } catch (error) {
+      setState(() {
+        _isProcessingDonation = false;
+      });
+      
+      print('CampaignDonation: Error creating donation: $error');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ في إرسال التبرع: $error'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -412,7 +456,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                          width: double.infinity,
                          height: 60,
                          child: ElevatedButton(
-                           onPressed: _proceedToDonation,
+                           onPressed: _isProcessingDonation ? null : _proceedToDonation,
                            style: ElevatedButton.styleFrom(
                              backgroundColor: AppColors.primary,
                              foregroundColor: AppColors.surface,
@@ -423,24 +467,47 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                              ),
                              padding: const EdgeInsets.symmetric(vertical: 16),
                            ),
-                           child: Row(
-                             mainAxisAlignment: MainAxisAlignment.center,
-                             children: [
-                               const Icon(
-                                 Icons.favorite,
-                                 size: 24,
-                               ),
-                               const SizedBox(width: 12),
-                               Text(
-                                 'تبرع الآن',
-                                 style: AppTextStyles.buttonLarge.copyWith(
-                                   fontSize: 18,
-                                   fontWeight: FontWeight.bold,
-                                   height: 1.2,
+                           child: _isProcessingDonation
+                               ? Row(
+                                   mainAxisAlignment: MainAxisAlignment.center,
+                                   children: [
+                                     SizedBox(
+                                       width: 20,
+                                       height: 20,
+                                       child: CircularProgressIndicator(
+                                         strokeWidth: 2,
+                                         valueColor: AlwaysStoppedAnimation<Color>(AppColors.surface),
+                                       ),
+                                     ),
+                                     const SizedBox(width: 12),
+                                     Text(
+                                       'جاري التبرع...',
+                                       style: AppTextStyles.buttonLarge.copyWith(
+                                         fontSize: 18,
+                                         fontWeight: FontWeight.bold,
+                                         height: 1.2,
+                                       ),
+                                     ),
+                                   ],
+                                 )
+                               : Row(
+                                   mainAxisAlignment: MainAxisAlignment.center,
+                                   children: [
+                                     const Icon(
+                                       Icons.favorite,
+                                       size: 24,
+                                     ),
+                                     const SizedBox(width: 12),
+                                     Text(
+                                       'تبرع الآن',
+                                       style: AppTextStyles.buttonLarge.copyWith(
+                                         fontSize: 18,
+                                         fontWeight: FontWeight.bold,
+                                         height: 1.2,
+                                       ),
+                                     ),
+                                   ],
                                  ),
-                               ),
-                             ],
-                           ),
                          ),
                        ),
                       
