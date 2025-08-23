@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'constants/app_colors.dart';
 import 'constants/app_text_styles.dart';
 import 'constants/app_constants.dart';
@@ -9,6 +10,7 @@ import 'screens/home_screen.dart';
 import 'services/auth_service.dart';
 import 'services/api_client.dart';
 import 'providers/auth_provider.dart';
+import 'providers/payment_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +38,7 @@ class StudentWelfareFundApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => PaymentProvider()),
       ],
       child: MaterialApp(
         title: AppConstants.appName,

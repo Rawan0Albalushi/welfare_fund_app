@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../models/campaign.dart';
 import '../services/campaign_service.dart';
+import '../services/donation_service.dart';
+import '../providers/payment_provider.dart';
+import 'payment_webview.dart';
 import 'donation_success_screen.dart';
 
 class CampaignDonationScreen extends StatefulWidget {
@@ -27,8 +32,8 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
   double _selectedAmount = 0;
   final List<double> _quickAmounts = [50, 100, 200, 500, 1000];
   final TextEditingController _customAmountController = TextEditingController();
-  final CampaignService _campaignService = CampaignService();
-  bool _isProcessingDonation = false;
+  final DonationService _donationService = DonationService();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -83,52 +88,142 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
     }
 
     setState(() {
-      _isProcessingDonation = true;
+      _isLoading = true;
     });
 
     try {
-      // Determine item type based on campaign type
-      final itemType = widget.campaign.type == 'student_program' ? 'program' : 'campaign';
-      
-      // Create donation using unified donation system
-      await _campaignService.createDonation(
+      print('CampaignDonationScreen: Starting donation process...');
+      print('CampaignDonationScreen: Amount: $_selectedAmount');
+      print('CampaignDonationScreen: Campaign ID: ${widget.campaign.id}');
+      print('CampaignDonationScreen: Campaign Type: ${widget.campaign.type}');
+
+      // Use the new DonationService with direct payment method
+      final result = await _donationService.createDonationWithPayment(
         itemId: widget.campaign.id,
-        itemType: itemType,
+        itemType: widget.campaign.type == 'student_program' ? 'program' : 'campaign',
         amount: _selectedAmount,
-        donorName: 'متبرع', // You can add form fields for donor info later
-        donorPhone: '+96812345678', // You can add form fields for donor info later
-        donorEmail: 'donor@example.com', // You can add form fields for donor info later
-        message: 'تبرع خيري',
+        donorName: 'متبرع', // Default name
+        donorEmail: 'donor@example.com', // Default email
+        donorPhone: '+96812345678', // Default phone
+        message: 'تبرع لـ ${widget.campaign.title}',
+        isAnonymous: false,
       );
 
-      setState(() {
-        _isProcessingDonation = false;
-      });
+      print('CampaignDonationScreen: Donation created successfully');
+      print('CampaignDonationScreen: Result: $result');
 
-      // Navigate to success screen
       if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DonationSuccessScreen(
-              amount: _selectedAmount,
-              campaignTitle: widget.campaign.title,
-              campaignCategory: widget.campaign.category,
-            ),
-          ),
-        );
+        setState(() {
+          _isLoading = false;
+        });
       }
-    } catch (error) {
-      setState(() {
-        _isProcessingDonation = false;
-      });
-      
-      print('CampaignDonation: Error creating donation: $error');
+
+      // Check if we have payment URL and session ID
+      if (result['payment_url'] != null && result['payment_session_id'] != null) {
+        print('CampaignDonationScreen: Opening payment URL directly');
+        
+        // فتح رابط الدفع مباشرة داخل التطبيق
+        final uri = Uri.parse(result['payment_url']);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+          
+          // بعد فتح الرابط، انتقل لصفحة النجاح
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DonationSuccessScreen(
+                  amount: _selectedAmount,
+                  campaignTitle: widget.campaign.title,
+                  campaignCategory: widget.campaign.category,
+                ),
+              ),
+            );
+          }
+        } else {
+          // إذا لم يمكن فتح الرابط، استخدم WebView كبديل
+          print('CampaignDonationScreen: Cannot launch URL, using WebView as fallback');
+          final paymentResult = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PaymentWebView(
+                paymentUrl: result['payment_url'],
+                sessionId: result['payment_session_id'],
+              ),
+            ),
+          );
+
+                  // Handle payment result (for WebView fallback)
+          if (paymentResult == 'success') {
+            print('CampaignDonationScreen: Payment successful, navigating to success screen');
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DonationSuccessScreen(
+                    amount: _selectedAmount,
+                    campaignTitle: widget.campaign.title,
+                    campaignCategory: widget.campaign.category,
+                  ),
+                ),
+              );
+            }
+          } else if (paymentResult == 'failed') {
+            print('CampaignDonationScreen: Payment failed');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('فشل في عملية الدفع. يرجى المحاولة مرة أخرى.'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            }
+          } else if (paymentResult == 'cancelled') {
+            print('CampaignDonationScreen: Payment cancelled');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم إلغاء عملية الدفع.'),
+                  backgroundColor: AppColors.warning,
+                ),
+              );
+            }
+          }
+        }
+      } else if (result['payment_error'] != null) {
+        // Handle payment session creation failure
+        print('CampaignDonationScreen: Payment session creation failed');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('تم إنشاء التبرع بنجاح، لكن حدث خطأ في إنشاء جلسة الدفع. سيتم التواصل معك قريباً.'),
+              backgroundColor: AppColors.warning,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      } else {
+        print('CampaignDonationScreen: No payment URL or session ID in result');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('حدث خطأ في إنشاء جلسة الدفع. يرجى المحاولة مرة أخرى.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('CampaignDonationScreen: Error during donation: $e');
       
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('حدث خطأ في إرسال التبرع: $error'),
+            content: Text('حدث خطأ: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -456,7 +551,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                          width: double.infinity,
                          height: 60,
                          child: ElevatedButton(
-                           onPressed: _isProcessingDonation ? null : _proceedToDonation,
+                           onPressed: _isLoading ? null : _proceedToDonation,
                            style: ElevatedButton.styleFrom(
                              backgroundColor: AppColors.primary,
                              foregroundColor: AppColors.surface,
@@ -467,25 +562,24 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                              ),
                              padding: const EdgeInsets.symmetric(vertical: 16),
                            ),
-                           child: _isProcessingDonation
-                               ? Row(
+                           child: _isLoading
+                               ? const Row(
                                    mainAxisAlignment: MainAxisAlignment.center,
                                    children: [
                                      SizedBox(
                                        width: 20,
                                        height: 20,
                                        child: CircularProgressIndicator(
-                                         strokeWidth: 2,
                                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.surface),
+                                         strokeWidth: 2,
                                        ),
                                      ),
-                                     const SizedBox(width: 12),
+                                     SizedBox(width: 12),
                                      Text(
-                                       'جاري التبرع...',
-                                       style: AppTextStyles.buttonLarge.copyWith(
-                                         fontSize: 18,
-                                         fontWeight: FontWeight.bold,
-                                         height: 1.2,
+                                       'جاري إنشاء التبرع...',
+                                       style: TextStyle(
+                                         fontSize: 16,
+                                         fontWeight: FontWeight.w600,
                                        ),
                                      ),
                                    ],
