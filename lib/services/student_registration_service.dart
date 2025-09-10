@@ -77,7 +77,7 @@ class StudentRegistrationService {
       }
 
       final response = await _apiClient.dio.post(
-        '/v1/students/registration',
+        '/students/registration',
         data: formData,
       );
 
@@ -102,7 +102,7 @@ class StudentRegistrationService {
       if (search != null) queryParams['search'] = search;
 
       final response = await _apiClient.dio.get(
-        '/v1/students/registration',
+        '/students/registration',
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
 
@@ -115,7 +115,7 @@ class StudentRegistrationService {
   // GET /api/v1/students/registration/{id} - Get specific student registration
   Future<Map<String, dynamic>> getStudentRegistrationById(String id) async {
     try {
-      final response = await _apiClient.dio.get('/v1/students/registration/$id');
+      final response = await _apiClient.dio.get('/students/registration/$id');
       return response.data;
     } on DioException catch (e) {
       throw _handleDioError(e);
@@ -192,7 +192,7 @@ class StudentRegistrationService {
       }
 
       final response = await _apiClient.dio.post(
-        '/v1/students/registration/$registrationId/documents',
+        '/students/registration/$registrationId/documents',
         data: formData,
       );
 
@@ -205,8 +205,8 @@ class StudentRegistrationService {
   // Get current user's student registration
   Future<Map<String, dynamic>?> getCurrentUserRegistration() async {
     try {
-      print('Calling API: /v1/students/registration/my-registration');
-      final response = await _apiClient.dio.get('/v1/students/registration/my-registration');
+      print('Calling API: /students/registration/my-registration');
+      final response = await _apiClient.dio.get('/students/registration/my-registration');
       print('API Response: ${response.data}');
       
       // Extract data from response
@@ -306,7 +306,7 @@ class StudentRegistrationService {
       }
 
       final response = await _apiClient.dio.put(
-        '/v1/students/registration/$registrationId',
+        '/students/registration/$registrationId',
         data: formData ?? data,
       );
 
@@ -319,7 +319,7 @@ class StudentRegistrationService {
   // Delete student registration
   Future<void> deleteStudentRegistration(String registrationId) async {
     try {
-      await _apiClient.dio.delete('/v1/students/registration/$registrationId');
+      await _apiClient.dio.delete('/students/registration/$registrationId');
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
@@ -328,8 +328,8 @@ class StudentRegistrationService {
   // GET /api/v1/programs/support - Get all support programs
   Future<List<Map<String, dynamic>>> getSupportPrograms() async {
     try {
-      print('Calling API: /v1/programs/support');
-      final response = await _apiClient.dio.get('/v1/programs/support');
+      print('Calling API: /programs/support');
+      final response = await _apiClient.dio.get('/programs/support');
       
       print('API Response for programs: ${response.data}');
       print('Response data type: ${response.data.runtimeType}');

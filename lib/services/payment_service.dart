@@ -16,7 +16,7 @@ class PaymentService {
 
   // قاعدة API المستخدمة في بقية الخدمات أيضًا
   // تأكد أن هذا يطابق العنوان في ApiClient.initialize
-  static const String _baseUrl = 'http://192.168.100.105:8000/api/v1';
+  static const String _baseUrl = 'http://192.168.1.101:8000/api/v1';
 
   String get _apiBase => _baseUrl;
 

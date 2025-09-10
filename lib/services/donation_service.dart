@@ -18,14 +18,14 @@ class DonationService {
   // ===== Base URL (محلي) =====
   // Android Emulator يصل لمضيف جهازك بـ 10.0.2.2
   // iOS Simulator غالباً يقدر على localhost
-  // الأجهزة الفعلية استخدمي IP الشبكة (مثال: 192.168.100.105)
+  // الأجهزة الفعلية استخدمي IP الشبكة (مثال: 192.168.1.101)
   static String _resolveFallbackBase() {
     try {
-      if (Platform.isAndroid) return 'http://10.0.2.2:8000/api/v1';
-      if (Platform.isIOS) return 'http://localhost:8000/api/v1';
+      if (Platform.isAndroid) return 'http://192.168.1.101:8000/api/v1';
+      if (Platform.isIOS) return 'http://192.168.1.101:8000/api/v1';
     } catch (_) {}
     // Fallback عام (غيّريه لعنوان جهازك على الشبكة)
-    return 'http://192.168.100.105:8000/api/v1';
+    return 'http://192.168.1.101:8000/api/v1';
   }
 
   String get _apiBase {
