@@ -3,6 +3,8 @@ import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../screens/home_screen.dart';
+import '../services/donation_service.dart';
+import 'my_donations_screen.dart';
 
 class QuickDonateSuccessScreen extends StatefulWidget {
   final double amount;
@@ -26,6 +28,8 @@ class _QuickDonateSuccessScreenState extends State<QuickDonateSuccessScreen>
   late AnimationController _checkmarkController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _checkmarkAnimation;
+  
+  final DonationService _donationService = DonationService();
 
   @override
   void initState() {
@@ -80,6 +84,26 @@ class _QuickDonateSuccessScreenState extends State<QuickDonateSuccessScreen>
       MaterialPageRoute(builder: (context) => const HomeScreen()),
       (route) => false,
     );
+  }
+  
+  void _goToMyDonations() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MyDonationsScreen(forceRefresh: true),
+      ),
+      (route) => false,
+    );
+  }
+  
+  Future<void> _refreshDonationsData() async {
+    try {
+      // Force refresh donations data by calling the API
+      await _donationService.getUserDonations();
+      print('QuickDonateSuccessScreen: Donations data refreshed successfully');
+    } catch (e) {
+      print('QuickDonateSuccessScreen: Error refreshing donations data: $e');
+    }
   }
 
 
@@ -310,31 +334,67 @@ class _QuickDonateSuccessScreenState extends State<QuickDonateSuccessScreen>
 
               const SizedBox(height: AppConstants.extraLargePadding),
 
-                             // Back to Home Button
-               SizedBox(
-                 width: double.infinity,
-                 height: 56,
-                 child: ElevatedButton.icon(
-                   onPressed: _onBackToHome,
-                   icon: const Icon(Icons.home, size: 20),
-                   label: Text(
-                     'العودة للرئيسية',
-                     style: AppTextStyles.buttonLarge.copyWith(
-                       color: AppColors.surface,
-                       fontWeight: FontWeight.w600,
-                     ),
-                   ),
-                   style: ElevatedButton.styleFrom(
-                     backgroundColor: AppColors.primary,
-                     foregroundColor: AppColors.surface,
-                     elevation: 0,
-                     shape: RoundedRectangleBorder(
-                       borderRadius: BorderRadius.circular(16),
-                     ),
-                     shadowColor: AppColors.primary.withOpacity(0.3),
-                   ),
-                 ),
-               ),
+              // Action Buttons
+              Column(
+                children: [
+                  // View My Donations Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await _refreshDonationsData();
+                        _goToMyDonations();
+                      },
+                      icon: const Icon(Icons.favorite, size: 20),
+                      label: Text(
+                        'عرض تبرعاتي',
+                        style: AppTextStyles.buttonLarge.copyWith(
+                          color: AppColors.surface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        foregroundColor: AppColors.surface,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        shadowColor: AppColors.success.withOpacity(0.3),
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Back to Home Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: _onBackToHome,
+                      icon: const Icon(Icons.home, size: 20),
+                      label: Text(
+                        'العودة للرئيسية',
+                        style: AppTextStyles.buttonLarge.copyWith(
+                          color: AppColors.surface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.surface,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        shadowColor: AppColors.primary.withOpacity(0.3),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
 
               const SizedBox(height: AppConstants.extraLargePadding),
 

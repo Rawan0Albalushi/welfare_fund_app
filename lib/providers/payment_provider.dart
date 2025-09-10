@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/payment_response.dart' hide PaymentStatusResponse;
 import '../models/payment_status_response.dart';
 import '../services/payment_service.dart';
+import '../services/donation_service.dart';
 
 enum PaymentState {
   initial,
@@ -18,6 +19,7 @@ enum PaymentState {
 
 class PaymentProvider extends ChangeNotifier {
   final PaymentService _paymentService = PaymentService();
+  final DonationService _donationService = DonationService();
 
   PaymentState _state = PaymentState.initial;
   PaymentResponse? _paymentResponse;
@@ -45,6 +47,76 @@ class PaymentProvider extends ChangeNotifier {
     _statusResponse = null;
     _currentSessionId = null;
     notifyListeners();
+  }
+
+  /// إنشاء التبرع مع الدفع مباشرة (الطريقة الموصى بها)
+  Future<void> initiateDonationWithPayment({
+    required double amount,
+    String? donorName,
+    String? donorEmail,
+    String? donorPhone,
+    String? message,
+    String? itemId,
+    String? itemType,   // 'program' | 'campaign'
+    int? programId,
+    int? campaignId,
+    String? note,
+    bool isAnonymous = false,
+  }) async {
+    try {
+      _state = PaymentState.loading;
+      _errorMessage = null;
+      notifyListeners();
+
+      // تحديد itemId و itemType إذا لم يتم توفيرهما
+      String finalItemId = itemId ?? '';
+      String finalItemType = itemType ?? 'program';
+      
+      if (programId != null) {
+        finalItemId = programId.toString();
+        finalItemType = 'program';
+      } else if (campaignId != null) {
+        finalItemId = campaignId.toString();
+        finalItemType = 'campaign';
+      }
+
+      print('PaymentProvider: Creating donation with payment for $finalItemType: $finalItemId, amount: $amount');
+
+      final result = await _donationService.createDonationWithPayment(
+        itemId: finalItemId,
+        itemType: finalItemType,
+        amount: amount,
+        donorName: donorName ?? 'متبرع',
+        donorEmail: donorEmail,
+        donorPhone: donorPhone,
+        message: message ?? note ?? 'تبرع',
+        isAnonymous: isAnonymous,
+      );
+
+      if (result['ok'] == true && result['payment_url'] != null) {
+        _currentSessionId = result['payment_session_id']?.toString();
+        _currentAmount = amount;
+        _state = PaymentState.sessionCreated;
+        
+        // إنشاء PaymentResponse وهمي للتوافق
+        _paymentResponse = PaymentResponse(
+          success: true,
+          sessionId: _currentSessionId,
+          paymentUrl: result['payment_url'].toString(),
+          message: 'تم إنشاء التبرع بنجاح',
+        );
+        
+        notifyListeners();
+      } else {
+        _errorMessage = 'فشل في إنشاء التبرع';
+        _state = PaymentState.paymentFailed;
+        notifyListeners();
+      }
+    } catch (e) {
+      _errorMessage = 'حدث خطأ في إنشاء التبرع: $e';
+      _state = PaymentState.paymentFailed;
+      notifyListeners();
+    }
   }
 
   /// إنشاء جلسة الدفع مع الباكند (تستدعي createPaymentSession V2 داخليًا)

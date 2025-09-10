@@ -128,19 +128,18 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
       if (widget.itemType == 'campaign') campaignId = parsedId;
     }
 
-    // إنشاء جلسة الدفع
-    await provider.initiatePayment(
+    // إنشاء التبرع مع الدفع مباشرة
+    await provider.initiateDonationWithPayment(
       amount: _selectedAmount,
       donorName: _donorNameController.text.trim(),
       donorEmail: _donorEmailController.text.trim().isNotEmpty ? _donorEmailController.text.trim() : null,
       donorPhone: _donorPhoneController.text.trim().isNotEmpty ? _donorPhoneController.text.trim() : null,
       message: _messageController.text.trim().isNotEmpty ? _messageController.text.trim() : null,
-      itemId: widget.itemId,          // لا بأس بتمريرها للتوافق
-      itemType: widget.itemType,      // لا بأس بتمريرها للتوافق
-      programId: programId,           // التمرير الصريح أدق
-      campaignId: campaignId,         // التمرير الصريح أدق
+      itemId: widget.itemId,
+      itemType: widget.itemType,
+      programId: programId,
+      campaignId: campaignId,
       note: _messageController.text.trim().isNotEmpty ? _messageController.text.trim() : null,
-      type: 'quick',
     );
 
     if (provider.state == PaymentState.sessionCreated && provider.paymentUrl != null) {

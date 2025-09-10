@@ -25,13 +25,31 @@ class _PaymentWebViewState extends State<PaymentWebView> {
   late final WebViewController _controller;
   bool _isLoading = true;
   final _donationService = DonationService();
+  bool _hasCheckedStatus = false;
 
-  bool _isBridgeUrl(String url) {
+  bool _isSuccessUrl(String url) {
     return url.contains('/payment/bridge/success') ||
-           url.contains('/payment/bridge/cancel');
+           url.contains('/payments/success') ||
+           url.contains('/pay/success') ||
+           url.contains('success') ||
+           url.contains('payment_success') ||
+           url.contains('sfund.app') ||
+           url.contains('thawani.om') && url.contains('success');
+  }
+  
+  bool _isCancelUrl(String url) {
+    return url.contains('/payment/bridge/cancel') ||
+           url.contains('/payments/cancel') ||
+           url.contains('/pay/cancel') ||
+           url.contains('cancel') ||
+           url.contains('payment_cancel') ||
+           url.contains('thawani.om') && url.contains('cancel');
   }
 
   Future<void> _finishAndPop() async {
+    if (_hasCheckedStatus) return; // Prevent multiple checks
+    _hasCheckedStatus = true;
+    
     try {
       final status = await _donationService.checkPaymentStatus(widget.sessionId);
       if (!mounted) return;
@@ -49,7 +67,8 @@ class _PaymentWebViewState extends State<PaymentWebView> {
         Navigator.pop(context, PaymentState.paymentFailed);
       } else {
         // Still pending - try again after a short delay
-        await Future.delayed(const Duration(seconds: 2));
+        _hasCheckedStatus = false; // Reset flag for retry
+        await Future.delayed(const Duration(seconds: 3));
         await _finishAndPop();
       }
     } catch (e) {
@@ -106,6 +125,13 @@ class _PaymentWebViewState extends State<PaymentWebView> {
   void initState() {
     super.initState();
     
+    // Start periodic status checking after 10 seconds
+    Future.delayed(const Duration(seconds: 10), () {
+      if (mounted && !_hasCheckedStatus) {
+        _checkPaymentStatusPeriodically();
+      }
+    });
+    
     if (kIsWeb) {
       // On web, open payment in same browser
       _openPaymentInBrowser();
@@ -119,13 +145,30 @@ class _PaymentWebViewState extends State<PaymentWebView> {
           onPageStarted: (_) => setState(() => _isLoading = true),
           onPageFinished: (url) async {
             setState(() => _isLoading = false);
-            if (_isBridgeUrl(url)) {
+            print('PaymentWebView: Page finished loading: $url');
+            
+            if (_isSuccessUrl(url)) {
+              print('PaymentWebView: Detected success URL, checking payment status...');
               await _finishAndPop();
+            } else if (_isCancelUrl(url)) {
+              print('PaymentWebView: Detected cancel URL, returning cancelled...');
+              if (mounted) {
+                Navigator.pop(context, PaymentState.paymentCancelled);
+              }
             }
           },
           onNavigationRequest: (request) {
-            if (_isBridgeUrl(request.url)) {
+            print('PaymentWebView: Navigation request to: ${request.url}');
+            
+            if (_isSuccessUrl(request.url)) {
+              print('PaymentWebView: Intercepting success URL');
               _finishAndPop();
+              return NavigationDecision.prevent;
+            } else if (_isCancelUrl(request.url)) {
+              print('PaymentWebView: Intercepting cancel URL');
+              if (mounted) {
+                Navigator.pop(context, PaymentState.paymentCancelled);
+              }
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
@@ -135,6 +178,13 @@ class _PaymentWebViewState extends State<PaymentWebView> {
       
       _controller.loadRequest(Uri.parse(widget.paymentUrl));
     }
+  }
+  
+  void _checkPaymentStatusPeriodically() {
+    if (!mounted || _hasCheckedStatus) return;
+    
+    print('PaymentWebView: Starting periodic payment status check...');
+    _finishAndPop();
   }
 
   @override
@@ -207,6 +257,16 @@ class _PaymentWebViewState extends State<PaymentWebView> {
           onPressed: () => Navigator.pop(context, PaymentState.paymentCancelled),
         ),
         actions: [
+          // Manual check button
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              if (!_hasCheckedStatus) {
+                _finishAndPop();
+              }
+            },
+            tooltip: 'التحقق من حالة الدفع',
+          ),
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.all(16),
@@ -244,6 +304,47 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                 ),
               ),
             ),
+          // Help message overlay
+          Positioned(
+            bottom: 20,
+            left: 20,
+            right: 20,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'بعد إتمام الدفع، اضغط على زر التحديث 🔄',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.surface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'أو انتظر 10 ثوانٍ للتحقق التلقائي',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.surface.withOpacity(0.8),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

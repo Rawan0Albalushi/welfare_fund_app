@@ -102,15 +102,14 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
       }
     }
 
-    // إنشاء جلسة الدفع عبر الباكند
-    await provider.initiatePayment(
+    // إنشاء التبرع مع الدفع مباشرة
+    await provider.initiateDonationWithPayment(
       amount: _selectedAmount,
       donorName: 'متبرع',
       message: 'تبرع لـ ${widget.campaign.title}',
       programId: programId,
       campaignId: campaignId,
       note: 'تبرع عبر شاشة الحملة',
-      type: 'quick',
     );
 
     if (provider.state == PaymentState.sessionCreated && provider.paymentUrl != null) {

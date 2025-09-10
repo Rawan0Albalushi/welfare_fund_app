@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../models/payment_request.dart';
 import '../models/payment_response.dart' hide PaymentStatusResponse;
 import '../models/payment_status_response.dart';
+import '../models/donation.dart';
 import 'api_client.dart';
 
 class DonationService {
@@ -14,6 +15,9 @@ class DonationService {
   DonationService._internal();
 
   final ApiClient _apiClient = ApiClient();
+  
+  // Getter to access ApiClient from outside
+  ApiClient get apiClient => _apiClient;
 
   // ===== Base URL (محلي) =====
   // Android Emulator يصل لمضيف جهازك بـ 10.0.2.2
@@ -85,10 +89,14 @@ class DonationService {
       final response = await http.post(uri, headers: headers, body: jsonEncode(payload));
 
       // Debug:
-      // print('with-payment -> ${response.statusCode}\n${response.body}');
+      print('DonationService: Creating donation with payment...');
+      print('DonationService: Request URL: $uri');
+      print('DonationService: Request payload: $payload');
+      print('DonationService: Response status: ${response.statusCode}');
+      print('DonationService: Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = jsonDecode(response.body);
+        final responseData = jsonDecode(response.body) as Map<String, dynamic>;
 
         final Map<String, dynamic>? data =
             (responseData['data'] is Map) ? responseData['data'] as Map<String, dynamic> : null;
@@ -235,6 +243,229 @@ class DonationService {
       }
     } catch (e) {
       return PaymentStatusResponse.error('حدث خطأ في الاتصال. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.');
+    }
+  }
+
+  // ===== ENDPOINT 4: Get user donations =====
+  /// Try multiple possible endpoints to get user donations
+  /// 1. GET /api/v1/donations/recent (most likely to work)
+  /// 2. GET /api/v1/me/donations (if exists)
+  /// 3. GET /api/v1/donations (if exists)
+  Future<List<Donation>> getUserDonations() async {
+    try {
+      await _apiClient.initialize();
+      final token = await _apiClient.getAuthToken();
+
+      print('DonationService: Token exists: ${token != null}');
+      print('DonationService: API Base: $_apiBase');
+      if (token != null) {
+        print('DonationService: Token preview: ${token.substring(0, 20)}...');
+      }
+
+      if (token == null) {
+        throw Exception('يجب تسجيل الدخول أولاً');
+      }
+
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      // Try multiple endpoints in order of likelihood
+      final endpoints = [
+        '/me/donations',  // Try user-specific donations first
+        '/donations/recent', 
+        '/donations',
+      ];
+      
+      for (final endpoint in endpoints) {
+        try {
+          final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}$endpoint');
+          print('DonationService: Trying endpoint: $uri');
+          
+          final response = await http.get(uri, headers: headers);
+          print('DonationService: Response status: ${response.statusCode}');
+          print('DonationService: Response body: ${response.body}');
+          
+          if (response.statusCode == 200) {
+            final donations = _parseDonationsResponse(response.body);
+            print('DonationService: Successfully parsed ${donations.length} donations from $endpoint');
+            return donations;
+          } else if (response.statusCode == 404) {
+            print('DonationService: Endpoint $endpoint not found, trying next...');
+            continue;
+          } else {
+            // For other errors, throw the error
+            print('DonationService: Error with endpoint $endpoint: HTTP ${response.statusCode}');
+            print('DonationService: Error response: ${response.body}');
+            throw Exception('HTTP ${response.statusCode}: ${response.body}');
+          }
+        } catch (e) {
+          print('DonationService: Error with endpoint $endpoint: $e');
+          if (endpoint == endpoints.last) {
+            rethrow; // If this is the last endpoint, rethrow the error
+          }
+          continue; // Try next endpoint
+        }
+      }
+      
+      throw Exception('جميع endpoints التبرعات غير متاحة');
+    } catch (e) {
+      print('DonationService: Error fetching user donations: $e');
+      rethrow;
+    }
+  }
+
+  // Helper method to parse donations response
+  List<Donation> _parseDonationsResponse(String responseBody) {
+    try {
+      print('DonationService: Parsing response body: $responseBody');
+      final responseData = jsonDecode(responseBody) as Map<String, dynamic>;
+      print('DonationService: Parsed response data keys: ${responseData.keys}');
+      
+      // Handle different response structures
+      List<dynamic> donationsData = [];
+      if (responseData['data'] is List) {
+        donationsData = responseData['data'] as List<dynamic>;
+        print('DonationService: Found ${donationsData.length} donations in "data" field');
+      } else if (responseData['donations'] is List) {
+        donationsData = responseData['donations'] as List<dynamic>;
+        print('DonationService: Found ${donationsData.length} donations in "donations" field');
+      } else if (responseData is List) {
+        donationsData = responseData as List<dynamic>;
+        print('DonationService: Found ${donationsData.length} donations in root array');
+      } else {
+        print('DonationService: No donations array found in response');
+        print('DonationService: Available fields: ${responseData.keys}');
+      }
+
+      final donations = donationsData
+          .map((donationJson) {
+            print('DonationService: Parsing donation: $donationJson');
+            return Donation.fromJson(donationJson as Map<String, dynamic>);
+          })
+          .toList();
+          
+      print('DonationService: Successfully created ${donations.length} Donation objects');
+      return donations;
+    } catch (e) {
+      print('DonationService: Error parsing donations response: $e');
+      print('DonationService: Response body was: $responseBody');
+      return [];
+    }
+  }
+
+  // ===== ENDPOINT 5: Get paid donations only =====
+  /// Try to get paid donations by filtering recent donations
+  /// Since /me/donations?status=paid may not exist, we'll get all donations and filter
+  Future<List<Donation>> getPaidDonations() async {
+    try {
+      // Get all donations first
+      final allDonations = await getUserDonations();
+      
+      // Filter for paid donations
+      final paidDonations = allDonations.where((donation) => 
+        donation.isPaid || donation.isCompleted
+      ).toList();
+      
+      print('DonationService: Found ${paidDonations.length} paid donations out of ${allDonations.length} total');
+      return paidDonations;
+    } catch (e) {
+      print('DonationService: Error fetching paid donations: $e');
+      rethrow;
+    }
+  }
+
+  // ===== DEBUG: Test all endpoints =====
+  /// Test all possible donation endpoints to see which ones work
+  Future<void> testAllEndpoints() async {
+    try {
+      await _apiClient.initialize();
+      final token = await _apiClient.getAuthToken();
+
+      if (token == null) {
+        print('DonationService: No token available for testing');
+        return;
+      }
+
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      final endpoints = [
+        '/me/donations',
+        '/donations/recent',
+        '/donations',
+        '/user/donations',
+        '/my-donations',
+      ];
+
+      print('DonationService: Testing all endpoints...');
+      
+      for (final endpoint in endpoints) {
+        try {
+          final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}$endpoint');
+          print('\n=== Testing: $endpoint ===');
+          print('URL: $uri');
+          
+          final response = await http.get(uri, headers: headers);
+          print('Status: ${response.statusCode}');
+          print('Response: ${response.body}');
+          
+          if (response.statusCode == 200) {
+            print('✅ SUCCESS: $endpoint works!');
+          } else if (response.statusCode == 404) {
+            print('❌ NOT FOUND: $endpoint');
+          } else {
+            print('⚠️ ERROR: $endpoint - ${response.statusCode}');
+          }
+        } catch (e) {
+          print('❌ EXCEPTION: $endpoint - $e');
+        }
+      }
+    } catch (e) {
+      print('DonationService: Error testing endpoints: $e');
+    }
+  }
+
+  // ===== DEBUG: Check donation status =====
+  /// Check if a specific donation exists and its status
+  Future<Map<String, dynamic>?> checkDonationStatus(String donationId) async {
+    try {
+      await _apiClient.initialize();
+      final token = await _apiClient.getAuthToken();
+
+      if (token == null) {
+        print('DonationService: No token available for checking donation status');
+        return null;
+      }
+
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      // Try to get the donation by ID
+      final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}/donations/$donationId');
+      print('DonationService: Checking donation status: $uri');
+      
+      final response = await http.get(uri, headers: headers);
+      print('DonationService: Donation status response: ${response.statusCode}');
+      print('DonationService: Donation status body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else {
+        print('DonationService: Failed to get donation status: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('DonationService: Error checking donation status: $e');
+      return null;
     }
   }
 

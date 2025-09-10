@@ -1,97 +1,290 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
+import '../models/donation.dart';
+import '../services/donation_service.dart';
 
 class MyDonationsScreen extends StatefulWidget {
-  const MyDonationsScreen({super.key});
+  final bool forceRefresh;
+  
+  const MyDonationsScreen({super.key, this.forceRefresh = false});
 
   @override
   State<MyDonationsScreen> createState() => _MyDonationsScreenState();
 }
 
-class _MyDonationsScreenState extends State<MyDonationsScreen> {
+class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindingObserver {
   String _selectedFilter = 'الكل';
   final List<String> _filters = ['الكل', 'هذا الشهر', 'هذا العام', 'مهداة'];
   
-  // Sample donation data
-  final List<Map<String, dynamic>> _donations = [
-    {
-      'id': '1',
-      'title': 'برنامج المنح الدراسية',
-      'category': 'التعليم',
-      'amount': 500.0,
-      'date': DateTime.now().subtract(const Duration(days: 2)),
-      'status': 'مكتمل',
-      'type': 'عادي',
-      'isAnonymous': false,
-    },
-    {
-      'id': '2',
-      'title': 'برنامج العلاج الطبي',
-      'category': 'الصحة',
-      'amount': 1000.0,
-      'date': DateTime.now().subtract(const Duration(days: 5)),
-      'status': 'مكتمل',
-      'type': 'إهداء',
-      'isAnonymous': true,
-    },
-    {
-      'id': '3',
-      'title': 'برنامج كفالة الأيتام',
-      'category': 'الأيتام',
-      'amount': 750.0,
-      'date': DateTime.now().subtract(const Duration(days: 10)),
-      'status': 'مكتمل',
-      'type': 'عادي',
-      'isAnonymous': false,
-    },
-    {
-      'id': '4',
-      'title': 'برنامج الإغاثة العاجلة',
-      'category': 'الإغاثة',
-      'amount': 300.0,
-      'date': DateTime.now().subtract(const Duration(days: 15)),
-      'status': 'مكتمل',
-      'type': 'إهداء',
-      'isAnonymous': false,
-    },
-    {
-      'id': '5',
-      'title': 'برنامج بناء المساجد',
-      'category': 'المساجد',
-      'amount': 2000.0,
-      'date': DateTime.now().subtract(const Duration(days: 20)),
-      'status': 'مكتمل',
-      'type': 'عادي',
-      'isAnonymous': true,
-    },
-  ];
+  final DonationService _donationService = DonationService();
+  List<Donation> _donations = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
-  List<Map<String, dynamic>> get _filteredDonations {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    if (widget.forceRefresh) {
+      // Force refresh if coming from donation success screen
+      _loadDonations();
+    } else {
+      _checkAuthAndLoadDonations();
+    }
+  }
+  
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+  
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Refresh data when app comes back to foreground
+      _loadDonations();
+    }
+  }
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh data when screen becomes visible again
+    if (ModalRoute.of(context)?.isCurrent == true) {
+      _loadDonations();
+    }
+  }
+
+  Future<void> _checkAuthAndLoadDonations() async {
+    try {
+      // Check if user is authenticated first
+      final isAuthenticated = await _donationService.apiClient.isAuthenticated();
+      print('MyDonationsScreen: User authenticated: $isAuthenticated');
+      
+      if (!isAuthenticated) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'يجب تسجيل الدخول أولاً لعرض التبرعات';
+        });
+        return;
+      }
+      
+      await _loadDonations();
+    } catch (e) {
+      print('MyDonationsScreen: Auth check error: $e');
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'خطأ في التحقق من تسجيل الدخول: $e';
+      });
+    }
+  }
+
+  Future<void> _loadDonations() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      print('MyDonationsScreen: Starting to load donations...');
+      final donations = await _donationService.getUserDonations();
+      print('MyDonationsScreen: Loaded ${donations.length} donations');
+      
+      setState(() {
+        _donations = donations;
+        _isLoading = false;
+      });
+      
+      // Show success message if donations were loaded successfully
+      if (donations.isNotEmpty && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم تحديث التبرعات بنجاح (${donations.length} تبرع)'),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('MyDonationsScreen: Error loading donations: $e');
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString();
+      });
+    }
+  }
+
+  Future<void> _createTestDonation() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      print('MyDonationsScreen: Creating test donation...');
+      
+      // Create a test donation using the existing API
+      final result = await _donationService.createDonationWithPayment(
+        itemId: '1', // Use campaign ID 1
+        itemType: 'campaign',
+        amount: 10.0, // 10 OMR
+        donorName: 'Test User',
+        message: 'تبرع تجريبي للاختبار',
+        isAnonymous: false,
+      );
+      
+      print('MyDonationsScreen: Test donation created: $result');
+      
+      // Reload donations after creating test donation
+      await _loadDonations();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إنشاء تبرع تجريبي بنجاح!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      print('MyDonationsScreen: Error creating test donation: $e');
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'خطأ في إنشاء التبرع التجريبي: $e';
+      });
+    }
+  }
+
+  Future<void> _testAllEndpoints() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      print('MyDonationsScreen: Testing all donation endpoints...');
+      
+      // Test all endpoints
+      await _donationService.testAllEndpoints();
+      
+      setState(() {
+        _isLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم اختبار جميع الـ APIs - راجع الـ console logs'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      print('MyDonationsScreen: Error testing endpoints: $e');
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'خطأ في اختبار الـ APIs: $e';
+      });
+    }
+  }
+
+  Future<void> _checkLastDonation() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      print('MyDonationsScreen: Checking last donation...');
+      
+      // Get all donations first
+      final donations = await _donationService.getUserDonations();
+      
+      if (donations.isNotEmpty) {
+        final lastDonation = donations.first;
+        print('MyDonationsScreen: Last donation ID: ${lastDonation.id}');
+        print('MyDonationsScreen: Last donation status: ${lastDonation.status}');
+        
+        // Check donation status in detail
+        final status = await _donationService.checkDonationStatus(lastDonation.id);
+        print('MyDonationsScreen: Detailed donation status: $status');
+        
+        setState(() {
+          _isLoading = false;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('آخر تبرع: ${lastDonation.status} - راجع الـ console logs'),
+              backgroundColor: AppColors.info,
+            ),
+          );
+        }
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('لا توجد تبرعات للفحص'),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('MyDonationsScreen: Error checking last donation: $e');
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'خطأ في فحص آخر تبرع: $e';
+      });
+    }
+  }
+
+  List<Donation> get _filteredDonations {
+    print('MyDonationsScreen: Filtering donations with filter: $_selectedFilter');
+    print('MyDonationsScreen: Total donations: ${_donations.length}');
+    
     if (_selectedFilter == 'الكل') {
+      print('MyDonationsScreen: Returning all donations: ${_donations.length}');
       return _donations;
     } else if (_selectedFilter == 'هذا الشهر') {
       final now = DateTime.now();
       final startOfMonth = DateTime(now.year, now.month, 1);
-      return _donations.where((donation) => 
-        donation['date'].isAfter(startOfMonth)
+      final filtered = _donations.where((donation) => 
+        donation.date.isAfter(startOfMonth)
       ).toList();
+      print('MyDonationsScreen: This month donations: ${filtered.length}');
+      return filtered;
     } else if (_selectedFilter == 'هذا العام') {
       final now = DateTime.now();
       final startOfYear = DateTime(now.year, 1, 1);
-      return _donations.where((donation) => 
-        donation['date'].isAfter(startOfYear)
+      final filtered = _donations.where((donation) => 
+        donation.date.isAfter(startOfYear)
       ).toList();
+      print('MyDonationsScreen: This year donations: ${filtered.length}');
+      return filtered;
     } else if (_selectedFilter == 'مهداة') {
-      return _donations.where((donation) => 
-        donation['type'] == 'إهداء'
+      final filtered = _donations.where((donation) => 
+        donation.message?.contains('هدية') == true || 
+        donation.message?.contains('إهداء') == true ||
+        donation.message?.contains('gift') == true
       ).toList();
+      print('MyDonationsScreen: Gift donations: ${filtered.length}');
+      return filtered;
     }
+    print('MyDonationsScreen: Default return all donations: ${_donations.length}');
     return _donations;
   }
 
   double get _totalAmount {
-    return _filteredDonations.fold(0.0, (sum, donation) => sum + donation['amount']);
+    return _filteredDonations.fold(0.0, (sum, donation) => sum + donation.amount);
   }
 
   String _formatDate(DateTime date) {
@@ -114,18 +307,12 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'التعليم':
+      case 'برنامج':
         return Colors.blue;
-      case 'الصحة':
+      case 'حملة':
         return Colors.green;
-      case 'الإغاثة':
+      case 'عام':
         return Colors.orange;
-      case 'المساجد':
-        return Colors.purple;
-      case 'الأيتام':
-        return Colors.pink;
-      case 'المشاريع':
-        return Colors.brown;
       default:
         return AppColors.primary;
     }
@@ -133,18 +320,12 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
-      case 'التعليم':
+      case 'برنامج':
         return Icons.school;
-      case 'الصحة':
-        return Icons.medical_services;
-      case 'الإغاثة':
-        return Icons.volunteer_activism;
-      case 'المساجد':
-        return Icons.mosque;
-      case 'الأيتام':
-        return Icons.family_restroom;
-      case 'المشاريع':
-        return Icons.construction;
+      case 'حملة':
+        return Icons.campaign;
+      case 'عام':
+        return Icons.favorite;
       default:
         return Icons.category;
     }
@@ -229,7 +410,11 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                     ),
                     _buildStatCard(
                       'التبرعات المهداة',
-                      _filteredDonations.where((d) => d['type'] == 'إهداء').length.toString(),
+                      _filteredDonations.where((d) => 
+                        d.message?.contains('هدية') == true || 
+                        d.message?.contains('إهداء') == true ||
+                        d.message?.contains('gift') == true
+                      ).length.toString(),
                       Icons.card_giftcard,
                     ),
                   ],
@@ -297,16 +482,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
 
           // Donations List
           Expanded(
-            child: _filteredDonations.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _filteredDonations.length,
-                    itemBuilder: (context, index) {
-                      final donation = _filteredDonations[index];
-                      return _buildDonationCard(donation);
-                    },
-                  ),
+            child: _buildDonationsContent(),
           ),
         ],
       ),
@@ -347,9 +523,123 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
     );
   }
 
-  Widget _buildDonationCard(Map<String, dynamic> donation) {
-    final categoryColor = _getCategoryColor(donation['category']);
-    final categoryIcon = _getCategoryIcon(donation['category']);
+  Widget _buildDonationsContent() {
+    print('MyDonationsScreen: Building donations content...');
+    print('MyDonationsScreen: _isLoading: $_isLoading');
+    print('MyDonationsScreen: _errorMessage: $_errorMessage');
+    print('MyDonationsScreen: _donations.length: ${_donations.length}');
+    print('MyDonationsScreen: _filteredDonations.length: ${_filteredDonations.length}');
+    
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppColors.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'حدث خطأ في تحميل التبرعات',
+              style: AppTextStyles.headlineSmall.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage!,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: _checkAuthAndLoadDonations,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.surface,
+                  ),
+                  child: const Text('إعادة المحاولة'),
+                ),
+                ElevatedButton(
+                  onPressed: _createTestDonation,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    foregroundColor: AppColors.surface,
+                  ),
+                  child: const Text('إنشاء تبرع تجريبي'),
+                ),
+                ElevatedButton(
+                  onPressed: _testAllEndpoints,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.warning,
+                    foregroundColor: AppColors.surface,
+                  ),
+                  child: const Text('اختبار جميع الـ APIs'),
+                ),
+                ElevatedButton(
+                  onPressed: _checkLastDonation,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.info,
+                    foregroundColor: AppColors.surface,
+                  ),
+                  child: const Text('فحص آخر تبرع'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_filteredDonations.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return RefreshIndicator(
+      onRefresh: _checkAuthAndLoadDonations,
+      color: AppColors.primary,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _filteredDonations.length,
+        itemBuilder: (context, index) {
+          final donation = _filteredDonations[index];
+          return _buildDonationCard(donation);
+        },
+      ),
+    );
+  }
+
+  Widget _buildDonationCard(Donation donation) {
+    // Determine category based on program/campaign or message
+    String category = 'عام';
+    if (donation.programId != null) {
+      category = 'برنامج';
+    } else if (donation.campaignId != null) {
+      category = 'حملة';
+    }
+    
+    final categoryColor = _getCategoryColor(category);
+    final categoryIcon = _getCategoryIcon(category);
+    
+    // Determine if it's a gift donation
+    final isGift = donation.message?.contains('هدية') == true || 
+                   donation.message?.contains('إهداء') == true ||
+                   donation.message?.contains('gift') == true;
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -390,14 +680,14 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        donation['title'],
+                        donation.message ?? 'تبرع',
                         style: AppTextStyles.titleMedium.copyWith(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
-                        donation['category'],
+                        category,
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -408,15 +698,15 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: donation['type'] == 'إهداء' 
+                    color: isGift 
                         ? AppColors.primary.withOpacity(0.1)
                         : AppColors.success.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    donation['type'],
+                    isGift ? 'إهداء' : 'عادي',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: donation['type'] == 'إهداء' 
+                      color: isGift 
                           ? AppColors.primary
                           : AppColors.success,
                       fontWeight: FontWeight.w600,
@@ -430,7 +720,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${donation['amount'].toStringAsFixed(0)} ريال',
+                  '${donation.amount.toStringAsFixed(0)} ريال',
                   style: AppTextStyles.titleMedium.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,
@@ -438,7 +728,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                 ),
                 Row(
                   children: [
-                    if (donation['type'] == 'إهداء')
+                    if (isGift)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
@@ -466,7 +756,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                       ),
                     const SizedBox(width: 8),
                     Text(
-                      _formatDate(donation['date']),
+                      _formatDate(donation.date),
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -504,14 +794,6 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
             style: AppTextStyles.headlineSmall.copyWith(
               color: AppColors.textSecondary,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'لم يتم العثور على تبرعات تطابق المعايير المحددة',
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
