@@ -1,7 +1,9 @@
+// payment_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+
 import '../models/payment_request.dart';
-import '../models/payment_response.dart';
+import '../models/payment_response.dart' hide PaymentStatusResponse;
 import '../models/payment_status_response.dart';
 import 'api_client.dart';
 
@@ -11,101 +13,124 @@ class PaymentService {
   PaymentService._internal();
 
   final ApiClient _apiClient = ApiClient();
-  static const String _baseUrl = 'http://192.168.1.21:8000/api/v1';
 
-  /// Create a payment session with Thawani
-  Future<PaymentResponse> createPaymentSession({
-    required double amount,
-    required String clientReferenceId,
-    required String returnUrl,
+  // قاعدة API المستخدمة في بقية الخدمات أيضًا
+  // تأكد أن هذا يطابق العنوان في ApiClient.initialize
+  static const String _baseUrl = 'http://192.168.100.105:8000/api/v1';
+
+  String get _apiBase => _baseUrl;
+
+  /// النسخة الجديدة الموصى بها — تُطابق باكند Laravel:
+  ///
+  /// - amountOmr: المبلغ بالريال (OMR) — سيُحوَّل تلقائيًا إلى بيسة في PaymentRequest
+  /// - programId/campaignId: أحدهما مطلوب (حسب الباكند)
+  /// - productName: الاسم الظاهر في صفحة ثواني (افتراضي "تبرع")
+  /// - type: quick | gift
+  Future<PaymentResponse> createPaymentSessionV2({
+    required double amountOmr,
+    String? clientReferenceId,
+    int? programId,
+    int? campaignId,
     String? donorName,
-    String? donorEmail,
-    String? donorPhone,
-    String? message,
-    String? itemId,
-    String? itemType,
+    String? note,
+    String type = 'quick',
+    String? productName,
   }) async {
     try {
-      // Ensure API client is initialized
       await _apiClient.initialize();
-      
       final token = await _apiClient.getAuthToken();
-      // Make authentication optional for anonymous donations
-      final headers = {
+
+      final headers = <String, String>{
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
-      
-      if (token != null) {
-        headers['Authorization'] = 'Bearer $token';
-      }
+      if (token != null) headers['Authorization'] = 'Bearer $token';
 
-      final request = PaymentRequest(
-        amount: amount,
+      final req = PaymentRequest(
+        amountOmr: amountOmr,
         clientReferenceId: clientReferenceId,
-        returnUrl: returnUrl,
+        programId: programId,
+        campaignId: campaignId,
         donorName: donorName,
-        donorEmail: donorEmail,
-        donorPhone: donorPhone,
-        message: message,
-        itemId: itemId,
-        itemType: itemType,
+        note: note,
+        type: type,
+        productName: productName ?? 'تبرع',
       );
 
-      final response = await http.post(
-        Uri.parse('$_baseUrl/payments/create'),
-        headers: headers,
-        body: jsonEncode(request.toJson()),
-      );
+      final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+\$"), "")}/payments/create');
+      final response = await http.post(uri, headers: headers, body: jsonEncode(req.toJson()));
 
-      print('PaymentService: Create session response status: ${response.statusCode}');
-      print('PaymentService: Create session response body: ${response.body}');
+      // Debug (اختياري)
+      // print('Create session -> ${response.statusCode}\n${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = jsonDecode(response.body);
+        final responseData = jsonDecode(response.body) as Map<String, dynamic>;
         return PaymentResponse.fromJson(responseData);
       } else if (response.statusCode == 401) {
         return PaymentResponse.error('انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.');
       } else if (response.statusCode == 422) {
-        final errorData = jsonDecode(response.body);
-        final errorMessage = errorData['message'] ?? 'بيانات غير صحيحة';
+        final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+        final errorMessage = (errorData['message']?.toString()) ?? 'بيانات غير صحيحة';
         return PaymentResponse.error(errorMessage);
       } else {
         return PaymentResponse.error('حدث خطأ في إنشاء جلسة الدفع. يرجى المحاولة مرة أخرى.');
       }
     } catch (e) {
-      print('PaymentService: Error creating payment session: $e');
+      // print('PaymentService V2: Error creating payment session: $e');
       return PaymentResponse.error('حدث خطأ في الاتصال. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.');
     }
   }
 
-  /// Check payment status using session ID
+  /// ⚠️ النسخة القديمة — تُحافظ على التوافق الخلفي مع الاستدعاءات الحالية عندك.
+  /// يتم تجاهل returnUrl (صار يُدار في الباكند).
+  Future<PaymentResponse> createPaymentSession({
+    required double amount,
+    required String clientReferenceId,
+    required String returnUrl, // لم يعد مستخدمًا
+    String? donorName,
+    String? donorEmail, // غير مستخدم في الباكند
+    String? donorPhone, // غير مستخدم في الباكند
+    String? message,    // سنستخدمه كـ productName
+    String? itemId,     // غير مستخدم في الباكند
+    String? itemType,   // غير مستخدم في الباكند
+    int? programId,
+    int? campaignId,
+    String? note,
+    String type = 'quick',
+  }) {
+    // نعيد التوجيه للـ V2 مع التكييف المناسب
+    return createPaymentSessionV2(
+      amountOmr: amount,
+      clientReferenceId: clientReferenceId,
+      programId: programId,
+      campaignId: campaignId,
+      donorName: donorName,
+      note: note,
+      type: type,
+      productName: message ?? 'تبرع',
+    );
+  }
+
+  /// التحقق من حالة الدفع عبر sessionId
   Future<PaymentStatusResponse> checkPaymentStatus(String sessionId) async {
     try {
-      // Ensure API client is initialized
       await _apiClient.initialize();
-      
       final token = await _apiClient.getAuthToken();
-      // Make authentication optional for status check
-      final headers = {
+
+      final headers = <String, String>{
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
-      
-      if (token != null) {
-        headers['Authorization'] = 'Bearer $token';
-      }
+      if (token != null) headers['Authorization'] = 'Bearer $token';
 
-      final response = await http.get(
-        Uri.parse('$_baseUrl/payments/status/$sessionId'),
-        headers: headers,
-      );
+      final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+\$"), "")}/payments/status/$sessionId');
+      final response = await http.get(uri, headers: headers);
 
-      print('PaymentService: Check status response status: ${response.statusCode}');
-      print('PaymentService: Check status response body: ${response.body}');
+      // Debug (اختياري)
+      // print('Check status -> ${response.statusCode}\n${response.body}');
 
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
+        final responseData = jsonDecode(response.body) as Map<String, dynamic>;
         return PaymentStatusResponse.fromJson(responseData);
       } else if (response.statusCode == 401) {
         return PaymentStatusResponse.error('انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.');
@@ -115,21 +140,15 @@ class PaymentService {
         return PaymentStatusResponse.error('حدث خطأ في التحقق من حالة الدفع. يرجى المحاولة مرة أخرى.');
       }
     } catch (e) {
-      print('PaymentService: Error checking payment status: $e');
+      // print('PaymentService: Error checking payment status: $e');
       return PaymentStatusResponse.error('حدث خطأ في الاتصال. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.');
     }
   }
 
-  /// Generate a unique client reference ID
+  /// معرف مرجعي فريد (اختياري)
   String generateClientReferenceId() {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final random = (timestamp % 10000).toString().padLeft(4, '0');
-    return 'donation_${timestamp}_$random';
-  }
-
-  /// Generate return URL for payment completion
-  String generateReturnUrl() {
-    // Use a simple URL that Thawani will accept
-    return 'https://example.com/return';
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    final rand = (ts % 10000).toString().padLeft(4, '0');
+    return 'donation_${ts}_$rand';
   }
 }

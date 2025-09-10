@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
+
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
+
 import '../models/campaign.dart';
-import '../services/campaign_service.dart';
-import '../services/donation_service.dart';
 import '../providers/payment_provider.dart';
 import 'payment_webview.dart';
 import 'donation_success_screen.dart';
+import 'payment_failed_screen.dart';
 
 class CampaignDonationScreen extends StatefulWidget {
   final Campaign campaign;
@@ -28,37 +28,27 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  
+
   double _selectedAmount = 0;
   final List<double> _quickAmounts = [50, 100, 200, 500, 1000];
   final TextEditingController _customAmountController = TextEditingController();
-  final DonationService _donationService = DonationService();
-  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-    ));
-    
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
+
     _animationController.forward();
   }
 
@@ -76,7 +66,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
     });
   }
 
-  Future<void> _proceedToDonation() async {
+  bool _validateAmount() {
     if (_selectedAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -84,155 +74,136 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
           backgroundColor: AppColors.error,
         ),
       );
-      return;
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _proceedToDonation() async {
+    if (!_validateAmount()) return;
+
+    final provider = context.read<PaymentProvider>();
+
+    // ابدأ دورة الدفع
+    provider.initializePayment(_selectedAmount);
+
+    // استنتاج نوع الهدف (برنامج/حملة) وتحويل المعرف إلى int
+    final rawId = widget.campaign.id.toString();
+    final parsedId = int.tryParse(rawId);
+    int? programId;
+    int? campaignId;
+
+    final isProgram = (widget.campaign.type == 'student_program' || widget.campaign.type == 'program');
+    if (parsedId != null) {
+      if (isProgram) {
+        programId = parsedId;
+      } else {
+        campaignId = parsedId;
+      }
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    // إنشاء جلسة الدفع عبر الباكند
+    await provider.initiatePayment(
+      amount: _selectedAmount,
+      donorName: 'متبرع',
+      message: 'تبرع لـ ${widget.campaign.title}',
+      programId: programId,
+      campaignId: campaignId,
+      note: 'تبرع عبر شاشة الحملة',
+      type: 'quick',
+    );
 
-    try {
-      print('CampaignDonationScreen: Starting donation process...');
-      print('CampaignDonationScreen: Amount: $_selectedAmount');
-      print('CampaignDonationScreen: Campaign ID: ${widget.campaign.id}');
-      print('CampaignDonationScreen: Campaign Type: ${widget.campaign.type}');
+    if (provider.state == PaymentState.sessionCreated && provider.paymentUrl != null) {
+      // افتح الـ WebView داخل التطبيق
+      provider.startPayment();
 
-      // Use the new DonationService with direct payment method
-      final result = await _donationService.createDonationWithPayment(
-        itemId: widget.campaign.id,
-        itemType: widget.campaign.type == 'student_program' ? 'program' : 'campaign',
-        amount: _selectedAmount,
-        donorName: 'متبرع', // Default name
-        donorEmail: 'donor@example.com', // Default email
-        donorPhone: '+96812345678', // Default phone
-        message: 'تبرع لـ ${widget.campaign.title}',
-        isAnonymous: false,
+      final result = await Navigator.push<PaymentState>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaymentWebView(
+            paymentUrl: provider.paymentUrl!,
+            sessionId: provider.currentSessionId!,
+          ),
+        ),
       );
 
-      print('CampaignDonationScreen: Donation created successfully');
-      print('CampaignDonationScreen: Result: $result');
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-
-      // Check if we have payment URL and session ID
-      if (result['payment_url'] != null && result['payment_session_id'] != null) {
-        print('CampaignDonationScreen: Opening payment URL directly');
-        
-        // فتح رابط الدفع مباشرة داخل التطبيق
-        final uri = Uri.parse(result['payment_url']);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-          
-          // بعد فتح الرابط، انتقل لصفحة النجاح
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => DonationSuccessScreen(
-                  amount: _selectedAmount,
-                  campaignTitle: widget.campaign.title,
-                  campaignCategory: widget.campaign.category,
-                ),
-              ),
-            );
-          }
-        } else {
-          // إذا لم يمكن فتح الرابط، استخدم WebView كبديل
-          print('CampaignDonationScreen: Cannot launch URL, using WebView as fallback');
-          final paymentResult = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PaymentWebView(
-                paymentUrl: result['payment_url'],
-                sessionId: result['payment_session_id'],
-              ),
+      // التعامل مع نتيجة الـ WebView
+      if (result == PaymentState.paymentSuccess || provider.isPaymentSuccessful) {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DonationSuccessScreen(
+              amount: _selectedAmount,
+              campaignTitle: widget.campaign.title,
+              campaignCategory: widget.campaign.category,
             ),
-          );
-
-                  // Handle payment result (for WebView fallback)
-          if (paymentResult == 'success') {
-            print('CampaignDonationScreen: Payment successful, navigating to success screen');
-            if (mounted) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DonationSuccessScreen(
-                    amount: _selectedAmount,
-                    campaignTitle: widget.campaign.title,
-                    campaignCategory: widget.campaign.category,
-                  ),
-                ),
-              );
-            }
-          } else if (paymentResult == 'failed') {
-            print('CampaignDonationScreen: Payment failed');
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('فشل في عملية الدفع. يرجى المحاولة مرة أخرى.'),
-                  backgroundColor: AppColors.error,
-                ),
-              );
-            }
-          } else if (paymentResult == 'cancelled') {
-            print('CampaignDonationScreen: Payment cancelled');
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('تم إلغاء عملية الدفع.'),
-                  backgroundColor: AppColors.warning,
-                ),
-              );
-            }
-          }
-        }
-      } else if (result['payment_error'] != null) {
-        // Handle payment session creation failure
-        print('CampaignDonationScreen: Payment session creation failed');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('تم إنشاء التبرع بنجاح، لكن حدث خطأ في إنشاء جلسة الدفع. سيتم التواصل معك قريباً.'),
-              backgroundColor: AppColors.warning,
-              duration: const Duration(seconds: 5),
-            ),
-          );
-        }
-      } else {
-        print('CampaignDonationScreen: No payment URL or session ID in result');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('حدث خطأ في إنشاء جلسة الدفع. يرجى المحاولة مرة أخرى.'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      print('CampaignDonationScreen: Error during donation: $e');
-      
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('حدث خطأ: $e'),
-            backgroundColor: AppColors.error,
           ),
         );
+      } else if (result == PaymentState.paymentFailed ||
+          result == PaymentState.paymentCancelled ||
+          result == PaymentState.paymentExpired ||
+          provider.isPaymentFailed) {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentFailedScreen(
+              errorMessage: provider.displayErrorMessage,
+              campaignTitle: widget.campaign.title,
+              amount: _selectedAmount,
+            ),
+          ),
+        );
+      } else {
+        // حالة غير متوقعة — تحقّق من الحالة من الباكند
+        await provider.checkPaymentStatus();
+        if (provider.isPaymentSuccessful) {
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DonationSuccessScreen(
+                amount: _selectedAmount,
+                campaignTitle: widget.campaign.title,
+                campaignCategory: widget.campaign.category,
+              ),
+            ),
+          );
+        } else if (provider.isPaymentFailed) {
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PaymentFailedScreen(
+                errorMessage: provider.displayErrorMessage,
+                campaignTitle: widget.campaign.title,
+                amount: _selectedAmount,
+              ),
+            ),
+          );
+        }
       }
+    } else {
+      // فشل إنشاء الجلسة
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaymentFailedScreen(
+            errorMessage: provider.displayErrorMessage,
+            campaignTitle: widget.campaign.title,
+            amount: _selectedAmount,
+          ),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = context.watch<PaymentProvider>().isLoading;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: FadeTransition(
@@ -241,7 +212,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
           position: _slideAnimation,
           child: CustomScrollView(
             slivers: [
-              // Custom App Bar
+              // App bar مع صورة الحملة
               SliverAppBar(
                 expandedHeight: 300,
                 floating: false,
@@ -250,7 +221,6 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                 flexibleSpace: FlexibleSpaceBar(
                   background: Stack(
                     children: [
-                      // Campaign Image
                       Container(
                         width: double.infinity,
                         height: 300,
@@ -261,7 +231,6 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                           ),
                         ),
                       ),
-                      // Gradient Overlay
                       Container(
                         width: double.infinity,
                         height: 300,
@@ -269,14 +238,10 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              AppColors.primary.withOpacity(0.8),
-                            ],
+                            colors: [Colors.transparent, AppColors.primary.withOpacity(0.8)],
                           ),
                         ),
                       ),
-                      // Campaign Info
                       Positioned(
                         bottom: 0,
                         left: 0,
@@ -286,7 +251,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Category Badge
+                              // شارة التصنيف
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: AppConstants.smallPadding,
@@ -305,7 +270,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              // Title
+                              // العنوان
                               Text(
                                 widget.campaign.title,
                                 style: AppTextStyles.headlineLarge.copyWith(
@@ -316,7 +281,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 8),
-                              // Progress Info
+                              // الأرقام
                               Row(
                                 children: [
                                   Expanded(
@@ -340,10 +305,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
                                       color: AppColors.accent,
                                       borderRadius: BorderRadius.circular(20),
@@ -372,24 +334,20 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                       color: AppColors.surface.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
-                      Icons.arrow_back_ios,
-                      color: AppColors.surface,
-                      size: 20,
-                    ),
+                    child: const Icon(Icons.arrow_back_ios, color: AppColors.surface, size: 20),
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
-              
-              // Content
+
+              // المحتوى
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(AppConstants.largePadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Description Section
+                      // تفاصيل البرنامج
                       _buildSection(
                         title: 'تفاصيل البرنامج',
                         icon: Icons.info_outline,
@@ -401,10 +359,9 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                           ),
                         ),
                       ),
-                      
                       const SizedBox(height: 24),
-                      
-                      // Campaign Stats
+
+                      // إحصائيات
                       _buildSection(
                         title: 'إحصائيات البرنامج',
                         icon: Icons.analytics_outlined,
@@ -423,78 +380,72 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                               child: _buildStatCard(
                                 icon: Icons.calendar_today_outlined,
                                 title: 'الأيام المتبقية',
-                                                                 value: '${widget.campaign.remainingDays}',
+                                value: '${widget.campaign.remainingDays}',
                                 color: AppColors.secondary,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      
                       const SizedBox(height: 32),
-                      
-                      // Donation Amount Section
+
+                      // اختيار المبلغ
                       _buildSection(
                         title: 'اختر مبلغ التبرع',
                         icon: Icons.favorite_outline,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                                                         // Quick Amount Buttons
-                             Text(
-                               'مبالغ سريعة',
-                               style: AppTextStyles.titleMedium.copyWith(
-                                 color: AppColors.textPrimary,
-                                 fontWeight: FontWeight.w600,
-                               ),
-                             ),
-                             const SizedBox(height: 12),
-                             SingleChildScrollView(
-                               scrollDirection: Axis.horizontal,
-                               child: Row(
-                                 children: _quickAmounts.map((amount) {
-                                   bool isSelected = _selectedAmount == amount;
-                                   return Container(
-                                     margin: const EdgeInsets.only(right: 12),
-                                     child: GestureDetector(
-                                       onTap: () => _selectAmount(amount),
-                                       child: Container(
-                                         padding: const EdgeInsets.symmetric(
-                                           horizontal: 20,
-                                           vertical: 12,
-                                         ),
-                                         decoration: BoxDecoration(
-                                           color: isSelected ? AppColors.primary : AppColors.surface,
-                                           borderRadius: BorderRadius.circular(16),
-                                           border: Border.all(
-                                             color: isSelected ? AppColors.primary : AppColors.textTertiary,
-                                             width: 1.5,
-                                           ),
-                                           boxShadow: isSelected ? [
-                                             BoxShadow(
-                                               color: AppColors.primary.withOpacity(0.2),
-                                               blurRadius: 8,
-                                               offset: const Offset(0, 4),
-                                             ),
-                                           ] : null,
-                                         ),
-                                         child: Text(
-                                           '${amount.toStringAsFixed(0)} ريال',
-                                           style: AppTextStyles.bodyMedium.copyWith(
-                                             color: isSelected ? AppColors.surface : AppColors.textPrimary,
-                                             fontWeight: FontWeight.w600,
-                                           ),
-                                         ),
-                                       ),
-                                     ),
-                                   );
-                                 }).toList(),
-                               ),
-                             ),
-                            
+                            Text(
+                              'مبالغ سريعة',
+                              style: AppTextStyles.titleMedium.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: _quickAmounts.map((amount) {
+                                  final isSelected = _selectedAmount == amount;
+                                  return Container(
+                                    margin: const EdgeInsets.only(right: 12),
+                                    child: GestureDetector(
+                                      onTap: () => _selectAmount(amount),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: isSelected ? AppColors.primary : AppColors.surface,
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(
+                                            color: isSelected ? AppColors.primary : AppColors.textTertiary,
+                                            width: 1.5,
+                                          ),
+                                          boxShadow: isSelected
+                                              ? [
+                                                  BoxShadow(
+                                                    color: AppColors.primary.withOpacity(0.2),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 4),
+                                                  ),
+                                                ]
+                                              : null,
+                                        ),
+                                        child: Text(
+                                          '${amount.toStringAsFixed(0)} ريال',
+                                          style: AppTextStyles.bodyMedium.copyWith(
+                                            color: isSelected ? AppColors.surface : AppColors.textPrimary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
                             const SizedBox(height: 20),
-                            
-                            // Custom Amount
                             Text(
                               'أو أدخل مبلغاً مخصصاً',
                               style: AppTextStyles.titleMedium.copyWith(
@@ -507,10 +458,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                               decoration: BoxDecoration(
                                 color: AppColors.surface,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: AppColors.textTertiary,
-                                  width: 1.5,
-                                ),
+                                border: Border.all(color: AppColors.textTertiary, width: 1.5),
                               ),
                               child: TextField(
                                 controller: _customAmountController,
@@ -518,126 +466,97 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                                 style: AppTextStyles.bodyLarge,
                                 decoration: InputDecoration(
                                   hintText: 'أدخل المبلغ بالريال',
-                                  hintStyle: AppTextStyles.bodyMedium.copyWith(
-                                    color: AppColors.textTertiary,
-                                  ),
+                                  hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
                                   border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
-                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                                   suffixText: 'ريال',
-                                  suffixStyle: AppTextStyles.bodyMedium.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
+                                  suffixStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                                 ),
                                 onChanged: (value) {
-                                  if (value.isNotEmpty) {
-                                    setState(() {
-                                      _selectedAmount = double.tryParse(value) ?? 0;
-                                    });
-                                  }
+                                  setState(() {
+                                    _selectedAmount = double.tryParse(value) ?? 0;
+                                  });
                                 },
                               ),
                             ),
                           ],
                         ),
                       ),
-                      
                       const SizedBox(height: 40),
-                      
-                                             // Donate Button
-                       SizedBox(
-                         width: double.infinity,
-                         height: 60,
-                         child: ElevatedButton(
-                           onPressed: _isLoading ? null : _proceedToDonation,
-                           style: ElevatedButton.styleFrom(
-                             backgroundColor: AppColors.primary,
-                             foregroundColor: AppColors.surface,
-                             elevation: 8,
-                             shadowColor: AppColors.primary.withOpacity(0.3),
-                             shape: RoundedRectangleBorder(
-                               borderRadius: BorderRadius.circular(16),
-                             ),
-                             padding: const EdgeInsets.symmetric(vertical: 16),
-                           ),
-                           child: _isLoading
-                               ? const Row(
-                                   mainAxisAlignment: MainAxisAlignment.center,
-                                   children: [
-                                     SizedBox(
-                                       width: 20,
-                                       height: 20,
-                                       child: CircularProgressIndicator(
-                                         valueColor: AlwaysStoppedAnimation<Color>(AppColors.surface),
-                                         strokeWidth: 2,
-                                       ),
-                                     ),
-                                     SizedBox(width: 12),
-                                     Text(
-                                       'جاري إنشاء التبرع...',
-                                       style: TextStyle(
-                                         fontSize: 16,
-                                         fontWeight: FontWeight.w600,
-                                       ),
-                                     ),
-                                   ],
-                                 )
-                               : Row(
-                                   mainAxisAlignment: MainAxisAlignment.center,
-                                   children: [
-                                     const Icon(
-                                       Icons.favorite,
-                                       size: 24,
-                                     ),
-                                     const SizedBox(width: 12),
-                                     Text(
-                                       'تبرع الآن',
-                                       style: AppTextStyles.buttonLarge.copyWith(
-                                         fontSize: 18,
-                                         fontWeight: FontWeight.bold,
-                                         height: 1.2,
-                                       ),
-                                     ),
-                                   ],
-                                 ),
-                         ),
-                       ),
-                      
+
+                      // زر التبرع
+                      SizedBox(
+                        width: double.infinity,
+                        height: 60,
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : _proceedToDonation,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.surface,
+                            elevation: 8,
+                            shadowColor: AppColors.primary.withOpacity(0.3),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: isLoading
+                              ? Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.surface),
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'جاري إنشاء جلسة الدفع...',
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.favorite, size: 24),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'تبرع الآن',
+                                      style: AppTextStyles.buttonLarge.copyWith(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
                       const SizedBox(height: 20),
-                      
-                      // Security Note
+
+                      // ملاحظة الأمان
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: AppColors.info.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.info.withOpacity(0.3),
-                            width: 1,
-                          ),
+                          border: Border.all(color: AppColors.info.withOpacity(0.3), width: 1),
                         ),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.security,
-                              color: AppColors.info,
-                              size: 20,
-                            ),
+                            const Icon(Icons.security, color: AppColors.info, size: 20),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 'جميع التبرعات آمنة ومشفرة. بياناتك محمية بنسبة 100%',
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: AppColors.info,
-                                ),
+                                style: AppTextStyles.bodySmall.copyWith(color: AppColors.info),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -666,19 +585,10 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                 color: AppColors.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                icon,
-                color: AppColors.primary,
-                size: 20,
-              ),
+              child: Icon(icon, color: AppColors.primary, size: 20),
             ),
             const SizedBox(width: 12),
-            Text(
-              title,
-              style: AppTextStyles.headlineSmall.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text(title, style: AppTextStyles.headlineSmall.copyWith(fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 16),
@@ -698,32 +608,20 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.textTertiary,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.textTertiary, width: 1),
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            color: color,
-            size: 24,
-          ),
+          Icon(icon, color: color, size: 24),
           const SizedBox(height: 8),
           Text(
             value,
-            style: AppTextStyles.headlineSmall.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppTextStyles.headlineSmall.copyWith(color: color, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
         ],
@@ -735,7 +633,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
     switch (category) {
       case 'فرص التعليم':
         return 'https://images.pexels.com/photos/8613318/pexels-photo-8613318.jpeg?auto=compress&cs=tinysrgb&w=800';
-      case 'السكن والنقل':
+    case 'السكن والنقل':
         return 'https://images.pexels.com/photos/271816/pexels-photo-271816.jpeg?auto=compress&cs=tinysrgb&w=800';
       case 'الإعانة الشهرية':
         return 'https://images.pexels.com/photos/4386375/pexels-photo-4386375.jpeg?auto=compress&cs=tinysrgb&w=800';
@@ -747,4 +645,4 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
         return 'https://images.pexels.com/photos/5905708/pexels-photo-5905708.jpeg?auto=compress&cs=tinysrgb&w=800';
     }
   }
-} 
+}

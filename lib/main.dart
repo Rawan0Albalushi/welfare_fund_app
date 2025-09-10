@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+// WebView web platform registration (for Flutter Web)
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html show window; // safe import for web check
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_web/webview_flutter_web.dart';
 import 'constants/app_colors.dart';
 import 'constants/app_text_styles.dart';
 import 'constants/app_constants.dart';
@@ -14,6 +18,16 @@ import 'providers/payment_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Register web implementation for webview_flutter when running on web
+  try {
+    // A simple runtime check: if 'window' exists, we're on web
+    // ignore: unnecessary_null_comparison
+    if (html.window != null) {
+      WebViewPlatform.instance = WebWebViewPlatform();
+    }
+  } catch (_) {
+    // Not running on web; ignore
+  }
   
   try {
     // Initialize API Client

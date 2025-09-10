@@ -46,6 +46,7 @@ dependencies:
   
   # WebView for payment
   webview_flutter: ^4.4.2
+  webview_flutter_web: ^0.2.2+5
   url_launcher: ^6.3.0
   
   # State Management

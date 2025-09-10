@@ -4,7 +4,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
-import '../constants/app_constants.dart';
+import '../providers/payment_provider.dart';
 import '../services/donation_service.dart';
 
 class PaymentWebView extends StatefulWidget {
@@ -22,180 +22,152 @@ class PaymentWebView extends StatefulWidget {
 }
 
 class _PaymentWebViewState extends State<PaymentWebView> {
-  late WebViewController _webViewController;
+  late final WebViewController _controller;
   bool _isLoading = true;
-  bool _hasError = false;
-  String _errorMessage = '';
-  final DonationService _donationService = DonationService();
+  final _donationService = DonationService();
 
-  @override
-  void initState() {
-    super.initState();
-    
-    // Check if running on web platform
-    if (kIsWeb) {
-      _openPaymentInBrowser();
-    } else {
-      _initializeWebView();
+  bool _isBridgeUrl(String url) {
+    return url.contains('/payment/bridge/success') ||
+           url.contains('/payment/bridge/cancel');
+  }
+
+  Future<void> _finishAndPop() async {
+    try {
+      final status = await _donationService.checkPaymentStatus(widget.sessionId);
+      if (!mounted) return;
+
+      print('PaymentWebView: Payment status check result: ${status.status}');
+      print('PaymentWebView: Is completed: ${status.isCompleted}');
+
+      if (status.isCompleted) {
+        Navigator.pop(context, PaymentState.paymentSuccess);
+      } else if (status.isCancelled) {
+        Navigator.pop(context, PaymentState.paymentCancelled);
+      } else if (status.isExpired) {
+        Navigator.pop(context, PaymentState.paymentExpired);
+      } else if (status.isFailed) {
+        Navigator.pop(context, PaymentState.paymentFailed);
+      } else {
+        // Still pending - try again after a short delay
+        await Future.delayed(const Duration(seconds: 2));
+        await _finishAndPop();
+      }
+    } catch (e) {
+      print('PaymentWebView: Error checking payment status: $e');
+      if (!mounted) return;
+      Navigator.pop(context, PaymentState.paymentFailed);
     }
   }
 
-  void _openPaymentInBrowser() async {
+  Future<void> _openPaymentInBrowser() async {
     try {
-      final Uri url = Uri.parse(widget.paymentUrl);
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
+      final uri = Uri.parse(widget.paymentUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.inAppWebView);
         
-        // Show success message and navigate back
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('تم فتح صفحة الدفع في المتصفح'),
+              content: Text('تم فتح صفحة الدفع. يرجى إتمام الدفع...'),
               backgroundColor: AppColors.info,
               duration: Duration(seconds: 3),
             ),
           );
           
-          // Check payment status
-          await _checkPaymentStatus();
+          // Wait for user to complete payment, then auto-check
+          await Future.delayed(const Duration(seconds: 5));
+          await _finishAndPop();
         }
       } else {
-        setState(() {
-          _hasError = true;
-          _errorMessage = 'لا يمكن فتح صفحة الدفع';
-        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('لا يمكن فتح صفحة الدفع'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          Navigator.pop(context, PaymentState.paymentFailed);
+        }
       }
     } catch (e) {
-      setState(() {
-        _hasError = true;
-        _errorMessage = 'حدث خطأ في فتح صفحة الدفع: $e';
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في فتح صفحة الدفع: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        Navigator.pop(context, PaymentState.paymentFailed);
+      }
     }
   }
 
-  void _initializeWebView() {
-    _webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
+  @override
+  void initState() {
+    super.initState();
+    
+    if (kIsWeb) {
+      // On web, open payment in same browser
+      _openPaymentInBrowser();
+    } else {
+      // On mobile, use WebView
+      _controller = WebViewController();
+      _controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+      
+      _controller.setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (String url) {
-            setState(() {
-              _isLoading = true;
-              _hasError = false;
-            });
-          },
-          onPageFinished: (String url) {
-            setState(() {
-              _isLoading = false;
-            });
-            
-            // Check if this is the return URL
-            if (url.contains('example.com/return') ||
-                url.contains('example.com/success') ||
-                url.contains('example.com/cancel')) {
-              _handlePaymentReturn();
+          onPageStarted: (_) => setState(() => _isLoading = true),
+          onPageFinished: (url) async {
+            setState(() => _isLoading = false);
+            if (_isBridgeUrl(url)) {
+              await _finishAndPop();
             }
           },
-          onNavigationRequest: (NavigationRequest request) {
-            // Handle return URL
-            if (request.url.contains('example.com/return') ||
-                request.url.contains('example.com/success') ||
-                request.url.contains('example.com/cancel')) {
-              _handlePaymentReturn();
+          onNavigationRequest: (request) {
+            if (_isBridgeUrl(request.url)) {
+              _finishAndPop();
               return NavigationDecision.prevent;
             }
-            
-            // Allow all other navigation
             return NavigationDecision.navigate;
           },
-          onWebResourceError: (WebResourceError error) {
-            setState(() {
-              _hasError = true;
-              _errorMessage = 'حدث خطأ في تحميل صفحة الدفع: ${error.description}';
-              _isLoading = false;
-            });
-          },
         ),
-      )
-      ..loadRequest(Uri.parse(widget.paymentUrl));
-  }
-
-  Future<void> _checkPaymentStatus() async {
-    try {
-      print('PaymentWebView: Checking payment status for session: ${widget.sessionId}');
+      );
       
-      final statusResponse = await _donationService.checkPaymentStatus(widget.sessionId);
-      
-      print('PaymentWebView: Payment status response: ${statusResponse.status}');
-      
-      if (mounted) {
-        String result;
-        if (statusResponse.isCompleted) {
-          result = 'success';
-        } else if (statusResponse.isFailed) {
-          result = 'failed';
-        } else if (statusResponse.isCancelled) {
-          result = 'cancelled';
-        } else if (statusResponse.isExpired) {
-          result = 'expired';
-        } else {
-          result = 'pending';
-        }
-        
-        Navigator.pop(context, result);
-      }
-    } catch (e) {
-      print('PaymentWebView: Error checking payment status: $e');
-      if (mounted) {
-        Navigator.pop(context, 'failed');
-      }
+      _controller.loadRequest(Uri.parse(widget.paymentUrl));
     }
-  }
-
-  void _handlePaymentReturn() async {
-    // Check payment status
-    await _checkPaymentStatus();
-  }
-
-  void _cancelPayment() {
-    Navigator.pop(context, 'cancelled');
   }
 
   @override
   Widget build(BuildContext context) {
-    // For web platform, show a simple message
     if (kIsWeb) {
+      // For web, show a simple loading message
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.surface,
           title: Text(
-            'إتمام الدفع',
+            'جاري إتمام الدفع...',
             style: AppTextStyles.titleLarge.copyWith(
               color: AppColors.surface,
               fontWeight: FontWeight.bold,
             ),
           ),
-          leading: IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: _cancelPayment,
-          ),
+          automaticallyImplyLeading: false,
         ),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(AppConstants.largePadding),
+            padding: const EdgeInsets.all(32.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.payment,
-                  size: 64,
-                  color: AppColors.primary,
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                  strokeWidth: 3,
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'تم فتح صفحة الدفع في المتصفح',
+                  'جاري التحقق من حالة الدفع...',
                   style: AppTextStyles.headlineSmall.copyWith(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
@@ -204,24 +176,11 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'يرجى إتمام عملية الدفع في المتصفح ثم العودة للتطبيق',
+                  'يرجى الانتظار قليلاً',
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: _checkPaymentStatus,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.surface,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
-                  ),
-                  child: const Text('تحقق من حالة الدفع'),
                 ),
               ],
             ),
@@ -245,18 +204,17 @@ class _PaymentWebViewState extends State<PaymentWebView> {
         ),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: _cancelPayment,
+          onPressed: () => Navigator.pop(context, PaymentState.paymentCancelled),
         ),
         actions: [
           if (_isLoading)
             const Padding(
-              padding: EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(16),
               child: SizedBox(
-                width: 20,
-                height: 20,
+                width: 20, height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.surface),
+                  valueColor: AlwaysStoppedAnimation(AppColors.surface),
                 ),
               ),
             ),
@@ -264,10 +222,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
       ),
       body: Stack(
         children: [
-          // WebView
-          WebViewWidget(controller: _webViewController),
-          
-          // Loading overlay
+          WebViewWidget(controller: _controller),
           if (_isLoading)
             Container(
               color: AppColors.background.withOpacity(0.8),
@@ -276,7 +231,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      valueColor: AlwaysStoppedAnimation(AppColors.primary),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -286,71 +241,6 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                       ),
                     ),
                   ],
-                ),
-              ),
-            ),
-          
-          // Error overlay
-          if (_hasError)
-            Container(
-              color: AppColors.background,
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppConstants.largePadding),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: AppColors.error,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'حدث خطأ',
-                        style: AppTextStyles.headlineSmall.copyWith(
-                          color: AppColors.error,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _errorMessage,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                _hasError = false;
-                                _isLoading = true;
-                              });
-                              _webViewController.reload();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: AppColors.surface,
-                            ),
-                            child: const Text('إعادة المحاولة'),
-                          ),
-                          ElevatedButton(
-                            onPressed: _cancelPayment,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.error,
-                              foregroundColor: AppColors.surface,
-                            ),
-                            child: const Text('إلغاء'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),

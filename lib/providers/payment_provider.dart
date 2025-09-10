@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../models/payment_response.dart';
+
+import '../models/payment_response.dart' hide PaymentStatusResponse;
 import '../models/payment_status_response.dart';
 import '../services/payment_service.dart';
 
@@ -16,7 +18,7 @@ enum PaymentState {
 
 class PaymentProvider extends ChangeNotifier {
   final PaymentService _paymentService = PaymentService();
-  
+
   PaymentState _state = PaymentState.initial;
   PaymentResponse? _paymentResponse;
   PaymentStatusResponse? _statusResponse;
@@ -34,7 +36,7 @@ class PaymentProvider extends ChangeNotifier {
   bool get isLoading => _state == PaymentState.loading;
   bool get isPaymentInProgress => _state == PaymentState.paymentInProgress;
 
-  /// Initialize payment with amount
+  /// تهيئة الحالة قبل إنشاء جلسة
   void initializePayment(double amount) {
     _currentAmount = amount;
     _state = PaymentState.initial;
@@ -45,15 +47,19 @@ class PaymentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Create payment session
+  /// إنشاء جلسة الدفع مع الباكند (تستدعي createPaymentSession V2 داخليًا)
   Future<void> initiatePayment({
     required double amount,
     String? donorName,
-    String? donorEmail,
-    String? donorPhone,
-    String? message,
-    String? itemId,
-    String? itemType,
+    String? donorEmail, // لا تُستخدم في الباكند الحالي (مسموح تمريرها بلا ضرر)
+    String? donorPhone, // لا تُستخدم في الباكند الحالي
+    String? message,    // سيُعرض كاسم المنتج في صفحة ثواني
+    String? itemId,     // يمكن تمرير program/campaign من هنا (سيحوّلها السيرفس)
+    String? itemType,   // 'program' | 'campaign'
+    int? programId,     // بديل أوضح لـ itemId/itemType
+    int? campaignId,    // بديل أوضح لـ itemId/itemType
+    String? note,       // ملاحظة تصل للباكند
+    String type = 'quick',
   }) async {
     try {
       _state = PaymentState.loading;
@@ -61,19 +67,24 @@ class PaymentProvider extends ChangeNotifier {
       notifyListeners();
 
       final clientReferenceId = _paymentService.generateClientReferenceId();
-      final returnUrl = _paymentService.generateReturnUrl();
+      final returnUrl = 'about:blank'; // لن يُستخدم، موجود للتوافق فقط
 
-             final response = await _paymentService.createPaymentSession(
-         amount: amount,
-         clientReferenceId: clientReferenceId,
-         returnUrl: returnUrl,
-         donorName: donorName ?? 'متبرع',
-         donorEmail: donorEmail ?? 'donor@example.com',
-         donorPhone: donorPhone ?? '+96812345678',
-         message: message ?? 'تبرع خيري - صندوق رعاية الطلاب',
-         itemId: itemId,
-         itemType: itemType,
-       );
+      // إذا وفّرتِ programId/campaignId نمرّرها مباشرة؛ وإلا نرسل itemId/itemType (سيحوّلها السيرفس)
+      final response = await _paymentService.createPaymentSession(
+        amount: amount,
+        clientReferenceId: clientReferenceId,
+        returnUrl: returnUrl, // مُهمَل في الباكند
+        donorName: donorName ?? 'متبرع',
+        donorEmail: donorEmail,
+        donorPhone: donorPhone,
+        message: message ?? 'تبرع',
+        itemId: itemId,
+        itemType: itemType,
+        programId: programId,
+        campaignId: campaignId,
+        note: note ?? message,
+        type: type,
+      );
 
       if (response.success && response.sessionId != null && response.paymentUrl != null) {
         _paymentResponse = response;
@@ -82,7 +93,7 @@ class PaymentProvider extends ChangeNotifier {
         _state = PaymentState.sessionCreated;
         notifyListeners();
       } else {
-        _errorMessage = response.error ?? 'حدث خطأ في إنشاء جلسة الدفع';
+        _errorMessage = response.error ?? response.message ?? 'حدث خطأ في إنشاء جلسة الدفع';
         _state = PaymentState.paymentFailed;
         notifyListeners();
       }
@@ -93,7 +104,7 @@ class PaymentProvider extends ChangeNotifier {
     }
   }
 
-  /// Start payment process (open WebView)
+  /// استدعِها عند فتح الـ WebView
   void startPayment() {
     if (_state == PaymentState.sessionCreated) {
       _state = PaymentState.paymentInProgress;
@@ -101,7 +112,48 @@ class PaymentProvider extends ChangeNotifier {
     }
   }
 
-  /// Check payment status
+  /// دالة مساعدة: التعامل مع رسالة صفحات الـ Bridge (success/cancel) القادمة من الـ WebView
+  /// - في flutter_inappwebview ستصلك Map مباشرة.
+  /// - في webview_flutter ستصلك String (JSON) عبر JavascriptChannel.
+  Future<void> handleBridgeMessage(dynamic payload) async {
+    try {
+      Map<String, dynamic> data;
+
+      if (payload is String) {
+        data = jsonDecode(payload) as Map<String, dynamic>;
+      } else if (payload is Map) {
+        data = Map<String, dynamic>.from(payload as Map);
+      } else {
+        // غير معروف
+        return;
+      }
+
+      final String status = (data['status']?.toString().toLowerCase() ?? 'unknown');
+      final String? sid = data['session_id']?.toString();
+
+      // لو الصفحة رجّعت session_id نحدّثه (اختياري)
+      if (sid != null && sid.isNotEmpty) {
+        _currentSessionId = sid;
+      }
+
+      if (status == 'success') {
+        // لا نعلن النجاح مباشرة — نتحقق من الباكند
+        await checkPaymentStatus();
+      } else if (status == 'cancel' || status == 'cancelled' || status == 'canceled') {
+        _state = PaymentState.paymentCancelled;
+        _errorMessage = 'تم إلغاء عملية الدفع';
+        notifyListeners();
+      } else {
+        // في حالات أخرى، جرّبي التحقق
+        await checkPaymentStatus();
+      }
+    } catch (_) {
+      // تجاهل أي parsing error وحاول الاستعلام عن الحالة مباشرة
+      await checkPaymentStatus();
+    }
+  }
+
+  /// التحقق من حالة الدفع من الباكند
   Future<void> checkPaymentStatus() async {
     if (_currentSessionId == null) {
       _errorMessage = 'لا يوجد معرف جلسة صالح';
@@ -111,7 +163,7 @@ class PaymentProvider extends ChangeNotifier {
     }
 
     try {
-      _state = PaymentState.loading;
+      _state = (_state == PaymentState.paymentInProgress) ? PaymentState.paymentInProgress : PaymentState.loading;
       notifyListeners();
 
       final response = await _paymentService.checkPaymentStatus(_currentSessionId!);
@@ -121,6 +173,7 @@ class PaymentProvider extends ChangeNotifier {
         switch (response.status) {
           case PaymentStatus.completed:
             _state = PaymentState.paymentSuccess;
+            _errorMessage = null;
             break;
           case PaymentStatus.failed:
             _state = PaymentState.paymentFailed;
@@ -154,14 +207,14 @@ class PaymentProvider extends ChangeNotifier {
     }
   }
 
-  /// Cancel payment
+  /// إلغاء الدفع يدويًا (لو أغلق المستخدم الـ WebView مثلاً)
   void cancelPayment() {
     _state = PaymentState.paymentCancelled;
     _errorMessage = 'تم إلغاء عملية الدفع';
     notifyListeners();
   }
 
-  /// Reset payment state
+  /// إعادة ضبط الحالة
   void resetPaymentState() {
     _state = PaymentState.initial;
     _paymentResponse = null;
@@ -172,40 +225,52 @@ class PaymentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Retry payment
-  Future<void> retryPayment() async {
+  /// إعادة المحاولة بنفس المبلغ
+  Future<void> retryPayment({
+    String? donorName,
+    String? message,
+    String? itemId,
+    String? itemType,
+    int? programId,
+    int? campaignId,
+    String? note,
+    String type = 'quick',
+  }) async {
     if (_currentAmount > 0) {
-      await initiatePayment(amount: _currentAmount);
+      await initiatePayment(
+        amount: _currentAmount,
+        donorName: donorName,
+        message: message,
+        itemId: itemId,
+        itemType: itemType,
+        programId: programId,
+        campaignId: campaignId,
+        note: note,
+        type: type,
+      );
     }
   }
 
-  /// Get payment URL for WebView
-  String? get paymentUrl {
-    return _paymentResponse?.paymentUrl;
-  }
+  /// رابط الدفع لعرضه داخل WebView
+  String? get paymentUrl => _paymentResponse?.paymentUrl;
 
-  /// Check if payment is successful
-  bool get isPaymentSuccessful {
-    return _state == PaymentState.paymentSuccess;
-  }
+  /// هل الدفع ناجح؟
+  bool get isPaymentSuccessful => _state == PaymentState.paymentSuccess;
 
-  /// Check if payment failed
-  bool get isPaymentFailed {
-    return _state == PaymentState.paymentFailed || 
-           _state == PaymentState.paymentCancelled || 
-           _state == PaymentState.paymentExpired;
-  }
+  /// هل الدفع فشل (يشمل الإلغاء والانتهاء)؟
+  bool get isPaymentFailed =>
+      _state == PaymentState.paymentFailed ||
+      _state == PaymentState.paymentCancelled ||
+      _state == PaymentState.paymentExpired;
 
-  /// Get success message
+  /// رسالة نجاح افتراضية
   String get successMessage {
     if (_statusResponse?.isCompleted == true) {
       return 'تم إتمام عملية الدفع بنجاح! شكراً لك على تبرعك.';
     }
     return 'تم إتمام العملية بنجاح';
-  }
+    }
 
-  /// Get error message for display
-  String get displayErrorMessage {
-    return _errorMessage ?? 'حدث خطأ غير متوقع';
-  }
+  /// رسالة الخطأ للعرض
+  String get displayErrorMessage => _errorMessage ?? 'حدث خطأ غير متوقع';
 }
