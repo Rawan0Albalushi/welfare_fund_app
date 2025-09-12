@@ -1,6 +1,7 @@
 // payment_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/payment_request.dart';
 import '../models/payment_response.dart' hide PaymentStatusResponse;
@@ -16,9 +17,16 @@ class PaymentService {
 
   // قاعدة API المستخدمة في بقية الخدمات أيضًا
   // تأكد أن هذا يطابق العنوان في ApiClient.initialize
-  static const String _baseUrl = 'http://192.168.1.101:8000/api/v1';
+  static const String _baseUrl = 'http://192.168.1.21:8000/api/v1';
+  static const String baseUrl = 'http://192.168.1.21:8000/api/v1';
 
   String get _apiBase => _baseUrl;
+
+  // احصل على التوكن من التخزين المحلي
+  Future<String?> _getAuthToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
+  }
 
   /// النسخة الجديدة الموصى بها — تُطابق باكند Laravel:
   ///
@@ -44,7 +52,14 @@ class PaymentService {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
-      if (token != null) headers['Authorization'] = 'Bearer $token';
+      
+      // إضافة token فقط إذا كان موجوداً (للمستخدمين المسجلين)
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+        print('PaymentService: Using authenticated request with token');
+      } else {
+        print('PaymentService: Using anonymous payment request');
+      }
 
       final req = PaymentRequest(
         amountOmr: amountOmr,
@@ -121,7 +136,14 @@ class PaymentService {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
-      if (token != null) headers['Authorization'] = 'Bearer $token';
+      
+      // إضافة token فقط إذا كان موجوداً (للمستخدمين المسجلين)
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+        print('PaymentService: Using authenticated status check with token');
+      } else {
+        print('PaymentService: Using anonymous status check');
+      }
 
       final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+\$"), "")}/payments/status/$sessionId');
       final response = await http.get(uri, headers: headers);
@@ -150,5 +172,44 @@ class PaymentService {
     final ts = DateTime.now().millisecondsSinceEpoch;
     final rand = (ts % 10000).toString().padLeft(4, '0');
     return 'donation_${ts}_$rand';
+  }
+
+  /// إنشاء تبرع مع دفع مباشر - النسخة الجديدة المحدثة
+  static Future<Map<String, dynamic>> createDonationWithPayment({
+    required int campaignId,
+    required double amount,
+    required String donorName,
+    String? note,
+    String type = 'quick',
+  }) async {
+    try {
+      // ✅ احصل على التوكن
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/donations/with-payment'),
+        headers: {
+          'Authorization': 'Bearer $token', // ✅ مهم جداً!
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'campaign_id': campaignId,
+          'amount': amount,
+          'donor_name': donorName,
+          'note': note,
+          'type': type,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return data;
+      } else {
+        throw Exception('Failed to create donation: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
   }
 }

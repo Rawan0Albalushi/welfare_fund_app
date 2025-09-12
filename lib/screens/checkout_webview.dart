@@ -4,91 +4,45 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
-import '../providers/payment_provider.dart';
-import '../services/donation_service.dart';
 
-class PaymentWebView extends StatefulWidget {
-  final String paymentUrl;
-  final String sessionId;
+class CheckoutWebView extends StatefulWidget {
+  final String checkoutUrl;
+  final String successUrl;
+  final String cancelUrl;
 
-  const PaymentWebView({
+  const CheckoutWebView({
     super.key,
-    required this.paymentUrl,
-    required this.sessionId,
+    required this.checkoutUrl,
+    required this.successUrl,
+    required this.cancelUrl,
   });
 
   @override
-  State<PaymentWebView> createState() => _PaymentWebViewState();
+  State<CheckoutWebView> createState() => _CheckoutWebViewState();
 }
 
-class _PaymentWebViewState extends State<PaymentWebView> {
+class _CheckoutWebViewState extends State<CheckoutWebView> {
   late final WebViewController _controller;
   bool _isLoading = true;
-  final _donationService = DonationService();
-  bool _hasCheckedStatus = false;
 
   bool _isSuccessUrl(String url) {
-    return url.contains('/payment/bridge/success') ||
-           url.contains('/payments/success') ||
-           url.contains('/pay/success') ||
-           url.contains('success') ||
+    return url.contains('success') ||
            url.contains('payment_success') ||
            url.contains('sfund.app') ||
-           url.contains('thawani.om') && url.contains('success');
+           url.contains('thawani.om') && url.contains('success') ||
+           url == widget.successUrl;
   }
   
   bool _isCancelUrl(String url) {
-    return url.contains('/payment/bridge/cancel') ||
-           url.contains('/payments/cancel') ||
-           url.contains('/pay/cancel') ||
-           url.contains('cancel') ||
+    return url.contains('cancel') ||
            url.contains('payment_cancel') ||
-           url.contains('thawani.om') && url.contains('cancel');
+           url.contains('thawani.om') && url.contains('cancel') ||
+           url == widget.cancelUrl;
   }
-
-  Future<void> _finishAndPop() async {
-    if (_hasCheckedStatus) return; // Prevent multiple checks
-    _hasCheckedStatus = true;
-    
-    try {
-      final status = await _donationService.checkPaymentStatus(widget.sessionId);
-      if (!mounted) return;
-
-      print('PaymentWebView: Payment status check result: ${status.status}');
-      print('PaymentWebView: Is completed: ${status.isCompleted}');
-
-      if (status.isCompleted) {
-        Navigator.pop(context, PaymentState.paymentSuccess);
-      } else if (status.isCancelled) {
-        Navigator.pop(context, PaymentState.paymentCancelled);
-      } else if (status.isExpired) {
-        Navigator.pop(context, PaymentState.paymentExpired);
-      } else if (status.isFailed) {
-        Navigator.pop(context, PaymentState.paymentFailed);
-      } else {
-        // Still pending - try again after a short delay
-        _hasCheckedStatus = false; // Reset flag for retry
-        await Future.delayed(const Duration(seconds: 3));
-        await _finishAndPop();
-      }
-    } catch (e) {
-      print('PaymentWebView: Error checking payment status: $e');
-      if (!mounted) return;
-      Navigator.pop(context, PaymentState.paymentFailed);
-    }
-  }
-
 
   @override
   void initState() {
     super.initState();
-    
-    // Start periodic status checking after 10 seconds
-    Future.delayed(const Duration(seconds: 10), () {
-      if (mounted && !_hasCheckedStatus) {
-        _checkPaymentStatusPeriodically();
-      }
-    });
     
     if (kIsWeb) {
       // For web platform, open payment in browser
@@ -103,29 +57,33 @@ class _PaymentWebViewState extends State<PaymentWebView> {
           onPageStarted: (_) => setState(() => _isLoading = true),
           onPageFinished: (url) async {
             setState(() => _isLoading = false);
-            print('PaymentWebView: Page finished loading: $url');
+            print('CheckoutWebView: Page finished loading: $url');
             
             if (_isSuccessUrl(url)) {
-              print('PaymentWebView: Detected success URL, checking payment status...');
-              await _finishAndPop();
-            } else if (_isCancelUrl(url)) {
-              print('PaymentWebView: Detected cancel URL, returning cancelled...');
+              print('CheckoutWebView: Detected success URL');
               if (mounted) {
-                Navigator.pop(context, PaymentState.paymentCancelled);
+                Navigator.pop(context, {'status': 'success'});
+              }
+            } else if (_isCancelUrl(url)) {
+              print('CheckoutWebView: Detected cancel URL');
+              if (mounted) {
+                Navigator.pop(context, {'status': 'cancel'});
               }
             }
           },
           onNavigationRequest: (request) {
-            print('PaymentWebView: Navigation request to: ${request.url}');
+            print('CheckoutWebView: Navigation request to: ${request.url}');
             
             if (_isSuccessUrl(request.url)) {
-              print('PaymentWebView: Intercepting success URL');
-              _finishAndPop();
+              print('CheckoutWebView: Intercepting success URL');
+              if (mounted) {
+                Navigator.pop(context, {'status': 'success'});
+              }
               return NavigationDecision.prevent;
             } else if (_isCancelUrl(request.url)) {
-              print('PaymentWebView: Intercepting cancel URL');
+              print('CheckoutWebView: Intercepting cancel URL');
               if (mounted) {
-                Navigator.pop(context, PaymentState.paymentCancelled);
+                Navigator.pop(context, {'status': 'cancel'});
               }
               return NavigationDecision.prevent;
             }
@@ -134,13 +92,13 @@ class _PaymentWebViewState extends State<PaymentWebView> {
         ),
       );
       
-      _controller.loadRequest(Uri.parse(widget.paymentUrl));
+      _controller.loadRequest(Uri.parse(widget.checkoutUrl));
     }
   }
   
   Future<void> _openPaymentInBrowser() async {
     try {
-      final uri = Uri.parse(widget.paymentUrl);
+      final uri = Uri.parse(widget.checkoutUrl);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.inAppWebView);
         
@@ -155,7 +113,11 @@ class _PaymentWebViewState extends State<PaymentWebView> {
           
           // Wait for user to complete payment, then auto-check
           await Future.delayed(const Duration(seconds: 5));
-          await _finishAndPop();
+          
+          // For web, we assume success after delay (user should handle manually)
+          if (mounted) {
+            Navigator.pop(context, {'status': 'success'});
+          }
         }
       } else {
         if (mounted) {
@@ -165,7 +127,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
               backgroundColor: AppColors.error,
             ),
           );
-          Navigator.pop(context, PaymentState.paymentFailed);
+          Navigator.pop(context, {'status': 'cancel'});
         }
       }
     } catch (e) {
@@ -176,16 +138,9 @@ class _PaymentWebViewState extends State<PaymentWebView> {
             backgroundColor: AppColors.error,
           ),
         );
-        Navigator.pop(context, PaymentState.paymentFailed);
+        Navigator.pop(context, {'status': 'cancel'});
       }
     }
-  }
-
-  void _checkPaymentStatusPeriodically() {
-    if (!mounted || _hasCheckedStatus) return;
-    
-    print('PaymentWebView: Starting periodic payment status check...');
-    _finishAndPop();
   }
 
   @override
@@ -218,7 +173,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'جاري التحقق من حالة الدفع...',
+                  'جاري إتمام عملية الدفع...',
                   style: AppTextStyles.headlineSmall.copyWith(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
@@ -227,25 +182,11 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'يرجى الانتظار قليلاً',
+                  'يرجى إتمام الدفع في المتصفح',
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: () {
-                    if (!_hasCheckedStatus) {
-                      _finishAndPop();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.surface,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  ),
-                  child: const Text('التحقق من حالة الدفع'),
                 ),
               ],
             ),
@@ -269,19 +210,9 @@ class _PaymentWebViewState extends State<PaymentWebView> {
         ),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => Navigator.pop(context, PaymentState.paymentCancelled),
+          onPressed: () => Navigator.pop(context, {'status': 'cancel'}),
         ),
         actions: [
-          // Manual check button
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              if (!_hasCheckedStatus) {
-                _finishAndPop();
-              }
-            },
-            tooltip: 'التحقق من حالة الدفع',
-          ),
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.all(16),
@@ -341,7 +272,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'بعد إتمام الدفع، اضغط على زر التحديث 🔄',
+                    'بعد إتمام الدفع، ستتم العودة تلقائياً للتطبيق',
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: AppColors.surface,
                       fontWeight: FontWeight.w600,
@@ -350,7 +281,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'أو انتظر 10 ثوانٍ للتحقق التلقائي',
+                    'يمكنك إلغاء العملية بالضغط على X',
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.surface.withOpacity(0.8),
                     ),

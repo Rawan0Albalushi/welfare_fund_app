@@ -35,6 +35,12 @@ class Donation {
   /// رابط الدفع (اختياري — مفيد للعرض)
   final String? paymentUrl;
 
+  /// اسم البرنامج (إذا كان التبرع لبرنامج)
+  final String? programName;
+
+  /// اسم الحملة (إذا كان التبرع لحملة)
+  final String? campaignName;
+
   Donation({
     required this.id,
     this.paymentSessionId,
@@ -48,6 +54,8 @@ class Donation {
     this.message,
     this.isAnonymous = false,
     this.paymentUrl,
+    this.programName,
+    this.campaignName,
   });
 
   /// تحويل ديناميكي إلى double بأمان
@@ -85,6 +93,8 @@ class Donation {
       message: (json['note'] ?? json['message']) as String?,
       isAnonymous: (json['is_anonymous'] ?? json['isAnonymous']) as bool? ?? false,
       paymentUrl: json['payment_url'] as String?,
+      programName: (json['program_name'] ?? json['programName'] ?? json['program']?['name'] ?? json['program']?['title']) as String?,
+      campaignName: (json['campaign_name'] ?? json['campaignName'] ?? json['campaign']?['name'] ?? json['campaign']?['title']) as String?,
     );
   }
 
@@ -102,6 +112,8 @@ class Donation {
       if (message != null) 'note': message,
       'is_anonymous': isAnonymous,
       if (paymentUrl != null) 'payment_url': paymentUrl,
+      if (programName != null) 'program_name': programName,
+      if (campaignName != null) 'campaign_name': campaignName,
     };
   }
 
@@ -128,6 +140,8 @@ class Donation {
     String? message,
     bool? isAnonymous,
     String? paymentUrl,
+    String? programName,
+    String? campaignName,
   }) {
     return Donation(
       id: id ?? this.id,
@@ -142,6 +156,8 @@ class Donation {
       message: message ?? this.message,
       isAnonymous: isAnonymous ?? this.isAnonymous,
       paymentUrl: paymentUrl ?? this.paymentUrl,
+      programName: programName ?? this.programName,
+      campaignName: campaignName ?? this.campaignName,
     );
   }
 }

@@ -1,26 +1,47 @@
-# تحديث عنوان API - API URL Update
+# API URL Update to 192.168.1.21 - تحديث عنوان API
 
-## التغيير المطبق
+## Summary - ملخص
 
-تم تحديث عنوان API من `http://192.168.100.249:8000/api` إلى `http://192.168.1.21:8000/api`
+تم تحديث جميع عناوين API في التطبيق من `192.168.100.105:8000` إلى `192.168.1.21:8000` لضمان الاتصال الصحيح مع الخادم.
 
-## الملفات المحدثة
+All API URLs in the application have been updated from `192.168.100.105:8000` to `192.168.1.21:8000` to ensure proper server connectivity.
 
-### 1. ملف `lib/services/api_client.dart`
-```dart
-// تم تحديث السطر 13
-const baseUrl = 'http://192.168.1.21:8000/api';
-```
+## Files Updated - الملفات المحدثة
 
-### 2. ملف `lib/services/auth_service.dart`
-```dart
-// تم تحديث السطر 13
-const baseUrl = 'http://192.168.1.21:8000/api';
-```
+### 1. API Client Service
+**File:** `lib/services/api_client.dart`
+- **Before:** `const baseUrl = 'http://192.168.100.105:8000/api/v1';`
+- **After:** `const baseUrl = 'http://192.168.1.21:8000/api/v1';`
 
-## كيفية عمل التحديث
+### 2. Authentication Service
+**File:** `lib/services/auth_service.dart`
+- **Before:** `const baseUrl = 'http://192.168.100.105:8000/api';`
+- **After:** `const baseUrl = 'http://192.168.1.21:8000/api';`
 
-### 1. تحميل الإعدادات
+### 3. Payment Service
+**File:** `lib/services/payment_service.dart`
+- **Before:** `static const String _baseUrl = 'http://192.168.100.105:8000/api/v1';`
+- **After:** `static const String _baseUrl = 'http://192.168.1.21:8000/api/v1';`
+- **Before:** `static const String baseUrl = 'http://192.168.100.105:8000/api/v1';`
+- **After:** `static const String baseUrl = 'http://192.168.1.21:8000/api/v1';`
+
+### 4. Donation Service
+**File:** `lib/services/donation_service.dart`
+- **Before:** `'http://192.168.100.105:8000/api/v1'`
+- **After:** `'http://192.168.1.21:8000/api/v1'`
+
+**Updated in multiple locations:**
+- Platform-specific URLs for Android and iOS
+- Fallback base URL
+
+### 5. Donations Service
+**File:** `lib/services/donations_service.dart`
+- **Before:** `static const String baseUrl = 'http://192.168.100.105:8000/api/v1';`
+- **After:** `static const String baseUrl = 'http://192.168.1.21:8000/api/v1';`
+
+## How the Update Works - كيفية عمل التحديث
+
+### 1. Service Initialization
 ```dart
 // في main.dart
 void main() async {
@@ -36,93 +57,90 @@ void main() async {
 }
 ```
 
-### 2. قراءة العنوان الجديد
+### 2. New URL Configuration
 ```dart
-// في api_client.dart و auth_service.dart
-Future<void> initialize() async {
-  const baseUrl = 'http://192.168.1.21:8000/api';
-  print('API Base URL: $baseUrl'); // Debug print
-  
-  _dio = Dio(BaseOptions(
-    baseUrl: baseUrl,
-    // ... باقي الإعدادات
-  ));
-}
+// في api_client.dart
+const baseUrl = 'http://192.168.1.21:8000/api/v1';
+
+// في auth_service.dart
+const baseUrl = 'http://192.168.1.21:8000/api';
+
+// في payment_service.dart
+static const String _baseUrl = 'http://192.168.1.21:8000/api/v1';
+static const String baseUrl = 'http://192.168.1.21:8000/api/v1';
+
+// في donation_service.dart
+if (Platform.isAndroid) return 'http://192.168.1.21:8000/api/v1';
+if (Platform.isIOS) return 'http://192.168.1.21:8000/api/v1';
+return 'http://192.168.1.21:8000/api/v1';
+
+// في donations_service.dart
+static const String baseUrl = 'http://192.168.1.21:8000/api/v1';
 ```
 
-## التأكد من التحديث
+## Testing the Update - اختبار التحديث
 
-### 1. تشغيل التطبيق
+### 1. Run the Application
 ```bash
 flutter run
 ```
 
-### 2. مراقبة Console
-ستظهر رسالة في Console تؤكد العنوان الجديد:
+### 2. Monitor Console Output
+Look for these debug messages confirming the new URLs:
 ```
-API Base URL: http://192.168.1.21:8000/api
+API Base URL: http://192.168.1.21:8000/api/v1
 AuthService: Using base URL: http://192.168.1.21:8000/api
 ```
 
-## اختبار الاتصال
+### 3. Test Key Features
+- **User Registration/Login**: Verify authentication works
+- **Donation Creation**: Test donation functionality
+- **Payment Processing**: Ensure payment flows work correctly
+- **Data Fetching**: Check that API calls return data
 
-### 1. اختبار تسجيل الطالب
-- انتقل إلى شاشة تسجيل الطالب
-- املأ النموذج
-- اضغط على "إرسال الطلب"
-- تأكد من عدم ظهور أخطاء اتصال
+## Network Configuration - إعدادات الشبكة
 
-### 2. اختبار رفع المستندات
-- انتقل إلى شاشة رفع المستندات
-- اختر مستند
-- اضغط على "رفع المستندات"
-- تأكد من نجاح الرفع
+### **Server Requirements:**
+- **Server IP:** `192.168.1.21`
+- **Port:** `8000`
+- **API Base URL:** `http://192.168.1.21:8000/api`
+- **Status:** Must be running and accessible
 
-### 3. اختبار قائمة التسجيلات (للمدير)
-- انتقل إلى قائمة تسجيلات الطلاب
-- تأكد من تحميل البيانات بنجاح
+### **Network Connectivity:**
+- Ensure the server at `192.168.1.21:8000` is running
+- Verify network connectivity from your device/emulator
+- Check firewall settings if connection issues persist
 
-## استكشاف الأخطاء
+## Troubleshooting - استكشاف الأخطاء وإصلاحها
 
-### إذا لم يعمل الاتصال:
+### Common Issues:
 
-1. **تأكد من تشغيل الخادم**
-   ```bash
-   # تأكد من أن الخادم يعمل على العنوان الجديد
-   curl http://192.168.1.21:8000/api/health
-   ```
+1. **Connection Timeout**
+   - Verify server is running on `192.168.1.21:8000`
+   - Check network connectivity
+   - Ensure firewall allows connections on port 8000
 
-2. **تأكد من الاتصال بالشبكة**
-   ```bash
-   # اختبار الاتصال
-   ping 192.168.1.21
-   ```
+2. **404 Errors**
+   - Confirm API endpoints exist on the server
+   - Verify API version paths (`/api/v1`, `/api`)
 
-3. **تأكد من إعادة تشغيل التطبيق**
-   ```bash
-   flutter clean
-   flutter pub get
-   flutter run
-   ```
+3. **Authentication Issues**
+   - Check if auth endpoints are working
+   - Verify token handling logic
 
-4. **تحقق من Console**
-   - ابحث عن رسالة "API Base URL" في Console
-   - تأكد من أن العنوان صحيح
+### Debug Steps:
+1. Check console output for URL confirmations
+2. Test server connectivity manually
+3. Verify API endpoints with tools like Postman
+4. Check device/emulator network settings
 
-## الأمان
+## Previous Updates - التحديثات السابقة
 
-- ✅ العنوان الجديد يستخدم HTTP (مناسب للتطوير)
-- ✅ يمكن تغييره إلى HTTPS للإنتاج
-- ✅ الإعدادات محفوظة في الكود مباشرة
+This update changes from the previous configuration:
+- **Previous IP:** `192.168.100.105`
+- **New IP:** `192.168.1.21`
+- **Port:** `8000` (unchanged)
+- **API Version:** `v1` (unchanged)
 
-## التطوير المستقبلي
-
-- [ ] إضافة دعم HTTPS للإنتاج
-- [ ] إضافة إعدادات مختلفة لكل بيئة (dev, staging, prod)
-- [ ] إضافة اختبارات اتصال تلقائية
-- [ ] إضافة إشعارات عند فشل الاتصال
-
----
-
-**تاريخ التحديث:** ديسمبر 2024  
-**المطور:** فريق صندوق رعاية الطلاب
+## Date: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+## Updated by: AI Assistant

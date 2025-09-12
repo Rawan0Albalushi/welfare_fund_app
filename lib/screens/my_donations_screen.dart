@@ -15,7 +15,7 @@ class MyDonationsScreen extends StatefulWidget {
 
 class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindingObserver {
   String _selectedFilter = 'الكل';
-  final List<String> _filters = ['الكل', 'هذا الشهر', 'هذا العام', 'مهداة'];
+  final List<String> _filters = ['الكل', 'هذا الشهر', 'هذا العام', 'مهداة', 'مكتمل', 'في الانتظار', 'ملغي', 'فشل'];
   
   final DonationService _donationService = DonationService();
   List<Donation> _donations = [];
@@ -89,9 +89,9 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
         _errorMessage = null;
       });
 
-      print('MyDonationsScreen: Starting to load donations...');
-      final donations = await _donationService.getUserDonations();
-      print('MyDonationsScreen: Loaded ${donations.length} donations');
+      print('MyDonationsScreen: Starting to load all donations...');
+      final donations = await _donationService.getAllUserDonations();
+      print('MyDonationsScreen: Loaded ${donations.length} total donations');
       
       setState(() {
         _donations = donations;
@@ -102,8 +102,16 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
       if (donations.isNotEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('تم تحديث التبرعات بنجاح (${donations.length} تبرع)'),
+            content: Text('تم تحميل جميع التبرعات بنجاح (${donations.length} تبرع)'),
             backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else if (donations.isEmpty && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('لم يتم العثور على تبرعات'),
+            backgroundColor: AppColors.info,
             duration: const Duration(seconds: 2),
           ),
         );
@@ -277,6 +285,30 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
         donation.message?.contains('gift') == true
       ).toList();
       print('MyDonationsScreen: Gift donations: ${filtered.length}');
+      return filtered;
+    } else if (_selectedFilter == 'مكتمل') {
+      final filtered = _donations.where((donation) => 
+        donation.isPaid || donation.isCompleted
+      ).toList();
+      print('MyDonationsScreen: Completed donations: ${filtered.length}');
+      return filtered;
+    } else if (_selectedFilter == 'في الانتظار') {
+      final filtered = _donations.where((donation) => 
+        donation.isPending
+      ).toList();
+      print('MyDonationsScreen: Pending donations: ${filtered.length}');
+      return filtered;
+    } else if (_selectedFilter == 'ملغي') {
+      final filtered = _donations.where((donation) => 
+        donation.isCancelled
+      ).toList();
+      print('MyDonationsScreen: Cancelled donations: ${filtered.length}');
+      return filtered;
+    } else if (_selectedFilter == 'فشل') {
+      final filtered = _donations.where((donation) => 
+        donation.isFailed
+      ).toList();
+      print('MyDonationsScreen: Failed donations: ${filtered.length}');
       return filtered;
     }
     print('MyDonationsScreen: Default return all donations: ${_donations.length}');
@@ -531,9 +563,29 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
     print('MyDonationsScreen: _filteredDonations.length: ${_filteredDonations.length}');
     
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'جاري تحميل جميع التبرعات...',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'يرجى الانتظار، قد يستغرق هذا بعض الوقت',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       );
     }
@@ -624,6 +676,45 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
     );
   }
 
+  // Get donation status information with color and icon
+  Map<String, dynamic> _getDonationStatusInfo(Donation donation) {
+    Color statusColor;
+    IconData statusIcon;
+    String statusText;
+    
+    if (donation.isPaid || donation.isCompleted) {
+      statusColor = AppColors.success;
+      statusIcon = Icons.check_circle;
+      statusText = 'مكتمل';
+    } else if (donation.isPending) {
+      statusColor = AppColors.warning;
+      statusIcon = Icons.schedule;
+      statusText = 'في الانتظار';
+    } else if (donation.isCancelled) {
+      statusColor = AppColors.textSecondary;
+      statusIcon = Icons.cancel;
+      statusText = 'ملغي';
+    } else if (donation.isFailed) {
+      statusColor = AppColors.error;
+      statusIcon = Icons.error;
+      statusText = 'فشل';
+    } else if (donation.isExpired) {
+      statusColor = AppColors.textTertiary;
+      statusIcon = Icons.timer_off;
+      statusText = 'منتهي الصلاحية';
+    } else {
+      statusColor = AppColors.info;
+      statusIcon = Icons.help_outline;
+      statusText = donation.status;
+    }
+    
+    return {
+      'color': statusColor,
+      'icon': statusIcon,
+      'text': statusText,
+    };
+  }
+
   Widget _buildDonationCard(Donation donation) {
     // Determine category based on program/campaign or message
     String category = 'عام';
@@ -640,6 +731,9 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
     final isGift = donation.message?.contains('هدية') == true || 
                    donation.message?.contains('إهداء') == true ||
                    donation.message?.contains('gift') == true;
+    
+    // Get donation status info
+    final statusInfo = _getDonationStatusInfo(donation);
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -686,6 +780,14 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                      if (donation.programName != null || donation.campaignName != null)
+                        Text(
+                          donation.programName ?? donation.campaignName ?? '',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       Text(
                         category,
                         style: AppTextStyles.bodySmall.copyWith(
@@ -695,23 +797,55 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isGift 
-                        ? AppColors.primary.withOpacity(0.1)
-                        : AppColors.success.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    isGift ? 'إهداء' : 'عادي',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: isGift 
-                          ? AppColors.primary
-                          : AppColors.success,
-                      fontWeight: FontWeight.w600,
+                Row(
+                  children: [
+                    // Donation Type Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isGift 
+                            ? AppColors.primary.withOpacity(0.1)
+                            : AppColors.success.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        isGift ? 'إهداء' : 'عادي',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: isGift 
+                              ? AppColors.primary
+                              : AppColors.success,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    // Status Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusInfo['color'].withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            statusInfo['icon'],
+                            size: 12,
+                            color: statusInfo['color'],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            statusInfo['text'],
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: statusInfo['color'],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -719,12 +853,24 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '${donation.amount.toStringAsFixed(0)} ريال',
-                  style: AppTextStyles.titleMedium.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${donation.amount.toStringAsFixed(0)} ريال',
+                      style: AppTextStyles.titleMedium.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (donation.paidAmount != null && donation.paidAmount != donation.amount)
+                      Text(
+                        'مدفوع: ${donation.paidAmount!.toStringAsFixed(0)} ريال',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                  ],
                 ),
                 Row(
                   children: [

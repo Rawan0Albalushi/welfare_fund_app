@@ -11,7 +11,7 @@ class AuthService {
 
   Future<void> initialize() async {
     // Use default URL to avoid dotenv issues
-    const baseUrl = 'http://192.168.1.101:8000/api';
+    const baseUrl = 'http://192.168.1.21:8000/api';
     print('AuthService: Using base URL: $baseUrl');
     
     _dio = Dio(BaseOptions(

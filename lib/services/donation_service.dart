@@ -25,11 +25,11 @@ class DonationService {
   // الأجهزة الفعلية استخدمي IP الشبكة (مثال: 192.168.1.101)
   static String _resolveFallbackBase() {
     try {
-      if (Platform.isAndroid) return 'http://192.168.1.101:8000/api/v1';
-      if (Platform.isIOS) return 'http://192.168.1.101:8000/api/v1';
+      if (Platform.isAndroid) return 'http://192.168.1.21:8000/api/v1';
+      if (Platform.isIOS) return 'http://192.168.1.21:8000/api/v1';
     } catch (_) {}
     // Fallback عام (غيّريه لعنوان جهازك على الشبكة)
-    return 'http://192.168.1.101:8000/api/v1';
+    return 'http://192.168.1.21:8000/api/v1';
   }
 
   String get _apiBase {
@@ -66,7 +66,14 @@ class DonationService {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
-      if (token != null) headers['Authorization'] = 'Bearer $token';
+      
+      // إضافة token فقط إذا كان موجوداً (للمستخدمين المسجلين)
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+        print('DonationService: Using authenticated request with token');
+      } else {
+        print('DonationService: Using anonymous donation request');
+      }
 
       final idInt = int.tryParse(itemId);
       if (idInt == null) {
@@ -133,7 +140,90 @@ class DonationService {
     }
   }
 
-  // ===== ENDPOINT 2: Create payment session (منفصل) =====
+  // ===== ENDPOINT 2: Anonymous donation with payment =====
+  /// POST /api/v1/donations/anonymous-with-payment
+  /// **مخصص للمستخدمين غير المسجلين**: ينشئ تبرع مجهول مع دفع فوري
+  Future<Map<String, dynamic>> createAnonymousDonationWithPayment({
+    required String itemId,   // '123' → سيحوَّل إلى int
+    required String itemType, // 'program' | 'campaign'
+    required double amount,   // OMR
+    String? donorName,
+    String? donorEmail,
+    String? donorPhone,
+    String? message,          // سنرسلها كـ note أيضًا
+  }) async {
+    try {
+      // للتبرعات المجهولة، لا نحتاج token على الإطلاق
+      print('DonationService: Creating anonymous donation with payment...');
+
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+
+      final idInt = int.tryParse(itemId);
+      if (idInt == null) {
+        throw Exception('رقم المعرف غير صالح: $itemId');
+      }
+
+      final payload = <String, dynamic>{
+        if (itemType == 'program') 'program_id': idInt,
+        if (itemType == 'campaign') 'campaign_id': idInt,
+        'amount': amount,
+        'is_anonymous': true, // دائماً true للتبرعات المجهولة
+        'donor_name': donorName ?? 'متبرع',
+        if (donorEmail != null) 'donor_email': donorEmail,
+        if (donorPhone != null) 'donor_phone': donorPhone,
+        if (message != null) 'note': message,
+        if (message != null) 'message': message, // توافق خلفي إن وُجد
+      };
+
+      final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}/donations/anonymous-with-payment');
+      final response = await http.post(uri, headers: headers, body: jsonEncode(payload));
+
+      // Debug:
+      print('DonationService: Anonymous donation request URL: $uri');
+      print('DonationService: Anonymous donation payload: $payload');
+      print('DonationService: Anonymous donation response status: ${response.statusCode}');
+      print('DonationService: Anonymous donation response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+
+        final Map<String, dynamic>? data =
+            (responseData['data'] is Map) ? responseData['data'] as Map<String, dynamic> : null;
+        final Map<String, dynamic>? ps =
+            (data?['payment_session'] is Map) ? data!['payment_session'] as Map<String, dynamic> : null;
+
+        final String? paymentUrl =
+            (ps?['payment_url'] ?? ps?['redirect_url'] ?? responseData['payment_url'] ?? data?['payment_url'])
+                ?.toString();
+
+        final String? sessionId =
+            (ps?['session_id'] ?? responseData['session_id'] ?? data?['session_id'])?.toString();
+
+        // نعيد جسم موحّد يفيد الـ UI
+        final result = <String, dynamic>{
+          'ok': true,
+          'data': data ?? responseData,
+          if (paymentUrl != null) 'payment_url': paymentUrl,
+          if (sessionId != null) 'payment_session_id': sessionId,
+        };
+        return result;
+      } else if (response.statusCode == 422) {
+        final errorData = jsonDecode(response.body);
+        final errorMessage = (errorData['message']?.toString()) ?? 'بيانات غير صحيحة';
+        throw Exception(errorMessage);
+      } else {
+        throw Exception('حدث خطأ في إنشاء التبرع المجهول. يرجى المحاولة مرة أخرى.');
+      }
+    } catch (e) {
+      print('DonationService: Error creating anonymous donation: $e');
+      rethrow;
+    }
+  }
+
+  // ===== ENDPOINT 3: Create payment session (منفصل) =====
   /// POST /api/v1/payments/create
   /// **ملاحظة**: لا نستخدم returnUrl هنا — النجاح/الإلغاء يُدار من الباكند.
   Future<PaymentResponse> createPaymentSessionV2({
@@ -154,7 +244,14 @@ class DonationService {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
-      if (token != null) headers['Authorization'] = 'Bearer $token';
+      
+      // إضافة token فقط إذا كان موجوداً (للمستخدمين المسجلين)
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+        print('DonationService: Using authenticated payment request with token');
+      } else {
+        print('DonationService: Using anonymous payment request');
+      }
 
       final req = PaymentRequest(
         amountOmr: amountOmr,                 // سيتحوّل داخليًا إلى بيسة
@@ -251,7 +348,11 @@ class DonationService {
   /// 1. GET /api/v1/donations/recent (most likely to work)
   /// 2. GET /api/v1/me/donations (if exists)
   /// 3. GET /api/v1/donations (if exists)
-  Future<List<Donation>> getUserDonations() async {
+  Future<List<Donation>> getUserDonations({
+    int? page,
+    int? limit,
+    bool getAllDonations = false,
+  }) async {
     try {
       await _apiClient.initialize();
       final token = await _apiClient.getAuthToken();
@@ -262,8 +363,9 @@ class DonationService {
         print('DonationService: Token preview: ${token.substring(0, 20)}...');
       }
 
-      if (token == null) {
-        throw Exception('يجب تسجيل الدخول أولاً');
+      if (token == null || token.isEmpty) {
+        print('DonationService: No auth token found, returning empty donations list');
+        return []; // إرجاع قائمة فارغة بدلاً من خطأ
       }
 
       final headers = <String, String>{
@@ -271,6 +373,11 @@ class DonationService {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
       };
+
+      // If getAllDonations is true, fetch all donations with pagination
+      if (getAllDonations) {
+        return await _getAllDonationsWithPagination(headers);
+      }
 
       // Try multiple endpoints in order of likelihood
       final endpoints = [
@@ -281,7 +388,13 @@ class DonationService {
       
       for (final endpoint in endpoints) {
         try {
-          final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}$endpoint');
+          // Build query parameters for pagination
+          final queryParams = <String, String>{};
+          if (page != null) queryParams['page'] = page.toString();
+          if (limit != null) queryParams['limit'] = limit.toString();
+          
+          final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}$endpoint')
+              .replace(queryParameters: queryParams);
           print('DonationService: Trying endpoint: $uri');
           
           final response = await http.get(uri, headers: headers);
@@ -315,6 +428,88 @@ class DonationService {
       print('DonationService: Error fetching user donations: $e');
       rethrow;
     }
+  }
+
+  // Helper method to get all donations with pagination
+  Future<List<Donation>> _getAllDonationsWithPagination(Map<String, String> headers) async {
+    List<Donation> allDonations = [];
+    int currentPage = 1;
+    int limit = 50; // Fetch 50 donations per page
+    bool hasMoreData = true;
+    
+    print('DonationService: Starting to fetch all donations with pagination...');
+    
+    // Try multiple endpoints in order of likelihood
+    final endpoints = [
+      '/me/donations',  // Try user-specific donations first
+      '/donations/recent', 
+      '/donations',
+    ];
+    
+    for (final endpoint in endpoints) {
+      try {
+        print('DonationService: Trying endpoint $endpoint for pagination...');
+        
+        while (hasMoreData) {
+          final queryParams = <String, String>{
+            'page': currentPage.toString(),
+            'limit': limit.toString(),
+          };
+          
+          final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}$endpoint')
+              .replace(queryParameters: queryParams);
+          print('DonationService: Fetching page $currentPage from: $uri');
+          
+          final response = await http.get(uri, headers: headers);
+          print('DonationService: Response status: ${response.statusCode}');
+          
+          if (response.statusCode == 200) {
+            final pageDonations = _parseDonationsResponse(response.body);
+            
+            if (pageDonations.isEmpty) {
+              print('DonationService: No more donations on page $currentPage, stopping pagination');
+              hasMoreData = false;
+            } else {
+              allDonations.addAll(pageDonations);
+              print('DonationService: Added ${pageDonations.length} donations from page $currentPage. Total: ${allDonations.length}');
+              
+              // Check if we got less than the limit, which means this is the last page
+              if (pageDonations.length < limit) {
+                print('DonationService: Got ${pageDonations.length} donations (less than limit $limit), this is the last page');
+                hasMoreData = false;
+              } else {
+                currentPage++;
+              }
+            }
+          } else if (response.statusCode == 404) {
+            print('DonationService: Endpoint $endpoint not found, trying next...');
+            break; // Try next endpoint
+          } else {
+            print('DonationService: Error with endpoint $endpoint: HTTP ${response.statusCode}');
+            throw Exception('HTTP ${response.statusCode}: ${response.body}');
+          }
+        }
+        
+        // If we successfully fetched donations from this endpoint, return them
+        if (allDonations.isNotEmpty) {
+          print('DonationService: Successfully fetched ${allDonations.length} total donations from $endpoint');
+          return allDonations;
+        }
+        
+      } catch (e) {
+        print('DonationService: Error with endpoint $endpoint: $e');
+        if (endpoint == endpoints.last) {
+          rethrow; // If this is the last endpoint, rethrow the error
+        }
+        // Reset for next endpoint
+        allDonations.clear();
+        currentPage = 1;
+        hasMoreData = true;
+        continue; // Try next endpoint
+      }
+    }
+    
+    throw Exception('جميع endpoints التبرعات غير متاحة');
   }
 
   // Helper method to parse donations response
@@ -356,7 +551,13 @@ class DonationService {
     }
   }
 
-  // ===== ENDPOINT 5: Get paid donations only =====
+  // ===== ENDPOINT 5: Get all user donations with pagination =====
+  /// Get all user donations by fetching all pages
+  Future<List<Donation>> getAllUserDonations() async {
+    return await getUserDonations(getAllDonations: true);
+  }
+
+  // ===== ENDPOINT 6: Get paid donations only =====
   /// Try to get paid donations by filtering recent donations
   /// Since /me/donations?status=paid may not exist, we'll get all donations and filter
   Future<List<Donation>> getPaidDonations() async {
