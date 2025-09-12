@@ -82,6 +82,9 @@ class PaymentProvider extends ChangeNotifier {
 
       print('PaymentProvider: Creating donation with payment for $finalItemType: $finalItemId, amount: $amount');
 
+      // الحصول على origin للمنصة الويب
+      final origin = Uri.base.origin;
+      
       final result = await _donationService.createDonationWithPayment(
         itemId: finalItemId,
         itemType: finalItemType,
@@ -91,6 +94,7 @@ class PaymentProvider extends ChangeNotifier {
         donorPhone: donorPhone,
         message: message ?? note ?? 'تبرع',
         isAnonymous: isAnonymous,
+        returnOrigin: origin,
       );
 
       if (result['ok'] == true && result['payment_url'] != null) {

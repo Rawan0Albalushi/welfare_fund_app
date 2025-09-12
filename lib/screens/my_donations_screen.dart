@@ -135,6 +135,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
       print('MyDonationsScreen: Creating test donation...');
       
       // Create a test donation using the existing API
+      final origin = Uri.base.origin;
       final result = await _donationService.createDonationWithPayment(
         itemId: '1', // Use campaign ID 1
         itemType: 'campaign',
@@ -142,6 +143,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
         donorName: 'Test User',
         message: 'تبرع تجريبي للاختبار',
         isAnonymous: false,
+        returnOrigin: origin,
       );
       
       print('MyDonationsScreen: Test donation created: $result');

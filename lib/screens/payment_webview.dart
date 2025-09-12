@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../providers/payment_provider.dart';
@@ -140,33 +140,24 @@ class _PaymentWebViewState extends State<PaymentWebView> {
   
   Future<void> _openPaymentInBrowser() async {
     try {
-      final uri = Uri.parse(widget.paymentUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.inAppWebView);
+      // For web platform, open in same tab using webOnlyWindowName: '_self'
+      await launchUrlString(
+        widget.paymentUrl,
+        webOnlyWindowName: '_self',
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم فتح صفحة الدفع في نفس التبويب. يرجى إتمام الدفع...'),
+            backgroundColor: AppColors.info,
+            duration: Duration(seconds: 3),
+          ),
+        );
         
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('تم فتح صفحة الدفع. يرجى إتمام الدفع...'),
-              backgroundColor: AppColors.info,
-              duration: Duration(seconds: 3),
-            ),
-          );
-          
-          // Wait for user to complete payment, then auto-check
-          await Future.delayed(const Duration(seconds: 5));
-          await _finishAndPop();
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('لا يمكن فتح صفحة الدفع'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-          Navigator.pop(context, PaymentState.paymentFailed);
-        }
+        // Wait for user to complete payment, then auto-check
+        await Future.delayed(const Duration(seconds: 5));
+        await _finishAndPop();
       }
     } catch (e) {
       if (mounted) {

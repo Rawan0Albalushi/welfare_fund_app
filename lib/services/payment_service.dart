@@ -43,6 +43,7 @@ class PaymentService {
     String? note,
     String type = 'quick',
     String? productName,
+    String? returnOrigin,
   }) async {
     try {
       await _apiClient.initialize();
@@ -70,6 +71,7 @@ class PaymentService {
         note: note,
         type: type,
         productName: productName ?? 'تبرع',
+        returnOrigin: returnOrigin,
       );
 
       final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+\$"), "")}/payments/create');
@@ -181,6 +183,7 @@ class PaymentService {
     required String donorName,
     String? note,
     String type = 'quick',
+    String? returnOrigin,
   }) async {
     try {
       // ✅ احصل على التوكن
@@ -199,6 +202,7 @@ class PaymentService {
           'donor_name': donorName,
           'note': note,
           'type': type,
+          if (returnOrigin != null) 'return_origin': returnOrigin,
         }),
       );
 

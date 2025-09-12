@@ -11,6 +11,9 @@ import 'constants/app_text_styles.dart';
 import 'constants/app_constants.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/donation_success_screen.dart';
+import 'screens/payment_failed_screen.dart';
+import 'screens/payment_loading_screen.dart';
 import 'services/auth_service.dart';
 import 'services/api_client.dart';
 import 'providers/auth_provider.dart';
@@ -46,6 +49,34 @@ void main() async {
 
 class StudentWelfareFundApp extends StatelessWidget {
   const StudentWelfareFundApp({super.key});
+
+  // تحديد الـ route الأولي بناءً على URL الحالي
+  String _getInitialRoute() {
+    try {
+      // للويب، تحقق من URL الحالي
+      final currentPath = html.window.location.pathname;
+      print('Current URL path: $currentPath');
+      
+      // إذا كان URL يحتوي على payment/success أو payment/cancel
+      // ابدأ من payment loading screen لمعالجة المعاملات بشكل صحيح
+      if (currentPath?.contains('/payment/success') == true || 
+          currentPath?.contains('/payment/cancel') == true) {
+        print('Payment redirect detected, starting from payment loading screen');
+        return '/payment/loading';
+      }
+      
+      // إذا كان URL يحتوي على /home
+      if (currentPath?.contains('/home') == true) {
+        print('Redirecting to home screen');
+        return AppConstants.homeRoute;
+      }
+    } catch (e) {
+      print('Error checking URL: $e');
+    }
+    
+    // افتراضي: ابدأ من splash screen
+    return AppConstants.splashRoute;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -177,13 +208,16 @@ class StudentWelfareFundApp extends StatelessWidget {
           );
         },
 
-        // Home screen
-        home: const SplashScreen(),
+        // Initial route - check URL first
+        initialRoute: _getInitialRoute(),
 
         // Route configuration
         routes: {
           AppConstants.splashRoute: (context) => const SplashScreen(),
           AppConstants.homeRoute: (context) => const HomeScreen(),
+          AppConstants.paymentSuccessRoute: (context) => const DonationSuccessScreen(),
+          AppConstants.paymentCancelRoute: (context) => const PaymentFailedScreen(),
+          '/payment/loading': (context) => const PaymentLoadingScreen(),
         },
       ),
     );

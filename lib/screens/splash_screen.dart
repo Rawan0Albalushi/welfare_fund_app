@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'dart:html' as html show window;
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../providers/auth_provider.dart';
 import 'home_screen.dart';
+import 'donation_success_screen.dart';
+import 'payment_failed_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -79,11 +83,96 @@ class _SplashScreenState extends State<SplashScreen>
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.initialize();
     
-    // Navigate to home after animations complete
-    await Future.delayed(const Duration(milliseconds: 2000));
+    // Check for payment redirects
     if (mounted) {
-      _navigateToHome();
+      _checkForPaymentRedirect();
     }
+  }
+  
+  void _checkForPaymentRedirect() {
+    if (kIsWeb) {
+      try {
+        final currentPath = html.window.location.pathname;
+        final queryParams = Uri.base.queryParameters;
+        
+        print('SplashScreen: Checking for payment redirect');
+        print('SplashScreen: Current path: $currentPath');
+        print('SplashScreen: Query params: $queryParams');
+        
+        if (currentPath?.contains('/payment/success') == true) {
+          print('SplashScreen: Redirecting to payment success screen');
+          // توجيه فوري للـ payment success بدون انتظار
+          _navigateToPaymentSuccess(queryParams);
+          return;
+        }
+        
+        if (currentPath?.contains('/payment/cancel') == true) {
+          print('SplashScreen: Redirecting to payment cancel screen');
+          // توجيه فوري للـ payment cancel بدون انتظار
+          _navigateToPaymentCancel(queryParams);
+          return;
+        }
+      } catch (e) {
+        print('SplashScreen: Error checking payment redirect: $e');
+      }
+    }
+    
+    // Navigate to home after animations complete
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      if (mounted) {
+        _navigateToHome();
+      }
+    });
+  }
+  
+  void _navigateToPaymentSuccess(Map<String, String> queryParams) {
+    final donationId = queryParams['donation_id'];
+    final sessionId = queryParams['session_id'];
+    final amount = double.tryParse(queryParams['amount'] ?? '0');
+    final campaignTitle = queryParams['campaign_title'];
+    
+    print('SplashScreen: Payment success params - donationId: $donationId, amount: $amount');
+    
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => DonationSuccessScreen(
+          donationId: donationId,
+          sessionId: sessionId,
+          amount: amount,
+          campaignTitle: campaignTitle,
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: AppConstants.pageTransitionDuration,
+      ),
+    );
+  }
+  
+  void _navigateToPaymentCancel(Map<String, String> queryParams) {
+    final donationId = queryParams['donation_id'];
+    final sessionId = queryParams['session_id'];
+    final amount = double.tryParse(queryParams['amount'] ?? '0');
+    final campaignTitle = queryParams['campaign_title'];
+    final errorMessage = queryParams['error_message'];
+    
+    print('SplashScreen: Payment cancel params - donationId: $donationId, amount: $amount');
+    
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => PaymentFailedScreen(
+          donationId: donationId,
+          sessionId: sessionId,
+          amount: amount,
+          campaignTitle: campaignTitle,
+          errorMessage: errorMessage,
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: AppConstants.pageTransitionDuration,
+      ),
+    );
   }
 
   @override

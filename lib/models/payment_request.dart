@@ -19,6 +19,9 @@ class PaymentRequest {
   /// اسم المنتج/التبرع الظاهر في ثواني
   final String? productName;
 
+  /// Origin للمنصة الويب (للعودة بعد الدفع)
+  final String? returnOrigin;
+
   const PaymentRequest({
     required this.amountOmr,
     this.clientReferenceId,
@@ -28,6 +31,7 @@ class PaymentRequest {
     this.note,
     this.type = 'quick',
     this.productName,
+    this.returnOrigin,
   });
 
   /// تحضير الجسم المرسل لباكند Laravel (/api/v1/payments/create)
@@ -46,6 +50,7 @@ class PaymentRequest {
       if (campaignId != null) 'campaign_id': campaignId,
       if (donorName != null) 'donor_name': donorName,
       if (note != null) 'note': note,
+      if (returnOrigin != null) 'return_origin': returnOrigin,
       'type': type, // quick | gift
       // لا نرسل success_url / cancel_url من الفرونت — تُدار من .env في الباكند
       // لا نرسل currency أو return_url — غير مستخدمة في باكندنا
@@ -75,6 +80,7 @@ class PaymentRequest {
       note: json['note'] as String?,
       type: (json['type'] as String?) ?? 'quick',
       productName: (first['name'] as String?) ?? 'تبرع',
+      returnOrigin: json['return_origin'] as String?,
     );
   }
 }

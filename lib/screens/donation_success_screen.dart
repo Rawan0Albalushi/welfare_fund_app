@@ -1,20 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../services/donation_service.dart';
+import '../providers/auth_provider.dart';
 import 'my_donations_screen.dart';
+// WebView web platform registration (for Flutter Web)
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html show window;
 
 class DonationSuccessScreen extends StatefulWidget {
-  final double amount;
+  final double? amount;
   final String? campaignTitle;
   final String? campaignCategory;
+  final String? donationId;
+  final String? sessionId;
 
   const DonationSuccessScreen({
     super.key,
-    required this.amount,
+    this.amount,
     this.campaignTitle,
     this.campaignCategory,
+    this.donationId,
+    this.sessionId,
   });
 
   @override
@@ -29,10 +39,19 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
   late Animation<double> _checkmarkAnimation;
   
   final DonationService _donationService = DonationService();
+  
+  // متغيرات للبيانات المستخرجة من URL
+  String? _donationId;
+  String? _sessionId;
+  double? _amount;
+  String? _campaignTitle;
 
   @override
   void initState() {
     super.initState();
+    
+    // استخراج query parameters من URL
+    _extractQueryParameters();
     
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
@@ -70,6 +89,87 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
     _checkmarkController.forward();
   }
 
+  void _extractQueryParameters() {
+    try {
+      // استخراج query parameters من URL
+      final uri = Uri.base;
+      _donationId = uri.queryParameters['donation_id'];
+      _sessionId = uri.queryParameters['session_id'];
+      
+      // استخراج المبلغ إذا كان متوفراً
+      final amountStr = uri.queryParameters['amount'];
+      if (amountStr != null) {
+        _amount = double.tryParse(amountStr);
+        print('DonationSuccessScreen: Parsed amount from URL: $_amount');
+      }
+      
+      // استخراج عنوان الحملة إذا كان متوفراً
+      _campaignTitle = uri.queryParameters['campaign_title'];
+      
+      print('DonationSuccessScreen: donation_id = $_donationId');
+      print('DonationSuccessScreen: session_id = $_sessionId');
+      print('DonationSuccessScreen: amount = $_amount');
+      print('DonationSuccessScreen: campaign_title = $_campaignTitle');
+      
+      // إذا كان لدينا donation_id، احصل على تفاصيل التبرع من API
+      if (_donationId != null) {
+        _fetchDonationDetails();
+      }
+    } catch (e) {
+      print('Error extracting query parameters: $e');
+    }
+  }
+
+  Future<void> _fetchDonationDetails() async {
+    try {
+      if (_donationId == null) return;
+      
+      print('DonationSuccessScreen: Fetching donation details for $_donationId');
+      
+      // استدعاء API للحصول على تفاصيل التبرع
+      final response = await _donationService.checkDonationStatus(_donationId!);
+      
+      if (response != null && response['success'] == true) {
+        final data = response['data'];
+        if (data != null) {
+          setState(() {
+            _amount = (data['amount'] as num?)?.toDouble();
+            _campaignTitle = data['campaign_title'] as String?;
+          });
+          
+          print('DonationSuccessScreen: Fetched amount: $_amount');
+          print('DonationSuccessScreen: Fetched campaign title: $_campaignTitle');
+        }
+      } else {
+        print('DonationSuccessScreen: Failed to fetch donation details - user may not be authenticated');
+        // إذا فشل الحصول على البيانات من API، استخدم البيانات من URL
+        if (_amount == null && widget.amount != null) {
+          setState(() {
+            _amount = widget.amount;
+          });
+        }
+        if (_campaignTitle == null && widget.campaignTitle != null) {
+          setState(() {
+            _campaignTitle = widget.campaignTitle;
+          });
+        }
+      }
+    } catch (e) {
+      print('DonationSuccessScreen: Error fetching donation details: $e');
+      // إذا فشل الحصول على البيانات من API، استخدم البيانات من URL
+      if (_amount == null && widget.amount != null) {
+        setState(() {
+          _amount = widget.amount;
+        });
+      }
+      if (_campaignTitle == null && widget.campaignTitle != null) {
+        setState(() {
+          _campaignTitle = widget.campaignTitle;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -78,10 +178,24 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
   }
 
   void _goToHome() {
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    // للويب، غير URL في المتصفح
+    if (kIsWeb) {
+      html.window.history.pushState(null, '', '/');
+    }
+    
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppConstants.homeRoute,
+      (route) => false,
+    );
   }
   
   void _goToMyDonations() {
+    // للويب، نظف URL في المتصفح
+    if (kIsWeb) {
+      html.window.history.pushState(null, '', '/my-donations');
+    }
+    
     Navigator.of(context).popUntil((route) => route.isFirst);
     // Navigate to My Donations screen with force refresh
     Navigator.push(
@@ -210,7 +324,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                           ),
                         ),
                         Text(
-                          '${widget.amount.toStringAsFixed(0)} ريال',
+                          '${(_amount ?? widget.amount ?? 0.0).toStringAsFixed(2)} ريال عماني',
                           style: AppTextStyles.titleLarge.copyWith(
                             color: AppColors.success,
                             fontWeight: FontWeight.bold,
@@ -221,7 +335,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                     const SizedBox(height: 16),
                     
                     // Campaign Info (if available)
-                    if (widget.campaignTitle != null) ...[
+                    if ((_campaignTitle ?? widget.campaignTitle) != null) ...[
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -233,12 +347,36 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                           ),
                           Expanded(
                             child: Text(
-                              widget.campaignTitle!,
+                              _campaignTitle ?? widget.campaignTitle ?? '',
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                               textAlign: TextAlign.end,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    
+                    // Donation ID (if available)
+                    if (_donationId != null) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'رقم التبرع',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            _donationId!,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'monospace',
                             ),
                           ),
                         ],
@@ -343,33 +481,42 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
               // Action Buttons
               Column(
                 children: [
-                  // View My Donations Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        await _refreshDonationsData();
-                        _goToMyDonations();
-                      },
-                      icon: const Icon(Icons.favorite, size: 20),
-                      label: Text(
-                        'عرض تبرعاتي',
-                        style: AppTextStyles.buttonLarge.copyWith(
-                          color: AppColors.surface,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success,
-                        foregroundColor: AppColors.surface,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        shadowColor: AppColors.success.withOpacity(0.3),
-                      ),
-                    ),
+                  // View My Donations Button (only for logged in users)
+                  Consumer<AuthProvider>(
+                    builder: (context, authProvider, child) {
+                      if (authProvider.isAuthenticated) {
+                        return SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              await _refreshDonationsData();
+                              _goToMyDonations();
+                            },
+                            icon: const Icon(Icons.favorite, size: 20),
+                            label: Text(
+                              'عرض تبرعاتي',
+                              style: AppTextStyles.buttonLarge.copyWith(
+                                color: AppColors.surface,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.success,
+                              foregroundColor: AppColors.surface,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              shadowColor: AppColors.success.withOpacity(0.3),
+                            ),
+                          ),
+                        );
+                      } else {
+                        // لا تعرض الزر للمستخدمين غير المسجلين
+                        return const SizedBox.shrink();
+                      }
+                    },
                   ),
                   
                   const SizedBox(height: 16),

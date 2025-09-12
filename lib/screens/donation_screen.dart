@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher_string.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
@@ -82,32 +84,60 @@ class _DonationScreenState extends State<DonationScreen> {
         return;
       }
 
-      // 1) استدعاء POST /api/v1/payments/create
+      // الحصول على origin للمنصة الويب
+      final origin = Uri.base.origin; // مثال: http://localhost:49887
+      
+      // 1) استدعاء POST /api/v1/donations/with-payment مع return_origin
       final response = await http.post(
-        Uri.parse('http://192.168.1.21:8000/api/v1/payments/create'),
+        Uri.parse('http://192.168.1.21:8000/api/v1/donations/with-payment'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'donation_id': widget.campaignId ?? 1,
+          'campaign_id': widget.campaignId ?? 1,
           'amount': amount,
           'donor_name': _donorNameController.text.trim(),
           'note': _noteController.text.trim().isEmpty 
               ? 'تبرع للطلاب المحتاجين' 
               : _noteController.text.trim(),
+          'return_origin': origin, // إضافة return_origin
         }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        final sessionId = data['session_id'];
-        final checkoutUrl = data['checkout_url'];
+        print('✅ Donation response: $data');
+        
+        // استخراج البيانات من الاستجابة
+        final sessionId = data['session_id'] ?? data['data']?['session_id'];
+        final checkoutUrl = data['checkout_url'] ?? data['data']?['checkout_url'] ?? data['payment_url'];
         
         print('✅ Payment session created: sessionId=$sessionId, checkoutUrl=$checkoutUrl');
         
-        // 2) فتح CheckoutWebView
-        _openCheckoutWebView(checkoutUrl, sessionId);
+        // 2) فتح checkout مباشرة في نفس التبويب للمنصة الويب
+        if (kIsWeb) {
+          await launchUrlString(
+            checkoutUrl,
+            webOnlyWindowName: '_self', // نفس التبويب
+          );
+          
+          // إظهار رسالة للمستخدم
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تم فتح صفحة الدفع في نفس التبويب. يرجى إتمام الدفع...'),
+              backgroundColor: AppColors.info,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          
+          // الانتظار قليلاً ثم التحقق من حالة الدفع
+          await Future.delayed(const Duration(seconds: 5));
+          await _confirmPayment(sessionId);
+        } else {
+          // للمنصات المحمولة، استخدم CheckoutWebView
+          _openCheckoutWebView(checkoutUrl, sessionId);
+        }
       } else {
         final errorData = jsonDecode(response.body);
         final errorMessage = errorData['message'] ?? 'فشل في إنشاء جلسة الدفع';

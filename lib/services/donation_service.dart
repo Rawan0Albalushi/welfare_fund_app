@@ -57,6 +57,7 @@ class DonationService {
     String? donorPhone,
     String? message,          // سنرسلها كـ note أيضًا
     bool isAnonymous = false,
+    String? returnOrigin,     // origin للمنصة الويب
   }) async {
     try {
       await _apiClient.initialize();
@@ -90,6 +91,7 @@ class DonationService {
         if (donorPhone != null) 'donor_phone': donorPhone,
         if (message != null) 'note': message,
         if (message != null) 'message': message, // توافق خلفي إن وُجد
+        if (returnOrigin != null) 'return_origin': returnOrigin,
       };
 
       final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}/donations/with-payment');
@@ -151,6 +153,7 @@ class DonationService {
     String? donorEmail,
     String? donorPhone,
     String? message,          // سنرسلها كـ note أيضًا
+    String? returnOrigin,     // origin للمنصة الويب
   }) async {
     try {
       // للتبرعات المجهولة، لا نحتاج token على الإطلاق
@@ -176,6 +179,7 @@ class DonationService {
         if (donorPhone != null) 'donor_phone': donorPhone,
         if (message != null) 'note': message,
         if (message != null) 'message': message, // توافق خلفي إن وُجد
+        if (returnOrigin != null) 'return_origin': returnOrigin,
       };
 
       final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}/donations/anonymous-with-payment');
@@ -235,6 +239,7 @@ class DonationService {
     String? note,
     String type = 'quick',     // quick | gift
     String? productName,       // اسم يظهر في ثواني
+    String? returnOrigin,      // origin للمنصة الويب
   }) async {
     try {
       await _apiClient.initialize();
@@ -262,6 +267,7 @@ class DonationService {
         note: note,
         type: type,
         productName: productName ?? 'تبرع',
+        returnOrigin: returnOrigin,
       );
 
       final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}/payments/create');

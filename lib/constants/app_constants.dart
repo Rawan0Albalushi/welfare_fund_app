@@ -6,6 +6,8 @@ class AppConstants {
   // Routes
   static const String splashRoute = '/splash';
   static const String homeRoute = '/home';
+  static const String paymentSuccessRoute = '/payment/success';
+  static const String paymentCancelRoute = '/payment/cancel';
   
   // Padding values
   static const double smallPadding = 8.0;
