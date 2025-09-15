@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import 'gift_donation_details_screen.dart';
@@ -60,8 +61,8 @@ class _GiftDonationScreenState extends State<GiftDonationScreen> {
   void _onContinue() {
     if (_selectedCategory == null || _selectedProgram == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى اختيار الفئة والبرنامج'),
+        SnackBar(
+          content: Text('please_choose_category_program'.tr()),
           backgroundColor: Colors.red,
         ),
       );

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../widgets/common/campaign_card.dart';
 import '../models/campaign.dart';
-import '../services/auth_service.dart';
 import '../services/student_registration_service.dart';
 import '../services/campaign_service.dart';
+import '../services/donation_service.dart';
+import '../models/donation.dart';
 import '../providers/auth_provider.dart';
 import 'quick_donate_amount_screen.dart';
 import 'gift_donation_screen.dart';
@@ -27,11 +29,12 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final AuthService _authService = AuthService();
   final StudentRegistrationService _studentService = StudentRegistrationService();
   final CampaignService _campaignService = CampaignService();
+  final DonationService _donationService = DonationService();
   List<Campaign> _campaigns = [];
   List<Campaign> _allCampaigns = []; // جميع الحملات الأصلية
+  List<Donation> _recentDonations = []; // التبرعات الأخيرة
   int _currentIndex = 0; // Home tab is active (الرئيسية في index 0)
   String _selectedFilter = 'الكل'; // Track selected filter
   
@@ -39,11 +42,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _applicationData;
   bool _isCheckingApplication = false;
   bool _isLoadingCampaigns = false;
+  bool _isLoadingRecentDonations = false;
 
   @override
   void initState() {
     super.initState();
     _loadCampaignsFromAPI(); // Load from API instead of sample data
+    _loadRecentDonations(); // Load recent donations from API
     _checkApplicationStatus();
     
     // Listen to auth changes
@@ -106,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'لا توجد حملات متاحة حالياً',
+                'no_campaigns_available'.tr(),
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: AppColors.surface,
                 ),
@@ -133,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'حدث خطأ في تحميل البرامج',
+              'error_loading_programs'.tr(),
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.surface,
               ),
@@ -149,7 +154,28 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
+  Future<void> _loadRecentDonations() async {
+    try {
+      print('HomeScreen: Loading recent donations from API...');
+      setState(() {
+        _isLoadingRecentDonations = true;
+      });
+      
+      final recentDonations = await _donationService.getRecentDonations(limit: 5);
+      print('HomeScreen: Successfully loaded ${recentDonations.length} recent donations from API');
+      
+      setState(() {
+        _recentDonations = recentDonations;
+        _isLoadingRecentDonations = false;
+      });
+    } catch (error) {
+      print('HomeScreen: Error loading recent donations: $error');
+      setState(() {
+        _recentDonations = [];
+        _isLoadingRecentDonations = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -309,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ).createShader(bounds),
                   child: Text(
-                    'تسجيل الدخول مطلوب',
+                    'login_required'.tr(),
                     style: AppTextStyles.headlineSmall.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -331,7 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   child: Text(
-                    'يجب عليك تسجيل الدخول لعرض تبرعاتك وتتبع مساهماتك في الخير',
+                    'login_to_view_donations'.tr(),
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: AppColors.textSecondary,
                       height: 1.5,
@@ -399,7 +425,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                'تسجيل الدخول',
+                                'login'.tr(),
                                 style: AppTextStyles.buttonLarge.copyWith(
                                   color: AppColors.surface,
                                   fontWeight: FontWeight.bold,
@@ -469,7 +495,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                'إنشاء حساب جديد',
+                                'create_new_account'.tr(),
                                 style: AppTextStyles.buttonLarge.copyWith(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.bold,
@@ -509,7 +535,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'تخطي',
+                          'skip'.tr(),
                           style: AppTextStyles.bodyMedium.copyWith(
                             color: AppColors.textSecondary,
                             fontWeight: FontWeight.w500,
@@ -675,7 +701,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'حالة طلبك:',
+                          'application_status'.tr(),
                           style: AppTextStyles.bodyMedium.copyWith(
                             fontWeight: FontWeight.bold,
                             color: _getStatusColor(status),
@@ -726,7 +752,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'سبب الرفض:',
+                                  'rejection_reason'.tr(),
                                   style: AppTextStyles.bodySmall.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.error,
@@ -769,7 +795,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       child: Text(
-                        'إغلاق',
+                        'close'.tr(),
                         style: AppTextStyles.buttonMedium.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -797,7 +823,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         child: Text(
-                          'إعادة التقديم',
+                          'resubmit_application'.tr(),
                           style: AppTextStyles.buttonMedium.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -820,23 +846,23 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (normalizedStatus) {
       case 'pending':
       case 'في الانتظار':
-        return 'في الانتظار';
+        return 'pending'.tr();
       case 'under_review':
       case 'قيد المراجعة':
       case 'قيد الدراسة':
-        return 'قيد المراجعة';
+        return 'under_review'.tr();
       case 'approved':
       case 'accepted':
       case 'مقبول':
       case 'تم القبول':
-        return 'تم القبول';
+        return 'approved'.tr();
       case 'rejected':
       case 'مرفوض':
       case 'تم الرفض':
-        return 'تم الرفض';
+        return 'rejected'.tr();
       default:
-        print('Warning: Unknown status in _getStatusText: $status, defaulting to في الانتظار');
-        return 'في الانتظار';
+        print('Warning: Unknown status in _getStatusText: $status, defaulting to pending');
+        return 'pending'.tr();
     }
   }
 
@@ -901,33 +927,33 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (normalizedStatus) {
       case 'pending':
       case 'في الانتظار':
-        return 'طلبك في قائمة الانتظار. سيتم مراجعته قريباً.';
+        return 'application_pending_description'.tr();
       case 'under_review':
       case 'قيد المراجعة':
       case 'قيد الدراسة':
-        return 'طلبك قيد المراجعة من قبل اللجنة المختصة.';
+        return 'application_under_review_description'.tr();
       case 'approved':
       case 'accepted':
       case 'مقبول':
       case 'تم القبول':
-        return 'مبروك! تم قبول طلبك. سيتم التواصل معك قريباً.';
+        return 'application_approved_description'.tr();
       case 'rejected':
       case 'مرفوض':
       case 'تم الرفض':
-        return 'للأسف تم رفض طلبك. يمكنك تعديل البيانات وإعادة التقديم.';
+        return 'application_rejected_description'.tr();
       default:
         print('Warning: Unknown status in _getStatusDescription: $status, defaulting to pending description');
-        return 'طلبك في قائمة الانتظار. سيتم مراجعته قريباً.';
+        return 'application_pending_description'.tr();
     }
   }
 
   String _getButtonText() {
     if (_isCheckingApplication) {
-      return 'جاري التحقق...';
+      return 'checking'.tr();
     }
     
     if (_applicationData == null) {
-      return 'سجل الآن';
+      return 'register_now'.tr();
     }
     
     final status = _applicationData!['status'] ?? 'unknown';
@@ -943,27 +969,27 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (normalizedStatus) {
       case 'pending':
       case 'في الانتظار':
-        print('Button text: في الانتظار');
-        return 'في الانتظار';
+        print('Button text: pending');
+        return 'pending'.tr();
       case 'under_review':
       case 'قيد المراجعة':
       case 'قيد الدراسة':
-        print('Button text: تحت المراجعة');
-        return 'تحت المراجعة';
+        print('Button text: under_review');
+        return 'under_review'.tr();
       case 'approved':
       case 'accepted':
       case 'مقبول':
       case 'تم القبول':
-        print('Button text: تم القبول');
-        return 'تم القبول';
+        print('Button text: approved');
+        return 'approved'.tr();
       case 'rejected':
       case 'مرفوض':
       case 'تم الرفض':
-        print('Button text: إعادة التقديم');
-        return 'إعادة التقديم';
+        print('Button text: resubmit_application');
+        return 'resubmit_application'.tr();
       default:
-        print('Button text: عرض الطلب (default)');
-        return 'عرض الطلب';
+        print('Button text: view_application (default)');
+        return 'view_application'.tr();
     }
   }
 
@@ -1084,15 +1110,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'مرحباً بك',
+                                'welcome'.tr(),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: AppColors.surface.withOpacity(0.8),
                                 ),
                               ),
-                              const Text(
-                                'تبرع معنا',
-                                style: TextStyle(
+                              Text(
+                                'app_title'.tr(),
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.surface,
@@ -1102,19 +1128,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         
-                        // Heart icon
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.favorite,
-                            color: AppColors.surface,
-                            size: 18,
-                          ),
-                        ),
                       ],
                     ),
                     
@@ -1137,7 +1150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         controller: _searchController,
                         style: AppTextStyles.bodyMedium,
                         decoration: InputDecoration(
-                          hintText: 'ابحث عن الجمعيات الخيرية...',
+                          hintText: 'search'.tr(),
                           hintStyle: AppTextStyles.bodyMedium.copyWith(
                             color: AppColors.textSecondary,
                             fontSize: 13,
@@ -1197,7 +1210,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child:                         _buildModernCircleFeature(
                           icon: Icons.favorite,
-                          label: 'التبرع السريع',
+                          label: 'quick_donate'.tr(),
                           gradient: const LinearGradient(
                             colors: [AppColors.primary, AppColors.primaryLight],
                           ),
@@ -1207,7 +1220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child:                         _buildModernCircleFeature(
                           icon: Icons.card_giftcard,
-                          label: 'اهداء التبرع',
+                          label: 'gift_donation'.tr(),
                           gradient: const LinearGradient(
                             colors: [AppColors.accent, AppColors.accentLight],
                           ),
@@ -1217,7 +1230,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child:                         _buildModernCircleFeature(
                           icon: Icons.history,
-                          label: 'تبرعاتي',
+                          label: 'my_donations'.tr(),
                           gradient: const LinearGradient(
                             colors: [AppColors.secondary, AppColors.secondaryLight],
                           ),
@@ -1285,7 +1298,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                crossAxisAlignment: CrossAxisAlignment.center,
                                children: [
                                  Text(
-                                   'قدّم طلبك وابدأ رحلتك بثقة',
+                                   'start_journey'.tr(),
                                    style: AppTextStyles.titleLarge.copyWith(
                                      fontWeight: FontWeight.bold,
                                      color: Colors.white,
@@ -1302,7 +1315,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                  ),
                                  const SizedBox(height: 8),
                                  Text(
-                                   'نحن هنا لنمكِّنك من مواصلة تعليمك',
+                                   'enable_education'.tr(),
                                    style: AppTextStyles.bodyMedium.copyWith(
                                      color: Colors.white.withOpacity(0.95),
                                      shadows: [
@@ -1380,8 +1393,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: AppConstants.extraLargePadding),
                   
                   // Campaigns Section
-                  const Text(
-                    'كن أملًا لطالب محتاج',
+                  Text(
+                    'be_hope'.tr(),
                     style: AppTextStyles.headlineMedium,
                   ),
                   const SizedBox(height: AppConstants.defaultPadding),
@@ -1393,17 +1406,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       children: [
-                        _buildFilterChip('الكل', _selectedFilter == 'الكل'),
+                        _buildFilterChip('all'.tr(), _selectedFilter == 'الكل'),
                         const SizedBox(width: 12),
-                        _buildFilterChip('فرص التعليم', _selectedFilter == 'فرص التعليم'),
+                        _buildFilterChip('education_opportunities'.tr(), _selectedFilter == 'فرص التعليم'),
                         const SizedBox(width: 12),
-                        _buildFilterChip('السكن والنقل', _selectedFilter == 'السكن والنقل'),
+                        _buildFilterChip('housing_transport'.tr(), _selectedFilter == 'السكن والنقل'),
                         const SizedBox(width: 12),
-                        _buildFilterChip('الإعانة الشهرية', _selectedFilter == 'الإعانة الشهرية'),
+                        _buildFilterChip('monthly_allowance'.tr(), _selectedFilter == 'الإعانة الشهرية'),
                         const SizedBox(width: 12),
-                        _buildFilterChip('شراء أجهزة', _selectedFilter == 'شراء أجهزة'),
+                        _buildFilterChip('device_purchase'.tr(), _selectedFilter == 'شراء أجهزة'),
                         const SizedBox(width: 12),
-                        _buildFilterChip('رسوم الاختبارات', _selectedFilter == 'رسوم الاختبارات'),
+                        _buildFilterChip('test_fees'.tr(), _selectedFilter == 'رسوم الاختبارات'),
                       ],
                     ),
                   ),
@@ -1423,7 +1436,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: AppConstants.defaultPadding),
                             Text(
-                              'لا توجد حملات نشطة في الوقت الحالي',
+                              'no_active_campaigns'.tr(),
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: AppColors.textSecondary,
                               ),
@@ -1442,99 +1455,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: AppConstants.extraLargePadding),
                     
                     // Recent Donations Section
-                    const Text(
-                      'التبرعات الأخيرة',
+                    Text(
+                      'recent_donations'.tr(),
                       style: AppTextStyles.headlineMedium,
                     ),
                     const SizedBox(height: AppConstants.defaultPadding),
                     
                     // Recent Donations List
-                    SizedBox(
-                      height: 180,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        children: [
-                          Row(
-                            children: [
-                              SizedBox(
-                                width: 280,
-                                child: _buildRecentDonationCard(
-                                  donorName: 'فاعل خير',
-                                  amount: 500,
-                                                                     campaignTitle: 'الإعانة الشهرية',
-                                  timeAgo: 'منذ ساعتين',
-                                  isAnonymous: false,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              SizedBox(
-                                width: 280,
-                                child: _buildRecentDonationCard(
-                                  donorName: 'فاعل خير',
-                                  amount: 1000,
-                                                                     campaignTitle: 'فرص التعليم',
-                                  timeAgo: 'منذ 3 ساعات',
-                                  isAnonymous: true,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 16),
-                          Row(
-                            children: [
-                              SizedBox(
-                                width: 280,
-                                child: _buildRecentDonationCard(
-                                  donorName: 'فاعل خير',
-                                  amount: 750,
-                                                                     campaignTitle: 'السكن والنقل',
-                                  timeAgo: 'منذ 5 ساعات',
-                                  isAnonymous: false,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              SizedBox(
-                                width: 280,
-                                child: _buildRecentDonationCard(
-                                  donorName: 'فاعل خير',
-                                  amount: 1200,
-                                                                     campaignTitle: 'شراء أجهزة',
-                                  timeAgo: 'منذ 6 ساعات',
-                                  isAnonymous: false,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 16),
-                          Row(
-                            children: [
-                              SizedBox(
-                                width: 280,
-                                child: _buildRecentDonationCard(
-                                  donorName: 'فاعل خير',
-                                  amount: 300,
-                                                                     campaignTitle: 'رسوم الاختبارات',
-                                  timeAgo: 'منذ 7 ساعات',
-                                  isAnonymous: true,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              SizedBox(
-                                width: 280,
-                                child: _buildRecentDonationCard(
-                                  donorName: 'فاعل خير',
-                                  amount: 800,
-                                                                     campaignTitle: 'فرص التعليم',
-                                  timeAgo: 'منذ 8 ساعات',
-                                  isAnonymous: false,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                    _buildRecentDonationsList(),
                 ],
               ),
             ),
@@ -1564,18 +1492,18 @@ class _HomeScreenState extends State<HomeScreen> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
-        items: const [
+        items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'الرئيسية',
+            label: 'home'.tr(),
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history),
-            label: 'تبرعاتي',
+            label: 'my_donations'.tr(),
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
-            label: 'الإعدادات',
+            label: 'settings'.tr(),
           ),
         ],
       ),
@@ -1621,7 +1549,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onSelected: (bool selected) {
         setState(() {
           _selectedFilter = label;
-          if (label == 'الكل') {
+          if (label == 'all'.tr()) {
             _campaigns = _allCampaigns;
           } else {
             _campaigns = _allCampaigns.where((campaign) => campaign.category == label).toList();
@@ -1754,7 +1682,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${amount.toStringAsFixed(0)} ريال',
+                  '${amount.toStringAsFixed(0)} ${'riyal'.tr()}',
                   style: AppTextStyles.bodySmall.copyWith(
                     fontWeight: FontWeight.w800,
                     color: AppColors.primary,
@@ -1783,7 +1711,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'ساعد في تحقيق الأمل',
+                  'help_achieve_hope'.tr(),
                   style: AppTextStyles.bodySmall.copyWith(
                     color: AppColors.primary.withOpacity(0.8),
                     fontSize: 9,
@@ -1796,5 +1724,85 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildRecentDonationsList() {
+    if (_isLoadingRecentDonations) {
+      return SizedBox(
+        height: 180,
+        child: Center(
+          child: CircularProgressIndicator(
+            color: AppColors.primary,
+          ),
+        ),
+      );
+    }
+
+    if (_recentDonations.isEmpty) {
+      return SizedBox(
+        height: 180,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.volunteer_activism_outlined,
+                size: 48,
+                color: AppColors.textTertiary,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'no_donations_found'.tr(),
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 180,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        itemCount: _recentDonations.length,
+        itemBuilder: (context, index) {
+          final donation = _recentDonations[index];
+          return Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: SizedBox(
+              width: 280,
+              child: _buildRecentDonationCard(
+                donorName: donation.isAnonymous ? 'donor'.tr() : (donation.donorName ?? 'donor'.tr()),
+                amount: donation.amount,
+                campaignTitle: donation.campaignName ?? donation.programName ?? 'general'.tr(),
+                timeAgo: _formatTimeAgo(donation.date),
+                isAnonymous: donation.isAnonymous,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _formatTimeAgo(DateTime? dateTime) {
+    if (dateTime == null) return 'recently'.tr();
+    
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    
+    if (difference.inDays > 0) {
+      return '${difference.inDays} ${difference.inDays == 1 ? 'day_ago'.tr() : 'days_ago'.tr()}';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} ${difference.inHours == 1 ? 'hour_ago'.tr() : 'hours_ago'.tr()}';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} ${difference.inMinutes == 1 ? 'minute_ago'.tr() : 'minutes_ago'.tr()}';
+    } else {
+      return 'recently'.tr();
+    }
   }
 }

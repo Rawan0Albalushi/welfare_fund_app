@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../services/campaign_service.dart';
-import 'donation_success_screen.dart';
+import 'quick_donate_payment_screen.dart';
 
 class QuickDonateAmountScreen extends StatefulWidget {
   const QuickDonateAmountScreen({super.key});
@@ -17,40 +18,38 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
   final TextEditingController _customAmountController = TextEditingController();
   bool _isCustomAmount = false;
   String? _selectedCategory;
-  bool _isLoadingCategories = false;
-  bool _isLoadingAmounts = false;
 
   List<double> _presetAmounts = [25.0, 50.0, 100.0, 200.0, 500.0, 1000.0];
   List<Map<String, dynamic>> _categories = [];
   final CampaignService _campaignService = CampaignService();
 
   // Fallback categories if API fails
-  final List<Map<String, dynamic>> _fallbackCategories = [
+  List<Map<String, dynamic>> get _fallbackCategories => [
     {
-      'id': 'education',
-      'title': 'فرص التعليم',
-      'description': 'توفير التعليم والكتب الدراسية',
+      'id': '1',
+      'title': 'فرص تعليمية',
+      'description': 'مساعدة الطلاب في التعليم',
       'icon': Icons.school,
       'color': AppColors.primary,
     },
     {
-      'id': 'housing',
+      'id': '2',
       'title': 'السكن والنقل',
-      'description': 'مساعدة في السكن والمواصلات',
+      'description': 'مساعدة في السكن والنقل',
       'icon': Icons.home,
       'color': AppColors.secondary,
     },
     {
-      'id': 'devices',
-      'title': 'شراء أجهزة',
-      'description': 'أجهزة كمبيوتر للطلاب',
+      'id': '3',
+      'title': 'شراء الأجهزة',
+      'description': 'مساعدة في شراء الأجهزة',
       'icon': Icons.computer,
       'color': AppColors.accent,
     },
     {
-      'id': 'exams',
-      'title': 'رسوم الاختبارات',
-      'description': 'دفع رسوم الاختبارات',
+      'id': '4',
+      'title': 'الامتحانات',
+      'description': 'مساعدة في الامتحانات',
       'icon': Icons.assignment,
       'color': AppColors.success,
     },
@@ -60,36 +59,59 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
   void initState() {
     super.initState();
     _customAmountController.text = _selectedAmount.toString();
+    // Initialize with fallback categories first
+    _categories = _fallbackCategories;
+    print('QuickDonate: Initialized with ${_categories.length} fallback categories');
     _loadDataFromAPI();
   }
 
   Future<void> _loadDataFromAPI() async {
     try {
-      setState(() {
-        _isLoadingCategories = true;
-        _isLoadingAmounts = true;
-      });
-
-      // Load categories from API
+      // Load campaigns from API and group by category
       try {
-        final categories = await _campaignService.getCategories();
-        setState(() {
-          _categories = categories.map((category) => {
-            'id': category['id'].toString(),
-            'title': category['name'],
-            'description': category['description'],
-            'icon': Icons.category,
-            'color': AppColors.primary,
-          }).toList();
-          _isLoadingCategories = false;
-        });
-        print('QuickDonate: Successfully loaded ${categories.length} categories from API');
+        final campaigns = await _campaignService.getCharityCampaigns();
+        if (campaigns.isNotEmpty) {
+          // Group campaigns by category
+          final Map<String, List<Map<String, dynamic>>> groupedCampaigns = {};
+          
+          for (var campaign in campaigns) {
+            final categoryName = campaign.category;
+            if (!groupedCampaigns.containsKey(categoryName)) {
+              groupedCampaigns[categoryName] = [];
+            }
+            groupedCampaigns[categoryName]!.add({
+              'id': campaign.id,
+              'title': campaign.title,
+              'description': campaign.description,
+              'category': campaign.category,
+            });
+          }
+          
+          // Create categories from grouped campaigns
+          final categoriesWithCampaigns = <Map<String, dynamic>>[];
+          groupedCampaigns.forEach((categoryName, campaignList) {
+            categoriesWithCampaigns.add({
+              'id': categoryName,
+              'title': categoryName,
+              'description': '${campaignList.length} حملة متاحة',
+              'icon': _getCategoryIcon(categoryName),
+              'color': _getCategoryColor(categoryName),
+              'campaigns': campaignList,
+              'campaign_count': campaignList.length,
+            });
+          });
+          
+          setState(() {
+            _categories = categoriesWithCampaigns;
+          });
+          
+          print('QuickDonate: Successfully loaded ${campaigns.length} campaigns grouped into ${categoriesWithCampaigns.length} categories');
+        } else {
+          print('QuickDonate: No campaigns from API, keeping fallback categories');
+        }
       } catch (error) {
-        print('QuickDonate: Error loading categories, using fallback: $error');
-        setState(() {
-          _categories = _fallbackCategories;
-          _isLoadingCategories = false;
-        });
+        print('QuickDonate: Error loading campaigns, keeping fallback: $error');
+        // Keep the fallback categories that were already set in initState
       }
 
       // Load quick amounts from API
@@ -97,21 +119,20 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
         final amounts = await _campaignService.getQuickDonationAmounts();
         setState(() {
           _presetAmounts = amounts;
-          _isLoadingAmounts = false;
+          // Amounts loaded
         });
         print('QuickDonate: Successfully loaded ${amounts.length} quick amounts from API');
       } catch (error) {
         print('QuickDonate: Error loading quick amounts, using fallback: $error');
         setState(() {
-          _isLoadingAmounts = false;
+          // Amounts loaded
         });
       }
     } catch (error) {
       print('QuickDonate: Error loading data from API: $error');
       setState(() {
         _categories = _fallbackCategories;
-        _isLoadingCategories = false;
-        _isLoadingAmounts = false;
+        // Error handling completed
       });
     }
   }
@@ -148,8 +169,8 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
   void _onContinue() {
     if (_selectedAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى إدخال مبلغ صحيح'),
+        SnackBar(
+          content: Text('please_enter_valid_amount'.tr()),
           backgroundColor: AppColors.error,
         ),
       );
@@ -158,25 +179,21 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
 
     if (_selectedCategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى اختيار فئة التبرع'),
+        SnackBar(
+          content: Text('please_choose_donation_category'.tr()),
           backgroundColor: AppColors.error,
         ),
       );
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => DonationSuccessScreen(
+        builder: (context) => QuickDonatePaymentScreen(
           amount: _selectedAmount,
-          campaignTitle: _selectedCategory != null 
-              ? _categories.firstWhere((cat) => cat['id'] == _selectedCategory)['title']
-              : null,
-          campaignCategory: _selectedCategory != null 
-              ? _categories.firstWhere((cat) => cat['id'] == _selectedCategory)['title']
-              : null,
+          selectedCategory: _selectedCategory,
+          categories: _categories,
         ),
       ),
     );
@@ -194,7 +211,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'التبرع السريع',
+          'quick_donation'.tr(),
           style: AppTextStyles.headlineMedium.copyWith(
             color: AppColors.textPrimary,
           ),
@@ -237,7 +254,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'اختر مبلغ تبرعك',
+                    'choose_donation_amount'.tr(),
                     style: AppTextStyles.headlineMedium.copyWith(
                       color: AppColors.surface,
                       fontWeight: FontWeight.bold,
@@ -246,7 +263,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'كل ريال يساعد في تحقيق الأمل',
+                    'every_riyal_helps'.tr(),
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: AppColors.surface.withOpacity(0.9),
                     ),
@@ -260,7 +277,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
 
             // Preset Amounts Section
             Text(
-              'مبالغ مقترحة',
+              'suggested_amounts'.tr(),
               style: AppTextStyles.headlineSmall.copyWith(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
@@ -317,7 +334,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'ريال',
+                          'riyal'.tr(),
                           style: AppTextStyles.bodySmall.copyWith(
                             color: isSelected 
                                 ? AppColors.surface.withOpacity(0.8)
@@ -335,7 +352,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
 
             // Custom Amount Section
             Text(
-              'أو أدخل مبلغاً مخصصاً',
+              'or_enter_custom_amount'.tr(),
               style: AppTextStyles.headlineSmall.copyWith(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
@@ -371,12 +388,12 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                 ),
                 textAlign: TextAlign.center,
                 decoration: InputDecoration(
-                  hintText: 'أدخل المبلغ',
+                  hintText: 'enter_amount'.tr(),
                   hintStyle: AppTextStyles.titleLarge.copyWith(
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w400,
                   ),
-                  suffixText: 'ريال',
+                  suffixText: 'riyal'.tr(),
                   suffixStyle: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -409,14 +426,14 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                 child: Column(
                   children: [
                     Text(
-                      'المبلغ المختار',
+                      'selected_amount'.tr(),
                       style: AppTextStyles.bodyMedium.copyWith(
                         color: AppColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${_selectedAmount.toStringAsFixed(0)} ريال',
+                      '${_selectedAmount.toStringAsFixed(0)} ${'riyal'.tr()}',
                       style: AppTextStyles.displaySmall.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
@@ -430,7 +447,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
 
             // Categories Section
             Text(
-              'اختر فئة التبرع',
+              'choose_donation_category'.tr(),
               style: AppTextStyles.headlineSmall.copyWith(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
@@ -487,7 +504,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'ملاحظة مهمة',
+                          'important_note'.tr(),
                           style: AppTextStyles.titleMedium.copyWith(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.w600,
@@ -495,7 +512,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'سيتم توجيه تبرعك للفئة المختارة للحالات الأشد احتياجاً',
+                          'donation_redirect_note'.tr(),
                           style: AppTextStyles.bodyMedium.copyWith(
                             color: AppColors.textSecondary,
                             height: 1.4,
@@ -536,8 +553,8 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                     const SizedBox(width: 8),
                     Text(
                       (_selectedAmount > 0 && _selectedCategory != null)
-                          ? 'متابعة الدفع'
-                          : 'اختر المبلغ والفئة',
+                          ? 'proceed_to_payment'.tr()
+                          : 'choose_amount_category'.tr(),
                       style: AppTextStyles.buttonLarge.copyWith(
                         color: AppColors.surface,
                         fontWeight: FontWeight.w600,
@@ -632,5 +649,55 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
          ),
       ),
     );
+  }
+
+  IconData _getCategoryIcon(String categoryName) {
+    switch (categoryName.toLowerCase()) {
+      case 'تعليم':
+      case 'education':
+        return Icons.school;
+      case 'سكن':
+      case 'housing':
+        return Icons.home;
+      case 'أجهزة':
+      case 'devices':
+        return Icons.computer;
+      case 'امتحانات':
+      case 'exams':
+        return Icons.assignment;
+      case 'صحة':
+      case 'health':
+        return Icons.health_and_safety;
+      case 'طعام':
+      case 'food':
+        return Icons.restaurant;
+      default:
+        return Icons.category;
+    }
+  }
+
+  Color _getCategoryColor(String categoryName) {
+    switch (categoryName.toLowerCase()) {
+      case 'تعليم':
+      case 'education':
+        return AppColors.primary;
+      case 'سكن':
+      case 'housing':
+        return AppColors.secondary;
+      case 'أجهزة':
+      case 'devices':
+        return AppColors.accent;
+      case 'امتحانات':
+      case 'exams':
+        return AppColors.success;
+      case 'صحة':
+      case 'health':
+        return Colors.red;
+      case 'طعام':
+      case 'food':
+        return Colors.orange;
+      default:
+        return AppColors.primary;
+    }
   }
 } 

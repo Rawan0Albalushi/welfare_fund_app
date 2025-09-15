@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../models/student_registration.dart';
@@ -259,7 +260,7 @@ class _StudentRegistrationsListScreenState extends State<StudentRegistrationsLis
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text('إعادة المحاولة'),
+                              child: Text('retry'.tr()),
                             ),
                           ],
                         ),

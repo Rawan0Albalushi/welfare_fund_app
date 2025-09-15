@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
-import '../services/auth_service.dart';
 import '../services/student_registration_service.dart';
 
 
@@ -51,9 +50,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   bool _isLoadingPrograms = false;
 
   // Form Values
-  String _selectedGender = 'ذكر';
-  final String _selectedMaritalStatus = 'أعزب';
-  String _selectedIncomeLevel = 'منخفض';
+  String _selectedGender = 'male';
+  final String _selectedMaritalStatus = 'single';
+  String _selectedIncomeLevel = 'low';
   String _selectedFamilySize = '1-3';
   String? _selectedImagePath;
   Uint8List? _selectedImageBytes;
@@ -63,7 +62,6 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   String? _rejectionReason; // سبب الرفض
   
   // Services
-  final AuthService _authService = AuthService();
   final StudentRegistrationService _studentService = StudentRegistrationService();
 
 
@@ -71,19 +69,19 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
 
   // Academic Year Options
   final List<String> _academicYears = [
-    'السنة الأولى',
-    'السنة الثانية',
-    'السنة الثالثة',
-    'السنة الرابعة',
-    'السنة الخامسة',
-    'السنة السادسة',
+    'first_year',
+    'second_year',
+    'third_year',
+    'fourth_year',
+    'fifth_year',
+    'sixth_year',
   ];
 
   // Income Level Options
   final List<String> _incomeLevels = [
-    'منخفض',
-    'متوسط',
-    'مرتفع',
+    'low',
+    'medium',
+    'high',
   ];
 
   // Family Size Options
@@ -272,28 +270,28 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     _selectedFamilySize = _convertFamilySizeToString(data['financial']?['family_size'] ?? 3);
     
     // Load gender
-    _selectedGender = data['personal']?['gender'] == 'male' ? 'ذكر' : 'أنثى';
+    _selectedGender = data['personal']?['gender'] == 'male' ? 'male' : 'female';
   }
 
   String _convertAcademicYearToString(dynamic year) {
     final yearNum = year is int ? year : int.tryParse(year.toString()) ?? 1;
     switch (yearNum) {
-      case 1: return 'السنة الأولى';
-      case 2: return 'السنة الثانية';
-      case 3: return 'السنة الثالثة';
-      case 4: return 'السنة الرابعة';
-      case 5: return 'السنة الخامسة';
-      case 6: return 'السنة السادسة';
-      default: return 'السنة الأولى';
+      case 1: return 'first_year'.tr();
+      case 2: return 'second_year'.tr();
+      case 3: return 'third_year'.tr();
+      case 4: return 'fourth_year'.tr();
+      case 5: return 'fifth_year'.tr();
+      case 6: return 'sixth_year'.tr();
+      default: return 'first_year'.tr();
     }
   }
 
   String _convertIncomeLevelToArabic(String level) {
     switch (level.toLowerCase()) {
-      case 'low': return 'منخفض';
-      case 'medium': return 'متوسط';
-      case 'high': return 'مرتفع';
-      default: return 'منخفض';
+      case 'low': return 'low'.tr();
+      case 'medium': return 'medium'.tr();
+      case 'high': return 'high'.tr();
+      default: return 'low'.tr();
     }
   }
 
@@ -303,6 +301,31 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     if (sizeNum <= 6) return '4-6';
     if (sizeNum <= 9) return '7-9';
     return '10+';
+  }
+
+  String _getTranslatedValue(String value) {
+    // Handle family size values
+    if (['1-3', '4-6', '7-9', '10+'].contains(value)) {
+      return value.tr();
+    }
+    
+    // Handle income level values
+    if (['low', 'medium', 'high'].contains(value)) {
+      return value.tr();
+    }
+    
+    // Handle academic year values
+    if (['first_year', 'second_year', 'third_year', 'fourth_year', 'fifth_year', 'sixth_year'].contains(value)) {
+      return value.tr();
+    }
+    
+    // Handle gender values
+    if (['male', 'female'].contains(value)) {
+      return value.tr();
+    }
+    
+    // Default: return the value as is
+    return value;
   }
 
   // Check if the form should be read-only
@@ -439,7 +462,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'حالة الطلب',
+                      'application_status'.tr(),
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -496,7 +519,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                     child: ElevatedButton.icon(
                       onPressed: _refreshApplicationStatus,
                       icon: const Icon(Icons.refresh, size: 16),
-                      label: const Text('تحديث حالة الطلب'),
+                      label: Text('refresh'.tr()),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: AppColors.surface,
@@ -535,7 +558,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'سبب الرفض:',
+                        'rejection_reason'.tr(),
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.error,
                           fontWeight: FontWeight.w600,
@@ -624,13 +647,13 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'تم تفعيل التعديل. يمكنك الآن تعديل البيانات وإعادة التسجيل',
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: Colors.white,
+        SnackBar(
+          content: Text(
+            'edit_enabled'.tr(),
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: Colors.white,
+            ),
           ),
-        ),
         backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -789,13 +812,13 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('اختر مصدر الصورة'),
+          title: Text('select_file'.tr()),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt, color: AppColors.primary),
-                title: const Text('التقاط صورة من الكاميرا'),
+                title: Text('camera'.tr()),
                 onTap: () {
                   Navigator.pop(context);
                   _pickImageFromCamera();
@@ -803,7 +826,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library, color: AppColors.primary),
-                title: const Text('اختيار من المعرض'),
+                title: Text('gallery'.tr()),
                 onTap: () {
                   Navigator.pop(context);
                   _pickImageFromGallery();
@@ -833,8 +856,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         });
         
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم التقاط صورة البطاقة الشخصية بنجاح'),
+          SnackBar(
+            content: Text('file_uploaded'.tr()),
             backgroundColor: AppColors.success,
             duration: Duration(seconds: 2),
           ),
@@ -842,8 +865,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('حدث خطأ أثناء التقاط الصورة'),
+        SnackBar(
+          content: Text('file_upload_failed'.tr()),
           backgroundColor: AppColors.error,
           duration: Duration(seconds: 2),
         ),
@@ -868,8 +891,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         });
         
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم رفع صورة البطاقة الشخصية بنجاح'),
+          SnackBar(
+            content: Text('file_uploaded'.tr()),
             backgroundColor: AppColors.success,
             duration: Duration(seconds: 2),
           ),
@@ -877,8 +900,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('حدث خطأ أثناء رفع الصورة'),
+        SnackBar(
+          content: Text('file_upload_failed'.tr()),
           backgroundColor: AppColors.error,
           duration: Duration(seconds: 2),
         ),
@@ -891,8 +914,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     // التحقق من الحقول المطلوبة
     if (_selectedGender.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى اختيار الجنس'),
+        SnackBar(
+          content: Text('required_field'.tr()),
           backgroundColor: AppColors.error,
         ),
       );
@@ -901,8 +924,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     if (_selectedMaritalStatus.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى اختيار الحالة الاجتماعية'),
+        SnackBar(
+          content: Text('please_choose_marital_status'.tr()),
           backgroundColor: AppColors.error,
         ),
       );
@@ -911,8 +934,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     if (_selectedIncomeLevel.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى اختيار مستوى الدخل'),
+        SnackBar(
+          content: Text('please_choose_income_level'.tr()),
           backgroundColor: AppColors.error,
         ),
       );
@@ -921,8 +944,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     if (_selectedFamilySize.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى اختيار حجم الأسرة'),
+        SnackBar(
+          content: Text('please_choose_family_size'.tr()),
           backgroundColor: AppColors.error,
         ),
       );
@@ -931,8 +954,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     if (_programs.isEmpty && !_isLoadingPrograms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('لا توجد برامج متاحة. يرجى المحاولة مرة أخرى'),
+        SnackBar(
+          content: Text('no_programs_available'.tr()),
           backgroundColor: AppColors.error,
         ),
       );
@@ -941,8 +964,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     if (_selectedProgramId == null || _selectedProgramId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى اختيار البرنامج'),
+        SnackBar(
+          content: Text('please_choose_program'.tr()),
           backgroundColor: AppColors.error,
         ),
       );
@@ -956,8 +979,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     if (!selectedProgramExists) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('البرنامج المحدد غير صحيح. يرجى اختيار برنامج آخر'),
+        SnackBar(
+          content: Text('invalid_program_selected'.tr()),
           backgroundColor: AppColors.error,
         ),
       );
@@ -994,14 +1017,14 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'جاري إرسال الطلب...',
+                  'submitting_application'.tr(),
                   style: AppTextStyles.headlineSmall.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'يرجى الانتظار قليلاً',
+                  'please_wait'.tr(),
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -1181,6 +1204,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                 pinned: true,
                 backgroundColor: Colors.transparent,
                 elevation: 0,
+                actions: const [],
 
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
@@ -1218,9 +1242,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                           color: AppColors.surface.withOpacity(0.2),
                                           borderRadius: BorderRadius.circular(20),
                                         ),
-                                        child: const Text(
-                                          'تسجيل الطالب',
-                                          style: TextStyle(
+                                        child: Text(
+                                          'student_registration'.tr(),
+                                          style: const TextStyle(
                                             fontSize: 12,
                                             color: AppColors.surface,
                                             fontWeight: FontWeight.w600,
@@ -1228,9 +1252,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                         ),
                                       ),
                                       const SizedBox(height: 8),
-                                      const Text(
-                                        'صندوق الطالب الجامعي',
-                                        style: TextStyle(
+                                      Text(
+                                        'app_title'.tr(),
+                                        style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                           color: AppColors.surface,
@@ -1270,9 +1294,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Expanded(
+                                  Expanded(
                                     child: Text(
-                                      'املأ النموذج التالي لتسجيل طلبك',
+                                      'fill_form_to_register'.tr(),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: AppColors.surface,
@@ -1309,19 +1333,19 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                         ],
                         // Personal Information Section
                         _buildSectionHeader(
-                          title: 'المعلومات الشخصية',
+                          title: 'personal_information'.tr(),
                           icon: Icons.person_outline,
                           color: AppColors.primary,
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
                           controller: _fullNameController,
-                          label: 'الاسم الكامل',
-                          hint: 'أدخل اسمك الكامل',
+                          label: 'full_name'.tr(),
+                          hint: 'please_enter_full_name'.tr(),
                           icon: Icons.person,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'يرجى إدخال الاسم الكامل';
+                              return 'please_enter_full_name'.tr();
                             }
                             return null;
                           },
@@ -1332,13 +1356,13 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                             Expanded(
                               child: _buildTextField(
                                 controller: _studentIdController,
-                                label: 'رقم الطالب',
-                                hint: 'أدخل رقم الطالب',
+                                label: 'student_id'.tr(),
+                                hint: 'please_enter_student_id'.tr(),
                                 icon: Icons.badge,
                                 keyboardType: TextInputType.number,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'يرجى إدخال رقم الطالب';
+                                    return 'please_enter_student_id'.tr();
                                   }
                                   return null;
                                 },
@@ -1347,9 +1371,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                             const SizedBox(width: 16),
                             Expanded(
                               child: _buildDropdownField(
-                                label: 'الجنس',
+                                label: 'gender'.tr(),
                                 value: _selectedGender,
-                                items: ['ذكر', 'أنثى'],
+                                items: ['male', 'female'],
                                                                       onChanged: (value) {
                                         setState(() {
                                           _selectedGender = value!;
@@ -1362,16 +1386,16 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                                       const SizedBox(height: 16),
                               _buildTextField(
                                 controller: _emailController,
-                                label: 'البريد الإلكتروني',
-                                hint: 'أدخل بريدك الإلكتروني',
+                                label: 'email'.tr(),
+                                hint: 'please_enter_email'.tr(),
                                 icon: Icons.email,
                                 keyboardType: TextInputType.emailAddress,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'يرجى إدخال البريد الإلكتروني';
+                                    return 'please_enter_email'.tr();
                                   }
                                   if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                                    return 'يرجى إدخال بريد إلكتروني صحيح';
+                                    return 'please_enter_valid_email'.tr();
                                   }
                                   return null;
                                 },
@@ -1379,13 +1403,13 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                               const SizedBox(height: 16),
                               _buildTextField(
                                 controller: _phoneController,
-                                label: 'رقم الهاتف',
-                                hint: 'أدخل رقم الهاتف',
+                                label: 'phone_number'.tr(),
+                                hint: 'please_enter_phone'.tr(),
                                 icon: Icons.phone,
                                 keyboardType: TextInputType.phone,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'يرجى إدخال رقم الهاتف';
+                                    return 'please_enter_phone'.tr();
                                   }
                                   return null;
                                 },
@@ -1396,19 +1420,19 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                         
                         // Academic Information Section
                         _buildSectionHeader(
-                          title: 'المعلومات الأكاديمية',
+                          title: 'academic_information'.tr(),
                           icon: Icons.school_outlined,
                           color: AppColors.secondary,
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
                           controller: _universityController,
-                          label: 'الجامعة',
-                          hint: 'أدخل اسم الجامعة',
+                          label: 'university'.tr(),
+                          hint: 'please_enter_university'.tr(),
                           icon: Icons.account_balance,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'يرجى إدخال اسم الجامعة';
+                              return 'please_enter_university'.tr();
                             }
                             return null;
                           },
@@ -1419,12 +1443,12 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                             Expanded(
                               child: _buildTextField(
                                 controller: _collegeController,
-                                label: 'الكلية',
-                                hint: 'أدخل اسم الكلية',
+                                label: 'college'.tr(),
+                                hint: 'please_enter_college'.tr(),
                                 icon: Icons.business,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'يرجى إدخال اسم الكلية';
+                                    return 'please_enter_college'.tr();
                                   }
                                   return null;
                                 },
@@ -1434,12 +1458,12 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                             Expanded(
                               child: _buildTextField(
                                 controller: _majorController,
-                                label: 'التخصص',
-                                hint: 'أدخل التخصص',
+                                label: 'major'.tr(),
+                                hint: 'please_enter_major'.tr(),
                                 icon: Icons.book,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'يرجى إدخال التخصص';
+                                    return 'please_enter_major'.tr();
                                   }
                                   return null;
                                 },
@@ -1454,7 +1478,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                           children: [
                             Expanded(
                               child: _buildDropdownField(
-                                label: 'السنة الدراسية',
+                                label: 'academic_year'.tr(),
                                 value: _academicYearController.text.isEmpty 
                                     ? null 
                                     : _academicYearController.text,
@@ -1470,8 +1494,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                             Expanded(
                               child: _buildTextField(
                                 controller: _gpaController,
-                                label: 'المعدل التراكمي',
-                                hint: 'أدخل المعدل التراكمي',
+                                label: 'gpa'.tr(),
+                                hint: 'please_enter_gpa'.tr(),
                                 icon: Icons.grade,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                 inputFormatters: [
@@ -1479,11 +1503,11 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                 ],
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'يرجى إدخال المعدل التراكمي';
+                                    return 'please_enter_gpa'.tr();
                                   }
                                   final gpa = double.tryParse(value);
                                   if (gpa == null || gpa < 0 || gpa > 5) {
-                                    return 'يرجى إدخال معدل تراكمي صحيح';
+                                    return 'please_enter_valid_gpa'.tr();
                                   }
                                   return null;
                                 },
@@ -1496,7 +1520,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                         
                         // Financial Information Section
                         _buildSectionHeader(
-                          title: 'المعلومات المالية',
+                          title: 'financial_information'.tr(),
                           icon: Icons.account_balance_wallet_outlined,
                           color: AppColors.accent,
                         ),
@@ -1505,7 +1529,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                           children: [
                             Expanded(
                               child: _buildDropdownField(
-                                label: 'مستوى الدخل',
+                                label: 'income_level'.tr(),
                                 value: _selectedIncomeLevel,
                                 items: _incomeLevels,
                                 onChanged: (value) {
@@ -1518,7 +1542,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                             const SizedBox(width: 16),
                             Expanded(
                               child: _buildDropdownField(
-                                label: 'حجم الأسرة',
+                                label: 'family_size'.tr(),
                                 value: _selectedFamilySize,
                                 items: _familySizes,
                                 onChanged: (value) {
@@ -1535,14 +1559,14 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                         
                                                 // Required Documents Section
                         _buildSectionHeader(
-                          title: 'المستندات المطلوبة',
+                          title: 'required_documents'.tr(),
                           icon: Icons.upload_file_outlined,
                           color: AppColors.info,
                         ),
                         const SizedBox(height: 16),
                         _buildDocumentUploadTile(
-                          title: 'صورة البطاقة الشخصية',
-                          subtitle: 'يرجى رفع صورة واضحة للبطاقة الشخصية',
+                          title: 'id_photo'.tr(),
+                          subtitle: 'please_upload_documents'.tr(),
                           icon: Icons.credit_card,
                           onTap: () => _pickImage(),
                         ),
@@ -1590,7 +1614,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                _isReadOnly ? 'لا يمكن التعديل' : (_isRejected ? 'إعادة التسجيل' : 'تسجيل'),
+                                _isReadOnly ? 'cannot_edit'.tr() : (_isRejected ? 'resubmit_application'.tr() : 'register'.tr()),
                                 style: AppTextStyles.buttonLarge.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -1623,7 +1647,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'جميع المعلومات محمية ومؤمنة ولن يتم مشاركتها مع أي طرف ثالث',
+                                  'privacy_notice'.tr(),
                                   style: AppTextStyles.bodySmall.copyWith(
                                     color: AppColors.info,
                                   ),
@@ -1774,7 +1798,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        value ?? '',
+                        value != null ? _getTranslatedValue(value) : '',
                         style: AppTextStyles.bodyLarge.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -1796,7 +1820,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
               return DropdownMenuItem<String>(
                 value: item,
                 child: Text(
-                  item,
+                  _getTranslatedValue(item),
                   style: AppTextStyles.bodyMedium,
                 ),
               );
@@ -1848,7 +1872,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'البرنامج',
+                        'program'.tr(),
                         style: AppTextStyles.labelMedium.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -1923,7 +1947,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                       child: ElevatedButton.icon(
                         onPressed: _loadPrograms,
                         icon: const Icon(Icons.refresh, size: 16),
-                        label: const Text('إعادة تحميل البرامج'),
+                        label: Text('reload_programs'.tr()),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: AppColors.surface,
@@ -1961,7 +1985,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                 });
               },
               decoration: InputDecoration(
-                labelText: 'البرنامج',
+                labelText: 'program'.tr(),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -2099,7 +2123,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                 ),
               ),
               const SizedBox(width: 12),
-              const Text('جاري تحديث حالة الطلب...'),
+              Text('updating_request_status'.tr()),
             ],
           ),
           backgroundColor: AppColors.primary,

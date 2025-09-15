@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
@@ -69,8 +70,8 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
   bool _validateAmount() {
     if (_selectedAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى اختيار مبلغ للتبرع'),
+        SnackBar(
+          content: Text('please_choose_donation_amount'.tr()),
           backgroundColor: AppColors.error,
         ),
       );
@@ -105,11 +106,11 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
     // إنشاء التبرع مع الدفع مباشرة
     await provider.initiateDonationWithPayment(
       amount: _selectedAmount,
-      donorName: 'متبرع',
-      message: 'تبرع لـ ${widget.campaign.title}',
+      donorName: 'generous_donor'.tr(),
+      message: 'donation_for_campaign'.tr().replaceAll('{title}', widget.campaign.title),
       programId: programId,
       campaignId: campaignId,
-      note: 'تبرع عبر شاشة الحملة',
+      note: 'donation_message'.tr(),
     );
 
     if (provider.state == PaymentState.sessionCreated && provider.paymentUrl != null) {
@@ -288,14 +289,14 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          '${widget.campaign.currentAmount.toStringAsFixed(0)} ريال',
+                                          '${widget.campaign.currentAmount.toStringAsFixed(0)} ${'riyal'.tr()}',
                                           style: AppTextStyles.titleLarge.copyWith(
                                             color: AppColors.surface,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                         Text(
-                                          'من ${widget.campaign.targetAmount.toStringAsFixed(0)} ريال',
+                                          '${'target_amount'.tr()}: ${widget.campaign.targetAmount.toStringAsFixed(0)} ${'riyal'.tr()}',
                                           style: AppTextStyles.bodyMedium.copyWith(
                                             color: AppColors.surface.withOpacity(0.8),
                                           ),
@@ -348,7 +349,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                     children: [
                       // تفاصيل البرنامج
                       _buildSection(
-                        title: 'تفاصيل البرنامج',
+                        title: 'program'.tr(),
                         icon: Icons.info_outline,
                         child: Text(
                           widget.campaign.description,
@@ -362,14 +363,14 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
 
                       // إحصائيات
                       _buildSection(
-                        title: 'إحصائيات البرنامج',
+                        title: 'program_statistics'.tr(),
                         icon: Icons.analytics_outlined,
                         child: Row(
                           children: [
                             Expanded(
                               child: _buildStatCard(
                                 icon: Icons.people_outline,
-                                title: 'عدد المتبرعين',
+                                title: 'donors_count'.tr(),
                                 value: '${widget.campaign.donorCount}',
                                 color: AppColors.primary,
                               ),
@@ -378,7 +379,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                             Expanded(
                               child: _buildStatCard(
                                 icon: Icons.calendar_today_outlined,
-                                title: 'الأيام المتبقية',
+                                title: 'days_remaining'.tr(),
                                 value: '${widget.campaign.remainingDays}',
                                 color: AppColors.secondary,
                               ),
@@ -390,13 +391,13 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
 
                       // اختيار المبلغ
                       _buildSection(
-                        title: 'اختر مبلغ التبرع',
+                        title: 'select_amount'.tr(),
                         icon: Icons.favorite_outline,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'مبالغ سريعة',
+                              'suggested_amounts'.tr(),
                               style: AppTextStyles.titleMedium.copyWith(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
@@ -432,7 +433,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                                               : null,
                                         ),
                                         child: Text(
-                                          '${amount.toStringAsFixed(0)} ريال',
+                                          '${amount.toStringAsFixed(0)} ${'riyal'.tr()}',
                                           style: AppTextStyles.bodyMedium.copyWith(
                                             color: isSelected ? AppColors.surface : AppColors.textPrimary,
                                             fontWeight: FontWeight.w600,
@@ -446,7 +447,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                             ),
                             const SizedBox(height: 20),
                             Text(
-                              'أو أدخل مبلغاً مخصصاً',
+                              'or_enter_custom_amount'.tr(),
                               style: AppTextStyles.titleMedium.copyWith(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
@@ -464,11 +465,11 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                                 keyboardType: TextInputType.number,
                                 style: AppTextStyles.bodyLarge,
                                 decoration: InputDecoration(
-                                  hintText: 'أدخل المبلغ بالريال',
+                                  hintText: 'enter_amount'.tr(),
                                   hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
                                   border: InputBorder.none,
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                                  suffixText: 'ريال',
+                                  suffixText: 'riyal'.tr(),
                                   suffixStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                                 ),
                                 onChanged: (value) {
@@ -500,7 +501,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                           child: isLoading
                               ? Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
+                                  children: [
                                     SizedBox(
                                       width: 20,
                                       height: 20,
@@ -511,7 +512,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                                     ),
                                     SizedBox(width: 12),
                                     Text(
-                                      'جاري إنشاء جلسة الدفع...',
+                                      'processing_payment'.tr(),
                                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                                     ),
                                   ],
@@ -522,7 +523,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                                     const Icon(Icons.favorite, size: 24),
                                     const SizedBox(width: 12),
                                     Text(
-                                      'تبرع الآن',
+                                      'donate_now'.tr(),
                                       style: AppTextStyles.buttonLarge.copyWith(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
@@ -549,7 +550,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'جميع التبرعات آمنة ومشفرة. بياناتك محمية بنسبة 100%',
+                                'donation_security_notice'.tr(),
                                 style: AppTextStyles.bodySmall.copyWith(color: AppColors.info),
                               ),
                             ),

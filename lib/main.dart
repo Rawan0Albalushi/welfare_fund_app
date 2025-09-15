@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 // WebView web platform registration (for Flutter Web)
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html show window; // safe import for web check
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_web/webview_flutter_web.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'constants/app_colors.dart';
 import 'constants/app_text_styles.dart';
 import 'constants/app_constants.dart';
@@ -21,15 +20,14 @@ import 'providers/payment_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize EasyLocalization
+  await EasyLocalization.ensureInitialized();
+  
   // Register web implementation for webview_flutter when running on web
-  try {
-    // A simple runtime check: if 'window' exists, we're on web
-    // ignore: unnecessary_null_comparison
-    if (html.window != null) {
-      WebViewPlatform.instance = WebWebViewPlatform();
-    }
-  } catch (_) {
-    // Not running on web; ignore
+  if (kIsWeb) {
+    // Only register web platform when actually running on web
+    // This will be handled by conditional imports if needed
   }
   
   try {
@@ -44,7 +42,15 @@ void main() async {
     print('Error during initialization: $e');
   }
   
-  runApp(const StudentWelfareFundApp());
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [Locale('en'), Locale('ar')],
+      path: 'assets/translations',
+      fallbackLocale: const Locale('en'),
+      saveLocale: true,
+      child: const StudentWelfareFundApp(),
+    ),
+  );
 }
 
 class StudentWelfareFundApp extends StatelessWidget {
@@ -54,7 +60,13 @@ class StudentWelfareFundApp extends StatelessWidget {
   String _getInitialRoute() {
     try {
       // للويب، تحقق من URL الحالي
-      final currentPath = html.window.location.pathname;
+      String? currentPath;
+      if (kIsWeb) {
+        // Web-specific code would go here if needed
+        currentPath = '/';
+      } else {
+        currentPath = '/';
+      }
       print('Current URL path: $currentPath');
       
       // إذا كان URL يحتوي على payment/success أو payment/cancel
@@ -85,9 +97,17 @@ class StudentWelfareFundApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => PaymentProvider()),
       ],
-      child: MaterialApp(
+      child: Consumer<AuthProvider>(
+        builder: (context, authProvider, child) {
+          return MaterialApp(
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
+        
+        // Localization configuration
+        locale: context.locale,
+        supportedLocales: context.supportedLocales,
+        localizationsDelegates: context.localizationDelegates,
+        
 
         // Theme configuration
         theme: ThemeData(
@@ -200,13 +220,7 @@ class StudentWelfareFundApp extends StatelessWidget {
           scaffoldBackgroundColor: AppColors.background,
         ),
 
-        // RTL support for Arabic
-        builder: (context, child) {
-          return Directionality(
-            textDirection: TextDirection.rtl, // Arabic RTL support
-            child: child!,
-          );
-        },
+        // RTL/LTR support is handled automatically by EasyLocalization
 
         // Initial route - check URL first
         initialRoute: _getInitialRoute(),
@@ -218,6 +232,8 @@ class StudentWelfareFundApp extends StatelessWidget {
           AppConstants.paymentSuccessRoute: (context) => const DonationSuccessScreen(),
           AppConstants.paymentCancelRoute: (context) => const PaymentFailedScreen(),
           '/payment/loading': (context) => const PaymentLoadingScreen(),
+        },
+          );
         },
       ),
     );

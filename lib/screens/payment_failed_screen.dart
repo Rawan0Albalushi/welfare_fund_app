@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../services/donation_service.dart';
 // WebView web platform registration (for Flutter Web)
 // ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html show window;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// شاشة فشل الدفع.
 /// - عند الضغط على "المحاولة مرة أخرى" ترجع 'retry' للصفحة السابقة عبر Navigator.pop.
@@ -161,7 +162,7 @@ class _PaymentFailedScreenState extends State<PaymentFailedScreen> {
 
               // Title
               Text(
-                'فشل في عملية الدفع',
+                'payment_failed'.tr(),
                 style: AppTextStyles.headlineMedium.copyWith(
                   color: AppColors.error,
                   fontWeight: FontWeight.bold,
@@ -185,7 +186,7 @@ class _PaymentFailedScreenState extends State<PaymentFailedScreen> {
                 child: Column(
                   children: [
                     Text(
-                      'تفاصيل التبرع',
+                      'donation_details'.tr(),
                       style: AppTextStyles.titleMedium.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
@@ -193,7 +194,7 @@ class _PaymentFailedScreenState extends State<PaymentFailedScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _campaignTitle ?? widget.campaignTitle ?? 'تبرع عام',
+                      _campaignTitle ?? widget.campaignTitle ?? 'general'.tr(),
                       style: AppTextStyles.bodyLarge.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -212,7 +213,7 @@ class _PaymentFailedScreenState extends State<PaymentFailedScreen> {
                     if (_donationId != null) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'رقم التبرع: $_donationId',
+                        'donation_id'.tr() + ': $_donationId',
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.textSecondary,
                           fontFamily: 'monospace',
@@ -258,7 +259,7 @@ class _PaymentFailedScreenState extends State<PaymentFailedScreen> {
 
               // Info
               Text(
-                'لم يتم خصم أي مبلغ من حسابك. يمكنك المحاولة مرة أخرى أو التواصل مع الدعم الفني.',
+                'payment_failed_info'.tr(),
                 style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                 textAlign: TextAlign.center,
               ),
@@ -278,9 +279,9 @@ class _PaymentFailedScreenState extends State<PaymentFailedScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: const Text(
-                        'المحاولة مرة أخرى',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      child: Text(
+                        'try_again'.tr(),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -293,7 +294,9 @@ class _PaymentFailedScreenState extends State<PaymentFailedScreen> {
                       onPressed: () {
                         // للويب، غير URL في المتصفح
                         if (kIsWeb) {
-                          html.window.history.pushState(null, '', '/');
+                          if (kIsWeb) {
+                            // Web-specific navigation would go here
+                          }
                         }
                         
                         Navigator.pushNamedAndRemoveUntil(
@@ -308,9 +311,9 @@ class _PaymentFailedScreenState extends State<PaymentFailedScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: const Text(
-                        'العودة للرئيسية',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      child: Text(
+                        'home'.tr(),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),

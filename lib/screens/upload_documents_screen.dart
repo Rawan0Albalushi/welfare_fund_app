@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../services/student_registration_service.dart';
@@ -47,13 +47,13 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('اختر مصدر $documentType'),
+            title: Text('${'choose_source'.tr()} $documentType'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
                   leading: const Icon(Icons.camera_alt, color: AppColors.primary),
-                  title: const Text('التقاط صورة من الكاميرا'),
+                  title: Text('take_photo_camera'.tr()),
                   onTap: () {
                     Navigator.pop(context);
                     _pickDocumentFromCamera(documentType, onPicked);
@@ -61,7 +61,7 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.photo_library, color: AppColors.primary),
-                  title: const Text('اختيار من المعرض'),
+                  title: Text('choose_from_gallery'.tr()),
                   onTap: () {
                     Navigator.pop(context);
                     _pickDocumentFromGallery(documentType, onPicked);
@@ -75,7 +75,7 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('حدث خطأ أثناء اختيار $documentType'),
+          content: Text('${'error_selecting'.tr()} $documentType'),
           backgroundColor: AppColors.error,
           duration: const Duration(seconds: 2),
         ),
@@ -97,7 +97,7 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
         onPicked(image.path, bytes);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('تم التقاط $documentType بنجاح'),
+            content: Text('${'document_captured_successfully'.tr()} $documentType'),
             backgroundColor: AppColors.success,
             duration: const Duration(seconds: 2),
           ),
@@ -106,7 +106,7 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('حدث خطأ أثناء التقاط $documentType'),
+          content: Text('${'error_capturing_document'.tr()} $documentType'),
           backgroundColor: AppColors.error,
           duration: const Duration(seconds: 2),
         ),
@@ -128,7 +128,7 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
         onPicked(image.path, bytes);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('تم اختيار $documentType بنجاح'),
+            content: Text('${'document_selected_successfully'.tr()} $documentType'),
             backgroundColor: AppColors.success,
             duration: const Duration(seconds: 2),
           ),
@@ -137,7 +137,7 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('حدث خطأ أثناء اختيار $documentType'),
+          content: Text('${'error_selecting'.tr()} $documentType'),
           backgroundColor: AppColors.error,
           duration: const Duration(seconds: 2),
         ),
@@ -152,8 +152,8 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
         _familyCardPath == null &&
         _otherDocumentsPath == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى اختيار مستند واحد على الأقل'),
+        SnackBar(
+          content: Text('please_select_at_least_one_document'.tr()),
           backgroundColor: AppColors.warning,
           duration: Duration(seconds: 2),
         ),
@@ -182,8 +182,8 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم رفع المستندات بنجاح'),
+          SnackBar(
+            content: Text('documents_uploaded_successfully'.tr()),
             backgroundColor: AppColors.success,
             duration: Duration(seconds: 2),
           ),
@@ -194,7 +194,7 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('حدث خطأ أثناء رفع المستندات: ${e.toString()}'),
+            content: Text('${'error_uploading_documents'.tr()}: ${e.toString()}'),
             backgroundColor: AppColors.error,
             duration: const Duration(seconds: 3),
           ),

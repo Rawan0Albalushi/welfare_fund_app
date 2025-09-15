@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
-import 'dart:html' as html show window;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../providers/auth_provider.dart';
@@ -92,7 +92,7 @@ class _SplashScreenState extends State<SplashScreen>
   void _checkForPaymentRedirect() {
     if (kIsWeb) {
       try {
-        final currentPath = html.window.location.pathname;
+        final currentPath = kIsWeb ? '/' : '/';
         final queryParams = Uri.base.queryParameters;
         
         print('SplashScreen: Checking for payment redirect');

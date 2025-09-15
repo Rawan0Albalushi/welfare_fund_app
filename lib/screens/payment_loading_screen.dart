@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
-import 'dart:html' as html show window;
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../providers/auth_provider.dart';
@@ -73,7 +74,7 @@ class _PaymentLoadingScreenState extends State<PaymentLoadingScreen>
     
     if (kIsWeb) {
       try {
-        final currentPath = html.window.location.pathname;
+        final currentPath = kIsWeb ? '/' : '/';
         final queryParams = Uri.base.queryParameters;
         
         print('PaymentLoadingScreen: Checking payment status');
@@ -179,102 +180,108 @@ class _PaymentLoadingScreenState extends State<PaymentLoadingScreen>
           gradient: AppColors.modernGradient,
         ),
         child: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Loading Animation
-                AnimatedBuilder(
-                  animation: _pulseAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _pulseAnimation.value,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(60),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withOpacity(0.3),
-                              blurRadius: 30,
-                              offset: const Offset(0, 15),
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: AnimatedBuilder(
-                            animation: _rotationAnimation,
-                            builder: (context, child) {
-                              return Transform.rotate(
-                                angle: _rotationAnimation.value * 2 * 3.14159,
-                                child: const Icon(
-                                  Icons.payment,
-                                  size: 50,
-                                  color: AppColors.primary,
+          child: Column(
+            children: [
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Loading Animation
+                      AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _pulseAnimation.value,
+                            child: Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(60),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.3),
+                                    blurRadius: 30,
+                                    offset: const Offset(0, 15),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: AnimatedBuilder(
+                                  animation: _rotationAnimation,
+                                  builder: (context, child) {
+                                    return Transform.rotate(
+                                      angle: _rotationAnimation.value * 2 * 3.14159,
+                                      child: const Icon(
+                                        Icons.payment,
+                                        size: 50,
+                                        color: AppColors.primary,
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
-                          ),
-                        ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Loading Text
-                const Text(
-                  'جاري معالجة الدفع...',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.surface,
-                    height: 1.2,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 16),
-                
-                Text(
-                  'يرجى الانتظار قليلاً',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.surface.withOpacity(0.8),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 48),
-                
-                // Progress Indicator
-                Container(
-                  width: 200,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.surface.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  child: AnimatedBuilder(
-                    animation: _pulseAnimation,
-                    builder: (context, child) {
-                      return Container(
-                        width: 200 * _pulseAnimation.value * 0.3,
+                      
+                      const SizedBox(height: 32),
+                      
+                      // Loading Text
+                      Text(
+                        'processing_payment'.tr(),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.surface,
+                          height: 1.2,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      Text(
+                        'please_wait'.tr(),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.surface.withOpacity(0.8),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      
+                      const SizedBox(height: 48),
+                      
+                      // Progress Indicator
+                      Container(
+                        width: 200,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
+                          color: AppColors.surface.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(2),
                         ),
-                      );
-                    },
+                        child: AnimatedBuilder(
+                          animation: _pulseAnimation,
+                          builder: (context, child) {
+                            return Container(
+                              width: 200 * _pulseAnimation.value * 0.3,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

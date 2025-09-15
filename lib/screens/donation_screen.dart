@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
@@ -56,18 +57,18 @@ class _DonationScreenState extends State<DonationScreen> {
   Future<void> _makeDonation() async {
     // Validate inputs
     if (_amountController.text.isEmpty) {
-      _showErrorSnackBar('يرجى إدخال المبلغ');
+      _showErrorSnackBar('required_field'.tr());
       return;
     }
 
     if (_donorNameController.text.isEmpty) {
-      _showErrorSnackBar('يرجى إدخال اسم المتبرع');
+      _showErrorSnackBar('required_field'.tr());
       return;
     }
 
     final amount = double.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
-      _showErrorSnackBar('يرجى إدخال مبلغ صحيح');
+      _showErrorSnackBar('required_field'.tr());
       return;
     }
 
@@ -80,7 +81,7 @@ class _DonationScreenState extends State<DonationScreen> {
       final token = await _getAuthToken();
       
       if (token == null) {
-        _showErrorSnackBar('يجب تسجيل الدخول أولاً');
+        _showErrorSnackBar('login_required'.tr());
         return;
       }
 
@@ -89,7 +90,7 @@ class _DonationScreenState extends State<DonationScreen> {
       
       // 1) استدعاء POST /api/v1/donations/with-payment مع return_origin
       final response = await http.post(
-        Uri.parse('http://192.168.1.21:8000/api/v1/donations/with-payment'),
+        Uri.parse('http://192.168.1.101:8000/api/v1/donations/with-payment'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -124,10 +125,10 @@ class _DonationScreenState extends State<DonationScreen> {
           
           // إظهار رسالة للمستخدم
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('تم فتح صفحة الدفع في نفس التبويب. يرجى إتمام الدفع...'),
+            SnackBar(
+              content: Text('payment_page_opened'.tr()),
               backgroundColor: AppColors.info,
-              duration: Duration(seconds: 3),
+              duration: const Duration(seconds: 3),
             ),
           );
           
@@ -176,8 +177,8 @@ class _DonationScreenState extends State<DonationScreen> {
       MaterialPageRoute(
         builder: (context) => CheckoutWebView(
           checkoutUrl: checkoutUrl,
-          successUrl: 'http://192.168.1.21:8000/api/v1/payments/success',
-          cancelUrl: 'http://192.168.1.21:8000/api/v1/payments/cancel',
+          successUrl: 'http://192.168.1.101:8000/api/v1/payments/success',
+          cancelUrl: 'http://192.168.1.101:8000/api/v1/payments/cancel',
         ),
       ),
     );
@@ -200,7 +201,7 @@ class _DonationScreenState extends State<DonationScreen> {
       final token = await _getAuthToken();
       
       final response = await http.post(
-        Uri.parse('http://192.168.1.21:8000/api/v1/payments/confirm'),
+        Uri.parse('http://192.168.1.101:8000/api/v1/payments/confirm'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -214,19 +215,19 @@ class _DonationScreenState extends State<DonationScreen> {
         // اعرض شاشة "نجاح التبرّع"
         _showDonationSuccess();
       } else {
-        throw Exception('فشل في تأكيد الدفع');
+        throw Exception('payment_failed'.tr());
       }
     } catch (e) {
       print('❌ Error confirming payment: $e');
-      _showErrorSnackBar('خطأ في تأكيد الدفع: $e');
+      _showErrorSnackBar('error_occurred'.tr());
     }
   }
 
   // عرض رسالة الإلغاء
   void _showCancelMessage() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم إلغاء عملية الدفع'),
+      SnackBar(
+        content: Text('payment_cancelled'.tr()),
         backgroundColor: Colors.orange,
         duration: Duration(seconds: 3),
       ),
@@ -238,21 +239,21 @@ class _DonationScreenState extends State<DonationScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.green),
-            SizedBox(width: 8),
-            Text('نجح التبرع'),
+            const Icon(Icons.check_circle, color: Colors.green),
+            const SizedBox(width: 8),
+            Text('donation_successful'.tr()),
           ],
         ),
-        content: const Text('تم التبرع بنجاح! شكراً لك على دعمك للطلاب المحتاجين.'),
+        content: Text('thank_you'.tr()),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop(); // إغلاق الحوار
               Navigator.of(context).pop(); // العودة للشاشة السابقة
             },
-            child: const Text('حسناً'),
+            child: Text('ok'.tr()),
           ),
         ],
       ),
@@ -264,11 +265,12 @@ class _DonationScreenState extends State<DonationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'التبرع',
+          'donate_now'.tr(),
           style: AppTextStyles.headlineMedium.copyWith(
             color: Colors.white,
           ),
         ),
+        actions: const [],
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
@@ -286,12 +288,12 @@ class _DonationScreenState extends State<DonationScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.campaignTitle ?? 'تبرع للطلاب المحتاجين',
+                      widget.campaignTitle ?? 'support_students'.tr(),
                       style: AppTextStyles.headlineMedium,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'ساعد الطلاب المحتاجين في الحصول على التعليم المناسب',
+                      'help_students_succeed'.tr(),
                       style: AppTextStyles.bodyMedium,
                     ),
                   ],
@@ -309,7 +311,7 @@ class _DonationScreenState extends State<DonationScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'تفاصيل التبرع',
+                      'donation_details'.tr(),
                       style: AppTextStyles.titleLarge,
                     ),
                     const SizedBox(height: 16),
@@ -319,8 +321,8 @@ class _DonationScreenState extends State<DonationScreen> {
                       controller: _amountController,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
-                        labelText: 'المبلغ (ريال عماني)',
-                        hintText: 'أدخل المبلغ',
+                        labelText: 'amount'.tr(),
+                        hintText: 'amount'.tr(),
                         prefixIcon: const Icon(Icons.attach_money),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -333,8 +335,8 @@ class _DonationScreenState extends State<DonationScreen> {
                     TextFormField(
                       controller: _donorNameController,
                       decoration: InputDecoration(
-                        labelText: 'اسم المتبرع',
-                        hintText: 'أدخل اسم المتبرع',
+                        labelText: 'full_name'.tr(),
+                        hintText: 'full_name'.tr(),
                         prefixIcon: const Icon(Icons.person),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -348,8 +350,8 @@ class _DonationScreenState extends State<DonationScreen> {
                       controller: _noteController,
                       maxLines: 3,
                       decoration: InputDecoration(
-                        labelText: 'ملاحظة (اختياري)',
-                        hintText: 'أدخل ملاحظة أو رسالة',
+                        labelText: 'donation_message'.tr(),
+                        hintText: 'donation_message'.tr(),
                         prefixIcon: const Icon(Icons.note),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -387,13 +389,13 @@ class _DonationScreenState extends State<DonationScreen> {
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          'جاري المعالجة...',
+                          'loading'.tr(),
                           style: AppTextStyles.buttonLarge,
                         ),
                       ],
                     )
                   : Text(
-                      'تبرع الآن',
+                      'donate_now'.tr(),
                       style: AppTextStyles.buttonLarge,
                     ),
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
@@ -9,7 +10,7 @@ import '../providers/auth_provider.dart';
 import 'my_donations_screen.dart';
 // WebView web platform registration (for Flutter Web)
 // ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html show window;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class DonationSuccessScreen extends StatefulWidget {
   final double? amount;
@@ -180,7 +181,9 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
   void _goToHome() {
     // للويب، غير URL في المتصفح
     if (kIsWeb) {
-      html.window.history.pushState(null, '', '/');
+      if (kIsWeb) {
+        // Web-specific navigation would go here
+      }
     }
     
     Navigator.pushNamedAndRemoveUntil(
@@ -193,7 +196,9 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
   void _goToMyDonations() {
     // للويب، نظف URL في المتصفح
     if (kIsWeb) {
-      html.window.history.pushState(null, '', '/my-donations');
+      if (kIsWeb) {
+        // Web-specific navigation would go here
+      }
     }
     
     Navigator.of(context).popUntil((route) => route.isFirst);
@@ -225,6 +230,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
           padding: const EdgeInsets.all(AppConstants.largePadding),
           child: Column(
             children: [
+              // Language Switcher
               const SizedBox(height: AppConstants.extraLargePadding),
               
               // Success Animation
@@ -273,7 +279,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
 
               // Success Message
               Text(
-                'تم التبرع بنجاح!',
+                'donation_successful'.tr(),
                 style: AppTextStyles.displaySmall.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
@@ -282,7 +288,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
               ),
               const SizedBox(height: AppConstants.defaultPadding),
               Text(
-                'شكراً لك على مساهمتك في مساعدة الطلاب المحتاجين',
+                'thank_you'.tr(),
                 style: AppTextStyles.bodyLarge.copyWith(
                   color: AppColors.textSecondary,
                   height: 1.5,
@@ -318,7 +324,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'مبلغ التبرع',
+                          'donation_amount'.tr(),
                           style: AppTextStyles.bodyMedium.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -340,7 +346,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'البرنامج',
+                            'programs'.tr(),
                             style: AppTextStyles.bodyMedium.copyWith(
                               color: AppColors.textSecondary,
                             ),
@@ -410,7 +416,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'رقم المعاملة',
+                          'transaction_id'.tr(),
                           style: AppTextStyles.bodyMedium.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -456,7 +462,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'تأثير تبرعك',
+                      'donation_impact'.tr(),
                       style: AppTextStyles.titleMedium.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w600,
@@ -465,7 +471,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'تبرعك سيساعد في توفير التعليم والاحتياجات الأساسية للطلاب المحتاجين',
+                      'help_students_succeed'.tr(),
                       style: AppTextStyles.bodyMedium.copyWith(
                         color: AppColors.textSecondary,
                         height: 1.4,
@@ -495,7 +501,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                             },
                             icon: const Icon(Icons.favorite, size: 20),
                             label: Text(
-                              'عرض تبرعاتي',
+                              'my_donations'.tr(),
                               style: AppTextStyles.buttonLarge.copyWith(
                                 color: AppColors.surface,
                                 fontWeight: FontWeight.w600,
@@ -529,7 +535,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                       onPressed: _goToHome,
                       icon: const Icon(Icons.home, size: 20),
                       label: Text(
-                        'العودة للرئيسية',
+                        'home'.tr(),
                         style: AppTextStyles.buttonLarge.copyWith(
                           color: AppColors.surface,
                           fontWeight: FontWeight.w600,

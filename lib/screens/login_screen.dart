@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../services/auth_service.dart';
@@ -124,11 +125,12 @@ class _LoginScreenState extends State<LoginScreen>
                     onPressed: () => Navigator.pop(context),
                   ),
                   title: Text(
-                    'تسجيل الدخول',
+                    'login'.tr(),
                     style: AppTextStyles.headlineMedium.copyWith(
                       color: AppColors.textPrimary,
                     ),
                   ),
+        actions: const [],
                   centerTitle: true,
                 ),
 
@@ -169,7 +171,7 @@ class _LoginScreenState extends State<LoginScreen>
                                     ),
                                     const SizedBox(width: 12),
                                     Text(
-                                      'معلومات تسجيل الدخول',
+                                      'login'.tr(),
                                       style: AppTextStyles.headlineSmall.copyWith(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.textPrimary,
@@ -182,13 +184,13 @@ class _LoginScreenState extends State<LoginScreen>
                                 // Phone Field
                                 _buildTextField(
                                   controller: _phoneController,
-                                  label: 'رقم الهاتف',
-                                  hint: 'أدخل رقم الهاتف',
+                                  label: 'phone_number'.tr(),
+                                  hint: 'phone_number'.tr(),
                                   icon: Icons.phone_outlined,
                                   keyboardType: TextInputType.phone,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'يرجى إدخال رقم الهاتف';
+                                      return 'required_field'.tr();
                                     }
                                     return null;
                                   },
@@ -198,16 +200,16 @@ class _LoginScreenState extends State<LoginScreen>
                                 // Password Field
                                 _buildTextField(
                                   controller: _passwordController,
-                                  label: 'كلمة المرور',
-                                  hint: 'أدخل كلمة المرور',
+                                  label: 'password'.tr(),
+                                  hint: 'password'.tr(),
                                   icon: Icons.lock_outline,
                                   isPassword: true,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'يرجى إدخال كلمة المرور';
+                                      return 'required_field'.tr();
                                     }
                                     if (value.length < 6) {
-                                      return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+                                      return 'password_too_short'.tr();
                                     }
                                     return null;
                                   },
@@ -232,8 +234,8 @@ class _LoginScreenState extends State<LoginScreen>
                                             borderRadius: BorderRadius.circular(4),
                                           ),
                                         ),
-                                        const Text(
-                                          'تذكرني',
+                                        Text(
+                                          'remember_me'.tr(),
                                           style: AppTextStyles.bodyMedium,
                                         ),
                                       ],
@@ -243,7 +245,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         // Navigate to forgot password
                                       },
                                       child: Text(
-                                        'نسيت كلمة المرور؟',
+                                        'forgot_password'.tr(),
                                         style: AppTextStyles.bodyMedium.copyWith(
                                           color: AppColors.primary,
                                         ),
@@ -269,7 +271,7 @@ class _LoginScreenState extends State<LoginScreen>
                                     Padding(
                                       padding: const EdgeInsets.symmetric(horizontal: 16),
                                       child: Text(
-                                        'أو',
+                                        'or',
                                         style: AppTextStyles.bodyMedium.copyWith(
                                           color: AppColors.textSecondary,
                                         ),
@@ -442,7 +444,7 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 const SizedBox(width: 12),
                 Text(
-                  _isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول',
+                  _isLoading ? 'loading'.tr() : 'login'.tr(),
                   style: AppTextStyles.buttonLarge.copyWith(
                     color: AppColors.surface,
                   ),
@@ -499,7 +501,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'إنشاء حساب جديد',
+                  'create_new_account'.tr(),
                   style: AppTextStyles.buttonLarge.copyWith(
                     color: AppColors.primary,
                   ),
@@ -538,7 +540,7 @@ class _LoginScreenState extends State<LoginScreen>
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'تم تسجيل الدخول بنجاح',
+                  'login_successful'.tr(),
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.surface,
                   ),
@@ -559,7 +561,7 @@ class _LoginScreenState extends State<LoginScreen>
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'فشل في تسجيل الدخول. يرجى التحقق من البيانات',
+                  'login_failed'.tr(),
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.surface,
                   ),

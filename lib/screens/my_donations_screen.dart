@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../models/donation.dart';
@@ -14,8 +15,8 @@ class MyDonationsScreen extends StatefulWidget {
 }
 
 class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindingObserver {
-  String _selectedFilter = 'الكل';
-  final List<String> _filters = ['الكل', 'هذا الشهر', 'هذا العام', 'مهداة', 'مكتمل', 'في الانتظار', 'ملغي', 'فشل'];
+  String _selectedFilter = 'all';
+  final List<String> _filters = ['all', 'this_month', 'this_year', 'gift', 'completed', 'pending', 'cancelled', 'failed'];
   
   final DonationService _donationService = DonationService();
   List<Donation> _donations = [];
@@ -102,7 +103,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
       if (donations.isNotEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('تم تحميل جميع التبرعات بنجاح (${donations.length} تبرع)'),
+            content: Text('${'all_donations_loaded'.tr()} (${donations.length} ${'donation'.tr()})'),
             backgroundColor: AppColors.success,
             duration: const Duration(seconds: 3),
           ),
@@ -110,7 +111,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
       } else if (donations.isEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('لم يتم العثور على تبرعات'),
+            content: Text('no_donations_found'.tr()),
             backgroundColor: AppColors.info,
             duration: const Duration(seconds: 2),
           ),
@@ -153,8 +154,8 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم إنشاء تبرع تجريبي بنجاح!'),
+          SnackBar(
+            content: Text('test_donation_created'.tr()),
             backgroundColor: AppColors.success,
           ),
         );
@@ -186,8 +187,8 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم اختبار جميع الـ APIs - راجع الـ console logs'),
+          SnackBar(
+            content: Text('all_apis_tested'.tr()),
             backgroundColor: AppColors.primary,
           ),
         );
@@ -196,7 +197,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
       print('MyDonationsScreen: Error testing endpoints: $e');
       setState(() {
         _isLoading = false;
-        _errorMessage = 'خطأ في اختبار الـ APIs: $e';
+        _errorMessage = 'error_occurred'.tr();
       });
     }
   }
@@ -229,7 +230,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('آخر تبرع: ${lastDonation.status} - راجع الـ console logs'),
+              content: Text('last_donation'.tr() + ': ${lastDonation.status}'),
               backgroundColor: AppColors.info,
             ),
           );
@@ -241,8 +242,8 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('لا توجد تبرعات للفحص'),
+            SnackBar(
+              content: Text('no_data'.tr()),
               backgroundColor: AppColors.warning,
             ),
           );
@@ -371,11 +372,12 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
-          'تبرعاتي',
+          'my_donations'.tr(),
           style: AppTextStyles.headlineMedium.copyWith(
             color: AppColors.textPrimary,
           ),
         ),
+        actions: const [],
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
@@ -420,7 +422,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'إجمالي تبرعاتك',
+                  'total_donated'.tr(),
                   style: AppTextStyles.headlineMedium.copyWith(
                     color: AppColors.surface,
                   ),
@@ -438,12 +440,12 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildStatCard(
-                      'إجمالي التبرعات',
+                      'total_donated'.tr(),
                       _filteredDonations.length.toString(),
                       Icons.favorite,
                     ),
                     _buildStatCard(
-                      'التبرعات المهداة',
+                      'gift_donation'.tr(),
                       _filteredDonations.where((d) => 
                         d.message?.contains('هدية') == true || 
                         d.message?.contains('إهداء') == true ||
@@ -498,7 +500,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
                               ),
                             ),
                             child: Text(
-                              filter,
+                              filter.tr(),
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: isSelected ? AppColors.surface : AppColors.textPrimary,
                                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -604,7 +606,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
             ),
             const SizedBox(height: 16),
             Text(
-              'حدث خطأ في تحميل التبرعات',
+              'error_occurred'.tr(),
               style: AppTextStyles.headlineSmall.copyWith(
                 color: AppColors.textPrimary,
               ),
@@ -627,7 +629,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
                     backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.surface,
                   ),
-                  child: const Text('إعادة المحاولة'),
+                  child: Text('retry'.tr()),
                 ),
                 ElevatedButton(
                   onPressed: _createTestDonation,
@@ -635,7 +637,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
                     backgroundColor: AppColors.success,
                     foregroundColor: AppColors.surface,
                   ),
-                  child: const Text('إنشاء تبرع تجريبي'),
+                  child: Text('create_test_donation'.tr()),
                 ),
                 ElevatedButton(
                   onPressed: _testAllEndpoints,
@@ -643,7 +645,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
                     backgroundColor: AppColors.warning,
                     foregroundColor: AppColors.surface,
                   ),
-                  child: const Text('اختبار جميع الـ APIs'),
+                  child: Text('test_apis'.tr()),
                 ),
                 ElevatedButton(
                   onPressed: _checkLastDonation,
@@ -651,7 +653,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
                     backgroundColor: AppColors.info,
                     foregroundColor: AppColors.surface,
                   ),
-                  child: const Text('فحص آخر تبرع'),
+                  child: Text('check_last_donation'.tr()),
                 ),
               ],
             ),
@@ -695,15 +697,15 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
     } else if (donation.isCancelled) {
       statusColor = AppColors.textSecondary;
       statusIcon = Icons.cancel;
-      statusText = 'ملغي';
+      statusText = 'cancelled'.tr();
     } else if (donation.isFailed) {
       statusColor = AppColors.error;
       statusIcon = Icons.error;
-      statusText = 'فشل';
+      statusText = 'failed'.tr();
     } else if (donation.isExpired) {
       statusColor = AppColors.textTertiary;
       statusIcon = Icons.timer_off;
-      statusText = 'منتهي الصلاحية';
+      statusText = 'expired'.tr();
     } else {
       statusColor = AppColors.info;
       statusIcon = Icons.help_outline;
@@ -719,11 +721,11 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> with WidgetsBindi
 
   Widget _buildDonationCard(Donation donation) {
     // Determine category based on program/campaign or message
-    String category = 'عام';
+    String category = 'general';
     if (donation.programId != null) {
-      category = 'برنامج';
+      category = 'program';
     } else if (donation.campaignId != null) {
-      category = 'حملة';
+      category = 'campaign';
     }
     
     final categoryColor = _getCategoryColor(category);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 
@@ -106,10 +107,10 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم فتح صفحة الدفع في نفس التبويب. يرجى إتمام الدفع...'),
+          SnackBar(
+            content: Text('payment_page_opened'.tr()),
             backgroundColor: AppColors.info,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
         
@@ -125,7 +126,7 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('خطأ في فتح صفحة الدفع: $e'),
+            content: Text('${'payment_page_error'.tr()}: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -262,15 +263,6 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'بعد إتمام الدفع، ستتم العودة تلقائياً للتطبيق',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.surface,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
                   Text(
                     'يمكنك إلغاء العملية بالضغط على X',
                     style: AppTextStyles.bodySmall.copyWith(

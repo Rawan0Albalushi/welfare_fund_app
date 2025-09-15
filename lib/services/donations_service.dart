@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DonationsService {
-  static const String baseUrl = 'http://192.168.1.21:8000/api/v1';
+  static const String baseUrl = 'http://192.168.1.101:8000/api/v1';
   
   // احصل على التوكن من التخزين المحلي
   Future<String?> _getAuthToken() async {

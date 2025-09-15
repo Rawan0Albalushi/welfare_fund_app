@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../providers/payment_provider.dart';
@@ -148,10 +149,10 @@ class _PaymentWebViewState extends State<PaymentWebView> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم فتح صفحة الدفع في نفس التبويب. يرجى إتمام الدفع...'),
+          SnackBar(
+            content: Text('payment_page_opened'.tr()),
             backgroundColor: AppColors.info,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
         
@@ -163,7 +164,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('خطأ في فتح صفحة الدفع: $e'),
+            content: Text('${'payment_page_error'.tr()}: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -236,7 +237,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                     foregroundColor: AppColors.surface,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                   ),
-                  child: const Text('التحقق من حالة الدفع'),
+                  child: Text('checking_payment_status'.tr()),
                 ),
               ],
             ),
@@ -263,16 +264,6 @@ class _PaymentWebViewState extends State<PaymentWebView> {
           onPressed: () => Navigator.pop(context, PaymentState.paymentCancelled),
         ),
         actions: [
-          // Manual check button
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              if (!_hasCheckedStatus) {
-                _finishAndPop();
-              }
-            },
-            tooltip: 'التحقق من حالة الدفع',
-          ),
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.all(16),
@@ -310,47 +301,6 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                 ),
               ),
             ),
-          // Help message overlay
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'بعد إتمام الدفع، اضغط على زر التحديث 🔄',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.surface,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'أو انتظر 10 ثوانٍ للتحقق التلقائي',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.surface.withOpacity(0.8),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );

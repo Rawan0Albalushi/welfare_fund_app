@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../services/auth_service.dart';
+import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -111,11 +113,12 @@ class _RegisterScreenState extends State<RegisterScreen>
                     onPressed: () => Navigator.pop(context),
                   ),
                   title: Text(
-                    'إنشاء حساب جديد',
+                    'create_new_account'.tr(),
                     style: AppTextStyles.headlineMedium.copyWith(
                       color: AppColors.textPrimary,
                     ),
                   ),
+        actions: const [],
                   centerTitle: true,
                 ),
 
@@ -156,7 +159,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                     ),
                                     const SizedBox(width: 12),
                                     Text(
-                                      'معلومات الحساب',
+                                      'register'.tr(),
                                       style: AppTextStyles.headlineSmall.copyWith(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.textPrimary,
@@ -169,16 +172,16 @@ class _RegisterScreenState extends State<RegisterScreen>
                                  // Name Field
                                  _buildTextField(
                                    controller: _nameController,
-                                   label: 'الاسم الكامل *',
-                                   hint: 'أدخل اسمك الكامل',
+                                   label: 'full_name'.tr(),
+                                   hint: 'full_name'.tr(),
                                    icon: Icons.person_outline,
                                    keyboardType: TextInputType.name,
                                    validator: (value) {
                                      if (value == null || value.isEmpty) {
-                                       return 'يرجى إدخال الاسم الكامل';
+                                       return 'required_field'.tr();
                                      }
                                      if (value.trim().length < 2) {
-                                       return 'الاسم يجب أن يكون حرفين على الأقل';
+                                       return 'required_field'.tr();
                                      }
                                      return null;
                                    },
@@ -188,16 +191,16 @@ class _RegisterScreenState extends State<RegisterScreen>
                                  // Phone Field
                                  _buildTextField(
                                   controller: _phoneController,
-                                  label: 'رقم الهاتف *',
-                                  hint: 'أدخل رقم هاتفك',
+                                  label: 'phone_number'.tr(),
+                                  hint: 'phone_number'.tr(),
                                   icon: Icons.phone_outlined,
                                   keyboardType: TextInputType.phone,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'يرجى إدخال رقم الهاتف';
+                                      return 'required_field'.tr();
                                     }
                                     if (value.length != 8) {
-                                      return 'رقم الهاتف يجب أن يكون 8 أرقام';
+                                      return 'required_field'.tr();
                                     }
                                     return null;
                                   },
@@ -207,8 +210,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                                 // Email Field (Optional)
                                 _buildTextField(
                                   controller: _emailController,
-                                  label: 'البريد الإلكتروني (اختياري)',
-                                  hint: 'أدخل بريدك الإلكتروني',
+                                  label: 'email'.tr(),
+                                  hint: 'email'.tr(),
                                   icon: Icons.email_outlined,
                                   keyboardType: TextInputType.emailAddress,
                                   isOptional: true,
@@ -216,7 +219,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                     if (value != null && value.isNotEmpty) {
                                       if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                                           .hasMatch(value)) {
-                                        return 'يرجى إدخال بريد إلكتروني صحيح';
+                                        return 'invalid_email'.tr();
                                       }
                                     }
                                     return null;
@@ -227,16 +230,16 @@ class _RegisterScreenState extends State<RegisterScreen>
                                 // Password Field
                                 _buildTextField(
                                   controller: _passwordController,
-                                  label: 'كلمة المرور *',
-                                  hint: 'أدخل كلمة المرور',
+                                  label: 'password'.tr(),
+                                  hint: 'password'.tr(),
                                   icon: Icons.lock_outline,
                                   isPassword: true,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'يرجى إدخال كلمة المرور';
+                                      return 'required_field'.tr();
                                     }
                                     if (value.length < 6) {
-                                      return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+                                      return 'password_too_short'.tr();
                                     }
                                     return null;
                                   },
@@ -246,17 +249,17 @@ class _RegisterScreenState extends State<RegisterScreen>
                                 // Confirm Password Field
                                 _buildTextField(
                                   controller: _confirmPasswordController,
-                                  label: 'تأكيد كلمة المرور *',
-                                  hint: 'أعد إدخال كلمة المرور',
+                                  label: 'confirm_password'.tr(),
+                                  hint: 'confirm_password'.tr(),
                                   icon: Icons.lock_outline,
                                   isPassword: true,
                                   isConfirmPassword: true,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'يرجى تأكيد كلمة المرور';
+                                      return 'required_field'.tr();
                                     }
                                     if (value != _passwordController.text) {
-                                      return 'كلمة المرور غير متطابقة';
+                                      return 'passwords_do_not_match'.tr();
                                     }
                                     return null;
                                   },
@@ -280,7 +283,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                     ),
                                     Expanded(
                                       child: Text(
-                                        'أوافق على الشروط والأحكام وسياسة الخصوصية',
+                                        'terms_conditions'.tr(),
                                         style: AppTextStyles.bodyMedium.copyWith(
                                           fontSize: 13,
                                         ),
@@ -306,7 +309,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                     Padding(
                                       padding: const EdgeInsets.symmetric(horizontal: 16),
                                       child: Text(
-                                        'أو',
+                                        'or'.tr(),
                                         style: AppTextStyles.bodyMedium.copyWith(
                                           color: AppColors.textSecondary,
                                         ),
@@ -505,7 +508,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                   ),
                 const SizedBox(width: 12),
                 Text(
-                  _isLoading ? 'جاري إنشاء الحساب...' : 'إنشاء الحساب',
+                  _isLoading ? 'loading'.tr() : 'register'.tr(),
                   style: AppTextStyles.buttonLarge.copyWith(
                     color: AppColors.surface,
                   ),
@@ -543,7 +546,12 @@ class _RegisterScreenState extends State<RegisterScreen>
           borderRadius: BorderRadius.circular(16),
           onTap: () {
             HapticFeedback.lightImpact();
-            Navigator.pop(context);
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const LoginScreen(),
+              ),
+            );
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -557,7 +565,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'لديك حساب؟ تسجيل الدخول',
+                  'already_have_account'.tr(),
                   style: AppTextStyles.buttonLarge.copyWith(
                     color: AppColors.primary,
                   ),
@@ -575,7 +583,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'يرجى الموافقة على الشروط والأحكام',
+            'required_field'.tr(),
             style: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.surface,
             ),
@@ -616,7 +624,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'تم إنشاء الحساب بنجاح!',
+                'registration_successful'.tr(),
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: AppColors.surface,
                 ),

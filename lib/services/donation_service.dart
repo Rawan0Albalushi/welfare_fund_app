@@ -25,11 +25,11 @@ class DonationService {
   // الأجهزة الفعلية استخدمي IP الشبكة (مثال: 192.168.1.101)
   static String _resolveFallbackBase() {
     try {
-      if (Platform.isAndroid) return 'http://192.168.1.21:8000/api/v1';
-      if (Platform.isIOS) return 'http://192.168.1.21:8000/api/v1';
+      if (Platform.isAndroid) return 'http://192.168.1.101:8000/api/v1';
+      if (Platform.isIOS) return 'http://192.168.1.101:8000/api/v1';
     } catch (_) {}
     // Fallback عام (غيّريه لعنوان جهازك على الشبكة)
-    return 'http://192.168.1.21:8000/api/v1';
+    return 'http://192.168.1.101:8000/api/v1';
   }
 
   String get _apiBase {
@@ -95,13 +95,16 @@ class DonationService {
       };
 
       final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}/donations/with-payment');
-      final response = await http.post(uri, headers: headers, body: jsonEncode(payload));
-
       // Debug:
       print('DonationService: Creating donation with payment...');
       print('DonationService: Request URL: $uri');
+      print('DonationService: Request headers: $headers');
       print('DonationService: Request payload: $payload');
+      
+      final response = await http.post(uri, headers: headers, body: jsonEncode(payload));
+      
       print('DonationService: Response status: ${response.statusCode}');
+      print('DonationService: Response headers: ${response.headers}');
       print('DonationService: Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -136,8 +139,9 @@ class DonationService {
       } else {
         throw Exception('حدث خطأ في إنشاء التبرع. يرجى المحاولة مرة أخرى.');
       }
-    } catch (e) {
-      // print('DonationService: Error creating donation with payment: $e');
+    } catch (e, stackTrace) {
+      print('DonationService: Error creating donation with payment: $e');
+      print('DonationService: Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -349,7 +353,58 @@ class DonationService {
     }
   }
 
-  // ===== ENDPOINT 4: Get user donations =====
+  // ===== ENDPOINT 4: Get recent donations =====
+  /// GET /api/v1/donations/recent?limit=5
+  /// Get the last 5 donations from the API
+  Future<List<Donation>> getRecentDonations({int limit = 5}) async {
+    try {
+      await _apiClient.initialize();
+      final token = await _apiClient.getAuthToken();
+
+      print('DonationService: Getting recent donations with limit: $limit');
+      print('DonationService: Token exists: ${token != null}');
+
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      if (token != null) headers['Authorization'] = 'Bearer $token';
+
+      // Build query parameters
+      final queryParams = <String, String>{
+        'limit': limit.toString(),
+      };
+      
+      final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}/donations/recent')
+          .replace(queryParameters: queryParams);
+      print('DonationService: Fetching recent donations from: $uri');
+      
+      final response = await http.get(uri, headers: headers);
+      print('DonationService: Response status: ${response.statusCode}');
+      print('DonationService: Response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final donations = _parseDonationsResponse(response.body);
+        print('DonationService: Successfully parsed ${donations.length} recent donations');
+        return donations;
+      } else if (response.statusCode == 401) {
+        print('DonationService: Unauthorized - user not authenticated');
+        return []; // Return empty list for unauthenticated users
+      } else if (response.statusCode == 404) {
+        print('DonationService: Recent donations endpoint not found');
+        return []; // Return empty list if endpoint doesn't exist
+      } else {
+        print('DonationService: Error fetching recent donations: HTTP ${response.statusCode}');
+        print('DonationService: Error response: ${response.body}');
+        return []; // Return empty list on error
+      }
+    } catch (e) {
+      print('DonationService: Error fetching recent donations: $e');
+      return []; // Return empty list on error
+    }
+  }
+
+  // ===== ENDPOINT 5: Get user donations =====
   /// Try multiple possible endpoints to get user donations
   /// 1. GET /api/v1/donations/recent (most likely to work)
   /// 2. GET /api/v1/me/donations (if exists)

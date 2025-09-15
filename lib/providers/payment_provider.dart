@@ -83,7 +83,18 @@ class PaymentProvider extends ChangeNotifier {
       print('PaymentProvider: Creating donation with payment for $finalItemType: $finalItemId, amount: $amount');
 
       // الحصول على origin للمنصة الويب
-      final origin = Uri.base.origin;
+      String origin;
+      try {
+        origin = Uri.base.origin;
+        // إذا كان origin غير صالح (مثل file:/// على Android)، استخدم fallback
+        if (!origin.startsWith('http://') && !origin.startsWith('https://')) {
+          origin = 'http://192.168.1.101:8000'; // Fallback للمنصات المحمولة
+        }
+      } catch (e) {
+        origin = 'http://192.168.1.101:8000'; // Fallback في حالة الخطأ
+      }
+      
+      print('PaymentProvider: Using origin: $origin');
       
       final result = await _donationService.createDonationWithPayment(
         itemId: finalItemId,
@@ -116,7 +127,9 @@ class PaymentProvider extends ChangeNotifier {
         _state = PaymentState.paymentFailed;
         notifyListeners();
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('PaymentProvider: Error in initiateDonationWithPayment: $e');
+      print('PaymentProvider: Stack trace: $stackTrace');
       _errorMessage = 'حدث خطأ في إنشاء التبرع: $e';
       _state = PaymentState.paymentFailed;
       notifyListeners();

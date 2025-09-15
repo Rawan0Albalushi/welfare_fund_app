@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../services/auth_service.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/language_switcher.dart';
 import 'login_screen.dart' as login;
 import 'edit_profile_screen.dart';
 
@@ -85,11 +87,14 @@ class _SettingsScreenState extends State<SettingsScreen>
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
-              'الإعدادات',
+              'settings'.tr(),
               style: AppTextStyles.headlineMedium.copyWith(
                 color: AppColors.textPrimary,
               ),
             ),
+            actions: const [
+              LanguageSwitcher(),
+            ],
             centerTitle: true,
           ),
           body: SafeArea(
@@ -133,8 +138,14 @@ class _SettingsScreenState extends State<SettingsScreen>
         _buildLoginButton(),
         const SizedBox(height: 20),
         
+        // Language Settings
+        _buildSectionTitle('language_settings'.tr()),
+        const SizedBox(height: 15),
+        _buildLanguageSettingsCard(),
+        const SizedBox(height: 25),
+        
         // Support Section
-        _buildSectionTitle('الدعم والمساعدة'),
+        _buildSectionTitle('support_help'.tr()),
         const SizedBox(height: 15),
         _buildSupportCard(),
         const SizedBox(height: 25),
@@ -154,15 +165,19 @@ class _SettingsScreenState extends State<SettingsScreen>
         const SizedBox(height: 30),
         
         // Account Settings
-        _buildSectionTitle('إعدادات الحساب'),
+        _buildSectionTitle('account_settings'.tr()),
         const SizedBox(height: 15),
         _buildAccountSettingsCard(userProfile),
         const SizedBox(height: 25),
         
-
+        // Language Settings
+        _buildSectionTitle('language_settings'.tr()),
+        const SizedBox(height: 15),
+        _buildLanguageSettingsCard(),
+        const SizedBox(height: 25),
         
         // Support Section
-        _buildSectionTitle('الدعم والمساعدة'),
+        _buildSectionTitle('support_help'.tr()),
         const SizedBox(height: 15),
         _buildSupportCard(),
         const SizedBox(height: 25),
@@ -217,7 +232,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           const SizedBox(height: 20),
           
           Text(
-            'مرحباً بك',
+            'welcome'.tr(),
             style: AppTextStyles.headlineMedium.copyWith(
               color: AppColors.surface,
               fontWeight: FontWeight.bold,
@@ -227,7 +242,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           const SizedBox(height: 8),
           
           Text(
-            'أنت تصنع الفارق',
+            'make_difference'.tr(),
             style: AppTextStyles.titleLarge.copyWith(
               color: AppColors.surface.withOpacity(0.9),
               fontWeight: FontWeight.w600,
@@ -237,7 +252,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           const SizedBox(height: 12),
           
           Text(
-            'قم بالتسجيل الدخول لتتبع التبرعات، واستكشاف المزيد من الميزات الرائعة',
+            'login_to_view_donations'.tr(),
             style: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.surface.withOpacity(0.8),
               height: 1.4,
@@ -252,7 +267,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   Widget _buildAuthenticatedProfileSection(Map<String, dynamic>? userProfile) {
     print('SettingsScreen: Building profile section with userProfile: $userProfile');
     
-    final userName = userProfile?['name'] ?? userProfile?['user']?['name'] ?? 'المستخدم';
+    final userName = userProfile?['name'] ?? userProfile?['user']?['name'] ?? 'user'.tr();
     final userEmail = userProfile?['email'] ?? userProfile?['user']?['email'] ?? '';
     final userPhone = userProfile?['phone'] ?? userProfile?['user']?['phone'] ?? '';
     
@@ -338,7 +353,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'مستخدم نشط',
+                    'active_user'.tr(),
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.surface,
                       fontWeight: FontWeight.w500,
@@ -396,8 +411,8 @@ class _SettingsScreenState extends State<SettingsScreen>
         children: [
           _buildSettingsTile(
             icon: Icons.person_outline,
-            title: 'تعديل الملف الشخصي',
-            subtitle: 'تحديث معلوماتك الشخصية',
+            title: 'edit_profile'.tr(),
+            subtitle: 'edit_profile'.tr(),
             onTap: () async {
               final result = await Navigator.push(
                 context,
@@ -417,8 +432,8 @@ class _SettingsScreenState extends State<SettingsScreen>
           _buildDivider(),
           _buildSettingsTile(
             icon: Icons.security,
-            title: 'الأمان والخصوصية',
-            subtitle: 'إعدادات الأمان والخصوصية',
+            title: 'security_privacy'.tr(),
+            subtitle: 'security_privacy'.tr(),
             onTap: () {
               // Navigate to security settings
             },
@@ -426,8 +441,8 @@ class _SettingsScreenState extends State<SettingsScreen>
           _buildDivider(),
           _buildSettingsTile(
             icon: Icons.history,
-            title: 'سجل التبرعات',
-            subtitle: 'عرض جميع تبرعاتك السابقة',
+            title: 'donation_history'.tr(),
+            subtitle: 'donation_history'.tr(),
             onTap: () {
               // Navigate to donation history
             },
@@ -456,8 +471,8 @@ class _SettingsScreenState extends State<SettingsScreen>
         children: [
           _buildSettingsTile(
             icon: Icons.help_outline,
-            title: 'مركز المساعدة',
-            subtitle: 'الأسئلة الشائعة والدعم',
+            title: 'help_center'.tr(),
+            subtitle: 'faq_support'.tr(),
             onTap: () {
               // Navigate to help center
             },
@@ -465,8 +480,8 @@ class _SettingsScreenState extends State<SettingsScreen>
           _buildDivider(),
           _buildSettingsTile(
             icon: Icons.contact_support_outlined,
-            title: 'تواصل معنا',
-            subtitle: 'راسل فريق الدعم',
+            title: 'contact_us'.tr(),
+            subtitle: 'message_support_team'.tr(),
             onTap: () {
               // Navigate to contact us
             },
@@ -474,8 +489,8 @@ class _SettingsScreenState extends State<SettingsScreen>
           _buildDivider(),
           _buildSettingsTile(
             icon: Icons.info_outline,
-            title: 'حول التطبيق',
-            subtitle: 'معلومات التطبيق والإصدار',
+            title: 'about_app'.tr(),
+            subtitle: 'app_info_version'.tr(),
             onTap: () {
               // Navigate to about
             },
@@ -483,8 +498,8 @@ class _SettingsScreenState extends State<SettingsScreen>
           _buildDivider(),
           _buildSettingsTile(
             icon: Icons.privacy_tip_outlined,
-            title: 'سياسة الخصوصية',
-            subtitle: 'قراءة سياسة الخصوصية',
+            title: 'privacy_policy'.tr(),
+            subtitle: 'read_privacy_policy'.tr(),
             onTap: () {
               // Navigate to privacy policy
             },
@@ -562,7 +577,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   Widget _buildFollowUsSection() {
     return Column(
       children: [
-        _buildSectionTitle('تابعنا'),
+        _buildSectionTitle('follow_us'.tr()),
         const SizedBox(height: 15),
         Container(
           decoration: BoxDecoration(
@@ -582,7 +597,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'تابعنا',
+                        'follow_us'.tr(),
                         style: AppTextStyles.titleMedium.copyWith(
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
@@ -590,7 +605,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'كن على تواصل معنا',
+                        'stay_connected'.tr(),
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -755,7 +770,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'تسجيل الدخول',
+                  'login'.tr(),
                   style: AppTextStyles.buttonLarge.copyWith(
                     color: AppColors.surface,
                     fontWeight: FontWeight.bold,
@@ -808,7 +823,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'تسجيل الخروج',
+                  'logout'.tr(),
                   style: AppTextStyles.buttonLarge.copyWith(
                     color: AppColors.error,
                     fontWeight: FontWeight.bold,
@@ -846,7 +861,7 @@ class _SettingsScreenState extends State<SettingsScreen>
               ),
               const SizedBox(width: 16),
               Text(
-                'تسجيل الخروج',
+                'logout'.tr(),
                 style: AppTextStyles.headlineSmall.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -854,7 +869,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             ],
           ),
           content: Text(
-            'هل أنت متأكد من رغبتك في تسجيل الخروج؟',
+            'logout_confirmation'.tr(),
             style: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -863,7 +878,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
-                'إلغاء',
+                'cancel'.tr(),
                 style: AppTextStyles.buttonMedium.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -886,7 +901,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
               ),
               child: Text(
-                'تأكيد',
+                'confirm'.tr(),
                 style: AppTextStyles.buttonMedium.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -928,7 +943,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'جاري تسجيل الخروج...',
+                  'logging_out'.tr(),
                   style: AppTextStyles.headlineSmall.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -951,7 +966,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'تم تسجيل الخروج بنجاح',
+              'logout_successful'.tr(),
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.surface,
               ),
@@ -980,7 +995,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'حدث خطأ أثناء تسجيل الخروج: ${error.toString()}',
+              '${'logout_error'.tr()}: ${error.toString()}',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.surface,
               ),
@@ -994,5 +1009,207 @@ class _SettingsScreenState extends State<SettingsScreen>
         );
       }
     }
+  }
+
+  Widget _buildLanguageSettingsCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.textTertiary.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildLanguageTile(
+            icon: Icons.language,
+            title: 'choose_language'.tr(),
+            subtitle: 'current_language'.tr(),
+            currentLocale: context.locale,
+            onTap: () {
+              _showLanguageDialog();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Locale currentLocale,
+    required VoidCallback onTap,
+  }) {
+    String currentLanguage = currentLocale.languageCode == 'ar' 
+        ? 'arabic'.tr() 
+        : 'english'.tr();
+    
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Icon(
+                icon,
+                color: AppColors.primary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTextStyles.titleMedium.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$subtitle: $currentLanguage',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: AppColors.textTertiary,
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'choose_language'.tr(),
+            style: AppTextStyles.titleLarge.copyWith(
+              color: AppColors.textPrimary,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildLanguageOption(
+                context: context,
+                locale: const Locale('ar'),
+                languageName: 'arabic'.tr(),
+                flag: '🇸🇦',
+              ),
+              const SizedBox(height: 12),
+              _buildLanguageOption(
+                context: context,
+                locale: const Locale('en'),
+                languageName: 'english'.tr(),
+                flag: '🇺🇸',
+              ),
+            ],
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLanguageOption({
+    required BuildContext context,
+    required Locale locale,
+    required String languageName,
+    required String flag,
+  }) {
+    bool isSelected = context.locale.languageCode == locale.languageCode;
+    
+    return InkWell(
+      onTap: () {
+        context.setLocale(locale);
+        Navigator.of(context).pop();
+        
+        // Force rebuild of the entire app
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          // This will trigger a rebuild of the entire app
+          if (context.mounted) {
+            // Navigate to home to refresh the entire app
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/',
+              (route) => false,
+            );
+          }
+        });
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? AppColors.primary.withOpacity(0.1)
+              : AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected 
+                ? AppColors.primary
+                : AppColors.textTertiary.withOpacity(0.2),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Text(
+              flag,
+              style: const TextStyle(fontSize: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                languageName,
+                style: AppTextStyles.titleMedium.copyWith(
+                  color: isSelected 
+                      ? AppColors.primary
+                      : AppColors.textPrimary,
+                  fontWeight: isSelected 
+                      ? FontWeight.w600
+                      : FontWeight.normal,
+                ),
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle,
+                color: AppColors.primary,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
