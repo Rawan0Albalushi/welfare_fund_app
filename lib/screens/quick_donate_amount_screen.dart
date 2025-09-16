@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../services/campaign_service.dart';
-import 'quick_donate_payment_screen.dart';
+import 'checkout_webview.dart';
+import 'donation_success_screen.dart';
 
 class QuickDonateAmountScreen extends StatefulWidget {
   const QuickDonateAmountScreen({super.key});
@@ -18,6 +24,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
   final TextEditingController _customAmountController = TextEditingController();
   bool _isCustomAmount = false;
   String? _selectedCategory;
+  bool _isLoading = false;
 
   List<double> _presetAmounts = [25.0, 50.0, 100.0, 200.0, 500.0, 1000.0];
   List<Map<String, dynamic>> _categories = [];
@@ -187,13 +194,226 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       return;
     }
 
-    Navigator.push(
+    _processPayment();
+  }
+
+  Future<void> _processPayment() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // ✅ احصل على التوكن (اختياري)
+      final token = await _getAuthToken();
+      
+      // الحصول على origin للمنصة الويب
+      final origin = kIsWeb ? Uri.base.origin : 'http://192.168.1.101:8000';
+      
+      // الحصول على campaign_id من الفئة المختارة
+      final campaignId = _getCampaignIdFromCategory();
+      
+      // إعداد headers
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+      
+      // إضافة Authorization header فقط إذا كان المستخدم مسجل دخول
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+        print('QuickDonate: Using authenticated request with token');
+      } else {
+        print('QuickDonate: Using anonymous donation request');
+      }
+      
+      // 1) استدعاء POST /api/v1/donations/with-payment مع return_origin
+      final response = await http.post(
+        Uri.parse('http://192.168.1.101:8000/api/v1/donations/with-payment'),
+        headers: headers,
+        body: jsonEncode({
+          'campaign_id': campaignId,
+          'amount': _selectedAmount,
+          'donor_name': 'متبرع',
+          'note': 'تبرع سريع للطلاب المحتاجين',
+          'is_anonymous': false,
+          'type': 'quick',
+          'return_origin': origin,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        print('✅ Quick donation response: $data');
+        
+        // استخراج البيانات من الاستجابة
+        final sessionId = data['data']?['payment_session']?['session_id'] ?? 
+                         data['session_id'] ?? 
+                         data['data']?['session_id'];
+        final checkoutUrl = data['data']?['payment_session']?['payment_url'] ?? 
+                           data['data']?['payment_url'] ?? 
+                           data['checkout_url'] ?? 
+                           data['payment_url'];
+        
+        print('✅ Payment session created: sessionId=$sessionId, checkoutUrl=$checkoutUrl');
+        
+        // التحقق من وجود البيانات المطلوبة
+        if (sessionId == null || checkoutUrl == null) {
+          throw Exception('Missing payment session data: sessionId=$sessionId, checkoutUrl=$checkoutUrl');
+        }
+        
+        // 2) فتح checkout مباشرة في نفس التبويب للمنصة الويب
+        if (kIsWeb) {
+          await launchUrlString(
+            checkoutUrl,
+            webOnlyWindowName: '_self', // نفس التبويب
+          );
+          
+          // إظهار رسالة للمستخدم
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('payment_page_opened'.tr()),
+              backgroundColor: AppColors.info,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          
+          // الانتظار قليلاً ثم التحقق من حالة الدفع
+          await Future.delayed(const Duration(seconds: 5));
+          await _confirmPayment(sessionId);
+        } else {
+          // للمنصات المحمولة، استخدم CheckoutWebView
+          _openCheckoutWebView(checkoutUrl, sessionId);
+        }
+      } else {
+        final errorData = jsonDecode(response.body);
+        final errorMessage = errorData['message'] ?? 'فشل في إنشاء جلسة الدفع';
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      print('❌ Error: $e');
+      _showErrorSnackBar('خطأ في إنشاء التبرع: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  int _getCampaignIdFromCategory() {
+    // إذا كانت الفئة المختارة موجودة في القائمة، استخدم أول حملة من الفئة
+    if (_selectedCategory != null) {
+      final category = _categories.firstWhere(
+        (cat) => cat['id'] == _selectedCategory,
+        orElse: () => {'campaigns': []}, // fallback
+      );
+      
+      final campaigns = category['campaigns'] as List<Map<String, dynamic>>?;
+      if (campaigns != null && campaigns.isNotEmpty) {
+        return int.tryParse(campaigns.first['id'].toString()) ?? 1;
+      }
+    }
+    return 1; // fallback campaign ID
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  // احصل على التوكن من التخزين المحلي
+  Future<String?> _getAuthToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
+  }
+
+  // فتح CheckoutWebView للدفع
+  void _openCheckoutWebView(String checkoutUrl, String sessionId) async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => QuickDonatePaymentScreen(
+        builder: (context) => CheckoutWebView(
+          checkoutUrl: checkoutUrl,
+          successUrl: 'http://192.168.1.101:8000/api/v1/payments/success',
+          cancelUrl: 'http://192.168.1.101:8000/api/v1/payments/cancel',
+        ),
+      ),
+    );
+
+    // معالجة النتائج
+    if (result != null) {
+      if (result['status'] == 'success') {
+        // 3) إذا رجع result.status == 'success' ناد POST /api/v1/payments/confirm
+        await _confirmPayment(sessionId);
+      } else if (result['status'] == 'cancel') {
+        // 4) إذا رجع 'cancel' اعرض رسالة إلغاء فقط
+        _showCancelMessage();
+      }
+    }
+  }
+
+  // تأكيد الدفع
+  Future<void> _confirmPayment(String sessionId) async {
+    try {
+      final token = await _getAuthToken();
+      
+      // إعداد headers
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+      
+      // إضافة Authorization header فقط إذا كان المستخدم مسجل دخول
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      
+      final response = await http.post(
+        Uri.parse('http://192.168.1.101:8000/api/v1/payments/confirm'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // اعرض شاشة "نجاح التبرّع"
+        _showDonationSuccess();
+      } else {
+        throw Exception('payment_failed'.tr());
+      }
+    } catch (e) {
+      print('❌ Error confirming payment: $e');
+      _showErrorSnackBar('error_occurred'.tr());
+    }
+  }
+
+  // عرض رسالة الإلغاء
+  void _showCancelMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('payment_cancelled'.tr()),
+        backgroundColor: Colors.orange,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  // عرض شاشة نجاح التبرع
+  void _showDonationSuccess() {
+    final categoryTitle = _selectedCategory != null
+        ? _categories.firstWhere((cat) => cat['id'] == _selectedCategory)['title']
+        : 'تبرع سريع';
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DonationSuccessScreen(
           amount: _selectedAmount,
-          selectedCategory: _selectedCategory,
-          categories: _categories,
+          campaignTitle: categoryTitle,
+          campaignCategory: categoryTitle,
         ),
       ),
     );
@@ -459,10 +679,10 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.0,
+              crossAxisCount: 3,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 0.85,
               children: _categories.map((category) => _buildCategoryCard(
                 category: category,
                 isSelected: _selectedCategory == category['id'],
@@ -475,47 +695,49 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
             // Note about automatic allocation
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(AppConstants.largePadding),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: AppColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.primary.withOpacity(0.2),
+                  color: AppColors.primary.withOpacity(0.15),
                   width: 1,
                 ),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Icon(
                       Icons.info_outline,
                       color: AppColors.primary,
-                      size: 20,
+                      size: 16,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'important_note'.tr(),
-                          style: AppTextStyles.titleMedium.copyWith(
+                          style: AppTextStyles.titleSmall.copyWith(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.w600,
+                            fontSize: 13,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
                           'donation_redirect_note'.tr(),
-                          style: AppTextStyles.bodyMedium.copyWith(
+                          style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.textSecondary,
-                            height: 1.4,
+                            height: 1.3,
+                            fontSize: 11,
                           ),
                         ),
                       ],
@@ -532,11 +754,11 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: (_selectedAmount > 0 && _selectedCategory != null) 
+                onPressed: (_selectedAmount > 0 && _selectedCategory != null && !_isLoading) 
                     ? _onContinue 
                     : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: (_selectedAmount > 0 && _selectedCategory != null)
+                  backgroundColor: (_selectedAmount > 0 && _selectedCategory != null && !_isLoading)
                       ? AppColors.primary
                       : AppColors.textSecondary.withOpacity(0.3),
                   foregroundColor: AppColors.surface,
@@ -546,22 +768,44 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                   ),
                   shadowColor: AppColors.primary.withOpacity(0.3),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.arrow_forward_ios, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      (_selectedAmount > 0 && _selectedCategory != null)
-                          ? 'proceed_to_payment'.tr()
-                          : 'choose_amount_category'.tr(),
-                      style: AppTextStyles.buttonLarge.copyWith(
-                        color: AppColors.surface,
-                        fontWeight: FontWeight.w600,
+                child: _isLoading
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'processing_payment'.tr(),
+                            style: AppTextStyles.buttonLarge.copyWith(
+                              color: AppColors.surface,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.payment, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            (_selectedAmount > 0 && _selectedCategory != null)
+                                ? 'proceed_to_payment'.tr()
+                                : 'choose_amount_category'.tr(),
+                            style: AppTextStyles.buttonLarge.copyWith(
+                              color: AppColors.surface,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
             ),
           ],
@@ -584,69 +828,68 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          color: isSelected ? color.withOpacity(0.15) : AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : color.withOpacity(0.2),
+            color: isSelected ? color : color.withOpacity(0.15),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
               color: isSelected 
-                  ? color.withOpacity(0.2)
-                  : color.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+                  ? color.withOpacity(0.25)
+                  : AppColors.textPrimary.withOpacity(0.08),
+              blurRadius: isSelected ? 12 : 6,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
-                 child: Padding(
-           padding: const EdgeInsets.all(10),
-           child: Column(
-             mainAxisAlignment: MainAxisAlignment.center,
-             children: [
-               Container(
-                 padding: const EdgeInsets.all(6),
-                 decoration: BoxDecoration(
-                   color: isSelected 
-                       ? color.withOpacity(0.2)
-                       : color.withOpacity(0.1),
-                   borderRadius: BorderRadius.circular(8),
-                 ),
-                 child: Icon(
-                   icon,
-                   color: color,
-                   size: 18,
-                 ),
-               ),
-               const SizedBox(height: 6),
-               Text(
-                 title,
-                 style: AppTextStyles.titleSmall.copyWith(
-                   color: AppColors.textPrimary,
-                   fontWeight: FontWeight.w600,
-                   fontSize: 12,
-                 ),
-                 textAlign: TextAlign.center,
-                 maxLines: 1,
-                 overflow: TextOverflow.ellipsis,
-               ),
-               const SizedBox(height: 2),
-               Text(
-                 description,
-                 style: AppTextStyles.bodySmall.copyWith(
-                   color: AppColors.textSecondary,
-                   height: 1.0,
-                   fontSize: 9,
-                 ),
-                 textAlign: TextAlign.center,
-                 maxLines: 2,
-                 overflow: TextOverflow.ellipsis,
-               ),
-               
-             ],
-           ),
-         ),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? color.withOpacity(0.2)
+                      : color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                style: AppTextStyles.titleSmall.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                  height: 1.1,
+                  fontSize: 8,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

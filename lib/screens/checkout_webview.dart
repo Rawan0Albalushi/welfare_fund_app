@@ -242,38 +242,6 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
                 ),
               ),
             ),
-          // Help message overlay
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'يمكنك إلغاء العملية بالضغط على X',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.surface.withOpacity(0.8),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );

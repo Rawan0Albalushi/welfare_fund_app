@@ -1053,6 +1053,10 @@ class _HomeScreenState extends State<HomeScreen> {
             width: double.infinity,
             decoration: BoxDecoration(
               gradient: AppColors.modernGradient,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.primary.withOpacity(0.2),
