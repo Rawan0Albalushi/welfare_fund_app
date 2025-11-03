@@ -140,6 +140,28 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     });
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh program names when locale changes
+    _refreshProgramNamesForCurrentLocale();
+  }
+
+  void _refreshProgramNamesForCurrentLocale() {
+    if (_programs.isNotEmpty && _selectedProgramId != null) {
+      setState(() {
+        // Update the selected program name in the controller
+        final selectedProgram = _programs.firstWhere(
+          (program) => program['id']?.toString() == _selectedProgramId,
+          orElse: () => {},
+        );
+        if (selectedProgram.isNotEmpty) {
+          _programController.text = StudentRegistrationService.getLocalizedProgramName(selectedProgram, context.locale.languageCode);
+        }
+      });
+    }
+  }
+
   void _loadExistingData() {
     final data = widget.existingData!;
     
@@ -736,7 +758,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         if (_selectedProgramId == null && validPrograms.isNotEmpty) {
           setState(() {
             _selectedProgramId = validPrograms.first['id']?.toString();
-            _programController.text = validPrograms.first['name'] ?? '';
+            _programController.text = StudentRegistrationService.getLocalizedProgramName(validPrograms.first, context.locale.languageCode);
           });
           print('StudentRegistrationScreen: Auto-selected first program: ${validPrograms.first['name']}');
         }
@@ -1964,7 +1986,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                   return DropdownMenuItem<String>(
                     value: program['id']?.toString(),
                     child: Text(
-                      program['name'] ?? 'برنامج غير محدد',
+                      StudentRegistrationService.getLocalizedProgramName(program, context.locale.languageCode),
                       style: AppTextStyles.bodyMedium,
                     ),
                   );
@@ -1978,7 +2000,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                       (program) => program['id']?.toString() == value,
                       orElse: () => {},
                     );
-                    _programController.text = selectedProgram['name'] ?? '';
+                    _programController.text = StudentRegistrationService.getLocalizedProgramName(selectedProgram, context.locale.languageCode);
                   } else {
                     _programController.text = '';
                   }
@@ -2037,7 +2059,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       return 'برنامج غير محدد';
     }
     
-    final programName = selectedProgram['name'] ?? 'برنامج غير محدد';
+    final programName = StudentRegistrationService.getLocalizedProgramName(selectedProgram, context.locale.languageCode);
     print('StudentRegistrationScreen: Selected program name: $programName');
     return programName;
   }

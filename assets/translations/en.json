@@ -442,5 +442,12 @@
   "housing_transport": "Housing & Transport",
   "device_purchase": "Device Purchase",
   "choose_donation_category": "Choose Donation Category",
-  "loading_categories": "Loading categories..."
+  "loading_categories": "Loading categories...",
+  
+  "category_education_opportunities": "Education Opportunities",
+  "category_housing_transport": "Housing & Transport",
+  "category_device_purchase": "Device Purchase",
+  "category_exams": "Exams",
+  "category_emergency_support": "Emergency Support",
+  "category_general_support": "General Support"
 }

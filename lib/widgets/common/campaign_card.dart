@@ -84,7 +84,7 @@ class CampaignCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          campaign.category,
+                          _getLocalizedCategoryName(campaign.category),
                           style: AppTextStyles.bodySmall.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -94,7 +94,7 @@ class CampaignCard extends StatelessWidget {
                       const SizedBox(height: 8),
                       // Title
                       Text(
-                        campaign.title,
+                        campaign.getLocalizedTitle(context.locale.languageCode),
                         style: AppTextStyles.titleMedium.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -196,21 +196,60 @@ class CampaignCard extends StatelessWidget {
     );
   }
 
+  String _getLocalizedCategoryName(String category) {
+    // Try to get localized category name using translation keys
+    
+    // Map category names to translation keys
+    final categoryMap = {
+      'فرص تعليمية': 'category_education_opportunities',
+      'فرص التعليم': 'category_education_opportunities',
+      'Education Opportunities': 'category_education_opportunities',
+      'السكن والنقل': 'category_housing_transport',
+      'Housing & Transport': 'category_housing_transport',
+      'شراء الأجهزة': 'category_device_purchase',
+      'Device Purchase': 'category_device_purchase',
+      'شراء أجهزة': 'category_device_purchase',
+      'الامتحانات': 'category_exams',
+      'Exams': 'category_exams',
+      'الإعانة الشهرية': 'category_emergency_support',
+      'Emergency Support': 'category_emergency_support',
+      'رسوم الاختبارات': 'category_exams',
+      'الدعم الطارئ': 'category_emergency_support',
+    };
+    
+    final translationKey = categoryMap[category];
+    if (translationKey != null) {
+      return translationKey.tr();
+    }
+    
+    // If no translation key found, return the category as is
+    return category;
+  }
+
   String _getCampaignImage(String category) {
     switch (category) {
       case 'فرص التعليم':
+      case 'فرص تعليمية':
+      case 'Education Opportunities':
         // صورة للتعليم
         return 'https://images.pexels.com/photos/8613318/pexels-photo-8613318.jpeg?auto=compress&cs=tinysrgb&w=800';
       case 'السكن والنقل':
+      case 'Housing & Transport':
         // صورة للسكن أو وسائل النقل
         return 'https://images.pexels.com/photos/271816/pexels-photo-271816.jpeg?auto=compress&cs=tinysrgb&w=800';
       case 'الإعانة الشهرية':
+      case 'Emergency Support':
+      case 'الدعم الطارئ':
         // صورة لمساعدة مالية شهرية
         return 'https://images.pexels.com/photos/4386375/pexels-photo-4386375.jpeg?auto=compress&cs=tinysrgb&w=800';
       case 'شراء أجهزة':
+      case 'شراء الأجهزة':
+      case 'Device Purchase':
         // صورة لأجهزة إلكترونية أو كمبيوتر
         return 'https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg?auto=compress&cs=tinysrgb&w=800';
       case 'رسوم الاختبارات':
+      case 'الامتحانات':
+      case 'Exams':
         // صورة لامتحانات أو أوراق اختبار
         return 'https://images.pexels.com/photos/4145195/pexels-photo-4145195.jpeg?auto=compress&cs=tinysrgb&w=800';
       default:

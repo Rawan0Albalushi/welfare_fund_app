@@ -404,5 +404,12 @@
   "device_purchase": "شراء الأجهزة",
   "choose_donation_category": "اختر فئة التبرع",
   "loading_categories": "جاري تحميل الفئات...",
-  "help_achieve_hope": "ساعد في تحقيق الأمل"
+  "help_achieve_hope": "ساعد في تحقيق الأمل",
+  
+  "category_education_opportunities": "فرص تعليمية",
+  "category_housing_transport": "السكن والنقل",
+  "category_device_purchase": "شراء الأجهزة",
+  "category_exams": "الامتحانات",
+  "category_emergency_support": "الدعم الطارئ",
+  "category_general_support": "الدعم العام"
 }

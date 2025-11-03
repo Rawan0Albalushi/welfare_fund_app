@@ -88,10 +88,10 @@ class PaymentProvider extends ChangeNotifier {
         origin = Uri.base.origin;
         // إذا كان origin غير صالح (مثل file:/// على Android)، استخدم fallback
         if (!origin.startsWith('http://') && !origin.startsWith('https://')) {
-          origin = 'http://192.168.1.101:8000'; // Fallback للمنصات المحمولة
+          origin = 'http://localhost:8000'; // Fallback للمنصات المحمولة
         }
       } catch (e) {
-        origin = 'http://192.168.1.101:8000'; // Fallback في حالة الخطأ
+        origin = 'http://localhost:8000'; // Fallback في حالة الخطأ
       }
       
       print('PaymentProvider: Using origin: $origin');

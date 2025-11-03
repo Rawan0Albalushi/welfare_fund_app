@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
+import '../utils/category_utils.dart';
 import 'gift_donation_details_screen.dart';
 
 class GiftDonationScreen extends StatefulWidget {
@@ -24,14 +25,21 @@ class _GiftDonationScreenState extends State<GiftDonationScreen> {
   String? _selectedCategory;
   String? _selectedProgram;
 
-  final List<Map<String, dynamic>> _categories = [
-    {'id': '1', 'title': 'التعليم', 'icon': Icons.school, 'color': Colors.blue},
-    {'id': '2', 'title': 'الصحة', 'icon': Icons.medical_services, 'color': Colors.green},
-    {'id': '3', 'title': 'الإغاثة', 'icon': Icons.volunteer_activism, 'color': Colors.orange},
-    {'id': '4', 'title': 'المساجد', 'icon': Icons.mosque, 'color': Colors.purple},
-    {'id': '5', 'title': 'الأيتام', 'icon': Icons.family_restroom, 'color': Colors.pink},
-    {'id': '6', 'title': 'المشاريع', 'icon': Icons.construction, 'color': Colors.brown},
-  ];
+  List<Map<String, dynamic>> get _categories {
+    final currentLocale = context.locale.languageCode;
+    final fallbackCategories = CategoryUtils.getLocalizedFallbackCategories();
+    
+    return fallbackCategories.map((category) => {
+      'id': category['id'],
+      'title': CategoryUtils.getCategoryName(
+        nameAr: category['name_ar'],
+        nameEn: category['name_en'],
+        currentLocale: currentLocale,
+      ),
+      'icon': _getIconFromString(category['icon']),
+      'color': _getColorFromString(category['color']),
+    }).toList();
+  }
 
   final List<Map<String, dynamic>> _programs = [
     {'id': '1', 'title': 'برنامج المنح الدراسية', 'category': '1'},
@@ -47,6 +55,37 @@ class _GiftDonationScreenState extends State<GiftDonationScreen> {
     {'id': '11', 'title': 'برنامج المشاريع الصغيرة', 'category': '6'},
     {'id': '12', 'title': 'برنامج التدريب المهني', 'category': '6'},
   ];
+
+  // Helper functions for icon and color conversion
+  IconData _getIconFromString(String iconName) {
+    switch (iconName) {
+      case 'school':
+        return Icons.school;
+      case 'home':
+        return Icons.home;
+      case 'computer':
+        return Icons.computer;
+      case 'assignment':
+        return Icons.assignment;
+      default:
+        return Icons.category;
+    }
+  }
+
+  Color _getColorFromString(String colorName) {
+    switch (colorName) {
+      case 'primary':
+        return AppColors.primary;
+      case 'secondary':
+        return AppColors.secondary;
+      case 'accent':
+        return AppColors.accent;
+      case 'success':
+        return AppColors.success;
+      default:
+        return AppColors.primary;
+    }
+  }
 
   List<Map<String, dynamic>> get _filteredPrograms {
     if (_selectedCategory == null) return [];

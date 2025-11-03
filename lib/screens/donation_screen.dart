@@ -90,7 +90,7 @@ class _DonationScreenState extends State<DonationScreen> {
       
       // 1) استدعاء POST /api/v1/donations/with-payment مع return_origin
       final response = await http.post(
-        Uri.parse('http://192.168.1.101:8000/api/v1/donations/with-payment'),
+        Uri.parse('http://localhost:8000/api/v1/donations/with-payment'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -177,8 +177,8 @@ class _DonationScreenState extends State<DonationScreen> {
       MaterialPageRoute(
         builder: (context) => CheckoutWebView(
           checkoutUrl: checkoutUrl,
-          successUrl: 'http://192.168.1.101:8000/api/v1/payments/success',
-          cancelUrl: 'http://192.168.1.101:8000/api/v1/payments/cancel',
+          successUrl: 'http://localhost:8000/api/v1/payments/success',
+          cancelUrl: 'http://localhost:8000/api/v1/payments/cancel',
         ),
       ),
     );
@@ -201,7 +201,7 @@ class _DonationScreenState extends State<DonationScreen> {
       final token = await _getAuthToken();
       
       final response = await http.post(
-        Uri.parse('http://192.168.1.101:8000/api/v1/payments/confirm'),
+        Uri.parse('http://localhost:8000/api/v1/payments/confirm'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

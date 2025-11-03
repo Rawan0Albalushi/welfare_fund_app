@@ -9,6 +9,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../services/campaign_service.dart';
+import '../utils/category_utils.dart';
 import 'checkout_webview.dart';
 import 'donation_success_screen.dart';
 
@@ -31,36 +32,55 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
   final CampaignService _campaignService = CampaignService();
 
   // Fallback categories if API fails
-  List<Map<String, dynamic>> get _fallbackCategories => [
-    {
-      'id': '1',
-      'title': 'فرص تعليمية',
-      'description': 'مساعدة الطلاب في التعليم',
-      'icon': Icons.school,
-      'color': AppColors.primary,
-    },
-    {
-      'id': '2',
-      'title': 'السكن والنقل',
-      'description': 'مساعدة في السكن والنقل',
-      'icon': Icons.home,
-      'color': AppColors.secondary,
-    },
-    {
-      'id': '3',
-      'title': 'شراء الأجهزة',
-      'description': 'مساعدة في شراء الأجهزة',
-      'icon': Icons.computer,
-      'color': AppColors.accent,
-    },
-    {
-      'id': '4',
-      'title': 'الامتحانات',
-      'description': 'مساعدة في الامتحانات',
-      'icon': Icons.assignment,
-      'color': AppColors.success,
-    },
-  ];
+  List<Map<String, dynamic>> get _fallbackCategories {
+    final currentLocale = context.locale.languageCode;
+    final fallbackCategories = CategoryUtils.getLocalizedFallbackCategories();
+    
+    return fallbackCategories.map((category) => {
+      'id': category['id'],
+      'title': CategoryUtils.getCategoryName(
+        nameAr: category['name_ar'],
+        nameEn: category['name_en'],
+        currentLocale: currentLocale,
+      ),
+      'name_ar': category['name_ar'],
+      'name_en': category['name_en'],
+      'description': category['description'],
+      'icon': _getIconFromString(category['icon']),
+      'color': _getColorFromString(category['color']),
+    }).toList();
+  }
+
+  // Helper functions for icon and color conversion
+  IconData _getIconFromString(String iconName) {
+    switch (iconName) {
+      case 'school':
+        return Icons.school;
+      case 'home':
+        return Icons.home;
+      case 'computer':
+        return Icons.computer;
+      case 'assignment':
+        return Icons.assignment;
+      default:
+        return Icons.category;
+    }
+  }
+
+  Color _getColorFromString(String colorName) {
+    switch (colorName) {
+      case 'primary':
+        return AppColors.primary;
+      case 'secondary':
+        return AppColors.secondary;
+      case 'accent':
+        return AppColors.accent;
+      case 'success':
+        return AppColors.success;
+      default:
+        return AppColors.primary;
+    }
+  }
 
   @override
   void initState() {
@@ -72,53 +92,68 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
     _loadDataFromAPI();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh categories when locale changes
+    _refreshCategoriesForCurrentLocale();
+  }
+
+  void _refreshCategoriesForCurrentLocale() {
+    if (_categories.isNotEmpty) {
+      final currentLocale = context.locale.languageCode;
+      setState(() {
+        _categories = _categories.map((category) {
+          // If category has bilingual names, update the title
+          if (category.containsKey('name_ar') && category.containsKey('name_en')) {
+            return {
+              ...category,
+              'title': CategoryUtils.getCategoryName(
+                nameAr: category['name_ar'],
+                nameEn: category['name_en'],
+                currentLocale: currentLocale,
+              ),
+            };
+          }
+          return category;
+        }).toList();
+      });
+    }
+  }
+
   Future<void> _loadDataFromAPI() async {
     try {
-      // Load campaigns from API and group by category
+      // Load categories from API first
       try {
-        final campaigns = await _campaignService.getCharityCampaigns();
-        if (campaigns.isNotEmpty) {
-          // Group campaigns by category
-          final Map<String, List<Map<String, dynamic>>> groupedCampaigns = {};
-          
-          for (var campaign in campaigns) {
-            final categoryName = campaign.category;
-            if (!groupedCampaigns.containsKey(categoryName)) {
-              groupedCampaigns[categoryName] = [];
-            }
-            groupedCampaigns[categoryName]!.add({
-              'id': campaign.id,
-              'title': campaign.title,
-              'description': campaign.description,
-              'category': campaign.category,
-            });
-          }
-          
-          // Create categories from grouped campaigns
-          final categoriesWithCampaigns = <Map<String, dynamic>>[];
-          groupedCampaigns.forEach((categoryName, campaignList) {
-            categoriesWithCampaigns.add({
-              'id': categoryName,
-              'title': categoryName,
-              'description': '${campaignList.length} حملة متاحة',
-              'icon': _getCategoryIcon(categoryName),
-              'color': _getCategoryColor(categoryName),
-              'campaigns': campaignList,
-              'campaign_count': campaignList.length,
-            });
-          });
-          
+        final categories = await _campaignService.getCategories();
+        if (categories.isNotEmpty) {
+          final currentLocale = context.locale.languageCode;
           setState(() {
-            _categories = categoriesWithCampaigns;
+            _categories = categories.map((category) => {
+              'id': category['id'].toString(),
+              'title': CategoryUtils.getCategoryName(
+                nameAr: category['name_ar'] ?? category['name'] ?? '',
+                nameEn: category['name_en'] ?? category['name'] ?? '',
+                fallbackName: category['name'],
+                currentLocale: currentLocale,
+              ),
+              'name_ar': category['name_ar'] ?? category['name'] ?? '',
+              'name_en': category['name_en'] ?? category['name'] ?? '',
+              'description': category['description'] ?? '',
+              'icon': Icons.category,
+              'color': AppColors.primary,
+            }).toList();
           });
-          
-          print('QuickDonate: Successfully loaded ${campaigns.length} campaigns grouped into ${categoriesWithCampaigns.length} categories');
+          print('QuickDonate: Successfully loaded ${categories.length} categories from API');
         } else {
-          print('QuickDonate: No campaigns from API, keeping fallback categories');
+          print('QuickDonate: No categories from API, trying campaigns fallback');
+          // If no categories, try loading from campaigns as fallback
+          _loadCategoriesFromCampaigns();
         }
       } catch (error) {
-        print('QuickDonate: Error loading campaigns, keeping fallback: $error');
-        // Keep the fallback categories that were already set in initState
+        print('QuickDonate: Error loading categories, trying campaigns fallback: $error');
+        // If categories API fails, try loading from campaigns as fallback
+        _loadCategoriesFromCampaigns();
       }
 
       // Load quick amounts from API
@@ -141,6 +176,55 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
         _categories = _fallbackCategories;
         // Error handling completed
       });
+    }
+  }
+
+  // Load categories from campaigns as fallback
+  Future<void> _loadCategoriesFromCampaigns() async {
+    try {
+      final campaigns = await _campaignService.getCharityCampaigns();
+      if (campaigns.isNotEmpty) {
+        // Group campaigns by category
+        final Map<String, List<Map<String, dynamic>>> groupedCampaigns = {};
+        
+        for (var campaign in campaigns) {
+          final categoryName = campaign.category;
+          if (!groupedCampaigns.containsKey(categoryName)) {
+            groupedCampaigns[categoryName] = [];
+          }
+          groupedCampaigns[categoryName]!.add({
+            'id': campaign.id,
+            'title': campaign.title,
+            'description': campaign.description,
+            'category': campaign.category,
+          });
+        }
+        
+        // Create categories from grouped campaigns
+        final categoriesWithCampaigns = <Map<String, dynamic>>[];
+        groupedCampaigns.forEach((categoryName, campaignList) {
+          categoriesWithCampaigns.add({
+            'id': categoryName,
+            'title': categoryName,
+            'description': '${campaignList.length} حملة متاحة',
+            'icon': _getCategoryIcon(categoryName),
+            'color': _getCategoryColor(categoryName),
+            'campaigns': campaignList,
+            'campaign_count': campaignList.length,
+          });
+        });
+        
+        setState(() {
+          _categories = categoriesWithCampaigns;
+        });
+        
+        print('QuickDonate: Successfully loaded ${campaigns.length} campaigns grouped into ${categoriesWithCampaigns.length} categories');
+      } else {
+        print('QuickDonate: No campaigns from API, keeping fallback categories');
+      }
+    } catch (error) {
+      print('QuickDonate: Error loading campaigns, keeping fallback: $error');
+      // Keep the fallback categories that were already set in initState
     }
   }
 
@@ -207,7 +291,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       final token = await _getAuthToken();
       
       // الحصول على origin للمنصة الويب
-      final origin = kIsWeb ? Uri.base.origin : 'http://192.168.1.101:8000';
+      final origin = kIsWeb ? Uri.base.origin : 'http://localhost:8000';
       
       // الحصول على campaign_id من الفئة المختارة
       final campaignId = _getCampaignIdFromCategory();
@@ -227,7 +311,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       
       // 1) استدعاء POST /api/v1/donations/with-payment مع return_origin
       final response = await http.post(
-        Uri.parse('http://192.168.1.101:8000/api/v1/donations/with-payment'),
+        Uri.parse('http://localhost:8000/api/v1/donations/with-payment'),
         headers: headers,
         body: jsonEncode({
           'campaign_id': campaignId,
@@ -337,8 +421,8 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       MaterialPageRoute(
         builder: (context) => CheckoutWebView(
           checkoutUrl: checkoutUrl,
-          successUrl: 'http://192.168.1.101:8000/api/v1/payments/success',
-          cancelUrl: 'http://192.168.1.101:8000/api/v1/payments/cancel',
+          successUrl: 'http://localhost:8000/api/v1/payments/success',
+          cancelUrl: 'http://localhost:8000/api/v1/payments/cancel',
         ),
       ),
     );
@@ -371,7 +455,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       }
       
       final response = await http.post(
-        Uri.parse('http://192.168.1.101:8000/api/v1/payments/confirm'),
+        Uri.parse('http://localhost:8000/api/v1/payments/confirm'),
         headers: headers,
         body: jsonEncode({
           'session_id': sessionId,

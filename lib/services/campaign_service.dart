@@ -57,8 +57,12 @@ class CampaignService {
             final List<Campaign> programs = programsData.map((program) {
               return Campaign(
                 id: program['id']?.toString() ?? '',
-                title: program['title'] ?? program['name'] ?? '',
-                description: program['description'] ?? '',
+                title: program['title'] ?? program['title_ar'] ?? program['title_en'] ?? program['name'] ?? '',
+                titleAr: program['title_ar'] ?? program['title'] ?? '',
+                titleEn: program['title_en'] ?? program['title'] ?? '',
+                description: program['description'] ?? program['description_ar'] ?? program['description_en'] ?? '',
+                descriptionAr: program['description_ar'] ?? program['description'] ?? '',
+                descriptionEn: program['description_en'] ?? program['description'] ?? '',
                 imageUrl: program['image_url'] ?? program['image'] ?? '',
                 targetAmount: _parseDouble(program['goal_amount'] ?? program['target_amount'] ?? 0),
                 currentAmount: _parseDouble(program['raised_amount'] ?? program['current_amount'] ?? 0),
@@ -111,8 +115,12 @@ class CampaignService {
         final program = response.data['data'] ?? response.data;
         return Campaign(
           id: program['id']?.toString() ?? '',
-          title: program['title'] ?? program['name'] ?? '',
-          description: program['description'] ?? '',
+          title: program['title'] ?? program['title_ar'] ?? program['title_en'] ?? program['name'] ?? '',
+          titleAr: program['title_ar'] ?? program['title'] ?? '',
+          titleEn: program['title_en'] ?? program['title'] ?? '',
+          description: program['description'] ?? program['description_ar'] ?? program['description_en'] ?? '',
+          descriptionAr: program['description_ar'] ?? program['description'] ?? '',
+          descriptionEn: program['description_en'] ?? program['description'] ?? '',
           imageUrl: program['image_url'] ?? program['image'] ?? '',
           targetAmount: _parseDouble(program['goal_amount'] ?? program['target_amount'] ?? 0),
           currentAmount: _parseDouble(program['raised_amount'] ?? program['current_amount'] ?? 0),
@@ -166,8 +174,12 @@ class CampaignService {
             final List<Campaign> campaigns = campaignsData.map((campaign) {
               return Campaign(
                 id: campaign['id']?.toString() ?? '',
-                title: campaign['title'] ?? campaign['name'] ?? '',
-                description: campaign['description'] ?? '',
+                title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
+                titleAr: campaign['title_ar'] ?? campaign['title'] ?? '',
+                titleEn: campaign['title_en'] ?? campaign['title'] ?? '',
+                description: campaign['description'] ?? campaign['description_ar'] ?? campaign['description_en'] ?? '',
+                descriptionAr: campaign['description_ar'] ?? campaign['description'] ?? '',
+                descriptionEn: campaign['description_en'] ?? campaign['description'] ?? '',
                 imageUrl: campaign['image_url'] ?? campaign['image'] ?? '',
                 targetAmount: _parseDouble(campaign['goal_amount'] ?? campaign['target_amount'] ?? 0),
                 currentAmount: _parseDouble(campaign['raised_amount'] ?? campaign['current_amount'] ?? 0),
@@ -175,6 +187,9 @@ class CampaignService {
                 endDate: DateTime.parse(campaign['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
                 isActive: campaign['status'] == 'active' || campaign['is_active'] == true,
                 category: campaign['category']?['name'] ?? campaign['category_name'] ?? '',
+                impactDescription: campaign['impact_description'] as String?,
+                impactDescriptionAr: campaign['impact_description_ar'] as String?,
+                impactDescriptionEn: campaign['impact_description_en'] as String?,
                 donorCount: campaign['donor_count'] ?? campaign['donors_count'] ?? 0,
                 type: 'charity_campaign', // Mark as charity campaign
                 isUrgentFlag: campaign['is_urgent'] ?? false,
@@ -224,8 +239,12 @@ class CampaignService {
         final List<Campaign> campaigns = campaignsData.map((campaign) {
           return Campaign(
             id: campaign['id']?.toString() ?? '',
-            title: campaign['title'] ?? campaign['name'] ?? '',
-            description: campaign['description'] ?? '',
+            title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
+            titleAr: campaign['title_ar'] ?? campaign['title'] ?? '',
+            titleEn: campaign['title_en'] ?? campaign['title'] ?? '',
+            description: campaign['description'] ?? campaign['description_ar'] ?? campaign['description_en'] ?? '',
+            descriptionAr: campaign['description_ar'] ?? campaign['description'] ?? '',
+            descriptionEn: campaign['description_en'] ?? campaign['description'] ?? '',
             imageUrl: campaign['image_url'] ?? campaign['image'] ?? '',
             targetAmount: _parseDouble(campaign['goal_amount'] ?? campaign['target_amount'] ?? 0),
             currentAmount: _parseDouble(campaign['raised_amount'] ?? campaign['current_amount'] ?? 0),
@@ -233,6 +252,9 @@ class CampaignService {
             endDate: DateTime.parse(campaign['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
             isActive: campaign['status'] == 'active' || campaign['is_active'] == true,
             category: campaign['category']?['name'] ?? campaign['category_name'] ?? '',
+            impactDescription: campaign['impact_description'] as String?,
+            impactDescriptionAr: campaign['impact_description_ar'] as String?,
+            impactDescriptionEn: campaign['impact_description_en'] as String?,
             donorCount: campaign['donor_count'] ?? campaign['donors_count'] ?? 0,
             type: 'charity_campaign',
             isUrgentFlag: true,
@@ -265,8 +287,12 @@ class CampaignService {
         final List<Campaign> campaigns = campaignsData.map((campaign) {
           return Campaign(
             id: campaign['id']?.toString() ?? '',
-            title: campaign['title'] ?? campaign['name'] ?? '',
-            description: campaign['description'] ?? '',
+            title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
+            titleAr: campaign['title_ar'] ?? campaign['title'] ?? '',
+            titleEn: campaign['title_en'] ?? campaign['title'] ?? '',
+            description: campaign['description'] ?? campaign['description_ar'] ?? campaign['description_en'] ?? '',
+            descriptionAr: campaign['description_ar'] ?? campaign['description'] ?? '',
+            descriptionEn: campaign['description_en'] ?? campaign['description'] ?? '',
             imageUrl: campaign['image_url'] ?? campaign['image'] ?? '',
             targetAmount: _parseDouble(campaign['goal_amount'] ?? campaign['target_amount'] ?? 0),
             currentAmount: _parseDouble(campaign['raised_amount'] ?? campaign['current_amount'] ?? 0),
@@ -274,6 +300,9 @@ class CampaignService {
             endDate: DateTime.parse(campaign['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
             isActive: campaign['status'] == 'active' || campaign['is_active'] == true,
             category: campaign['category']?['name'] ?? campaign['category_name'] ?? '',
+            impactDescription: campaign['impact_description'] as String?,
+            impactDescriptionAr: campaign['impact_description_ar'] as String?,
+            impactDescriptionEn: campaign['impact_description_en'] as String?,
             donorCount: campaign['donor_count'] ?? campaign['donors_count'] ?? 0,
             type: 'charity_campaign',
             isUrgentFlag: campaign['is_urgent'] ?? false,
@@ -304,8 +333,12 @@ class CampaignService {
         final campaign = response.data['data'] ?? response.data;
         return Campaign(
           id: campaign['id']?.toString() ?? '',
-          title: campaign['title'] ?? campaign['name'] ?? '',
-          description: campaign['description'] ?? '',
+          title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
+          titleAr: campaign['title_ar'] ?? campaign['title'] ?? '',
+          titleEn: campaign['title_en'] ?? campaign['title'] ?? '',
+          description: campaign['description'] ?? campaign['description_ar'] ?? campaign['description_en'] ?? '',
+          descriptionAr: campaign['description_ar'] ?? campaign['description'] ?? '',
+          descriptionEn: campaign['description_en'] ?? campaign['description'] ?? '',
           imageUrl: campaign['image_url'] ?? campaign['image'] ?? '',
           targetAmount: _parseDouble(campaign['goal_amount'] ?? campaign['target_amount'] ?? 0),
           currentAmount: _parseDouble(campaign['raised_amount'] ?? campaign['current_amount'] ?? 0),
@@ -313,6 +346,9 @@ class CampaignService {
           endDate: DateTime.parse(campaign['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
           isActive: campaign['status'] == 'active' || campaign['is_active'] == true,
           category: campaign['category']?['name'] ?? campaign['category_name'] ?? '',
+          impactDescription: campaign['impact_description'] as String?,
+          impactDescriptionAr: campaign['impact_description_ar'] as String?,
+          impactDescriptionEn: campaign['impact_description_en'] as String?,
           donorCount: campaign['donor_count'] ?? campaign['donors_count'] ?? 0,
           type: 'charity_campaign',
           isUrgentFlag: campaign['is_urgent'] ?? false,
@@ -342,7 +378,10 @@ class CampaignService {
         return categoriesData.map((category) => {
           'id': category['id'],
           'name': category['name'],
+          'name_ar': category['name_ar'] ?? category['name'],
+          'name_en': category['name_en'] ?? category['name'],
           'description': category['description'] ?? '',
+          'status': category['status'] ?? 'active',
         }).toList();
       } else {
         throw Exception('Failed to fetch categories: ${response.statusCode}');

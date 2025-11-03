@@ -9,6 +9,7 @@ import '../providers/auth_provider.dart';
 import 'donation_success_screen.dart';
 import 'payment_failed_screen.dart';
 
+
 class PaymentLoadingScreen extends StatefulWidget {
   const PaymentLoadingScreen({super.key});
 
@@ -74,11 +75,21 @@ class _PaymentLoadingScreenState extends State<PaymentLoadingScreen>
     
     if (kIsWeb) {
       try {
-        final currentPath = kIsWeb ? '/' : '/';
+        String currentPath = '/';
+        try {
+          // Use Uri.base which works on web to get pathname
+          final uri = Uri.base;
+          currentPath = uri.path;
+          print('PaymentLoadingScreen: Current URL path: $currentPath');
+          print('PaymentLoadingScreen: Current URL full: ${uri.toString()}');
+          print('PaymentLoadingScreen: Query params: ${uri.queryParameters}');
+        } catch (e) {
+          print('PaymentLoadingScreen: Error reading URL: $e');
+          currentPath = '/';
+        }
         final queryParams = Uri.base.queryParameters;
         
         print('PaymentLoadingScreen: Checking payment status');
-        print('PaymentLoadingScreen: Current path: $currentPath');
         print('PaymentLoadingScreen: Query params: $queryParams');
         
         // محاكاة loading لمدة 2-3 ثواني
@@ -86,10 +97,10 @@ class _PaymentLoadingScreenState extends State<PaymentLoadingScreen>
         
         if (!mounted) return;
         
-        if (currentPath?.contains('/payment/success') == true) {
+        if (currentPath.contains('/payment/success')) {
           print('PaymentLoadingScreen: Redirecting to payment success screen');
           _navigateToPaymentSuccess(queryParams);
-        } else if (currentPath?.contains('/payment/cancel') == true) {
+        } else if (currentPath.contains('/payment/cancel')) {
           print('PaymentLoadingScreen: Redirecting to payment cancel screen');
           _navigateToPaymentCancel(queryParams);
         } else {

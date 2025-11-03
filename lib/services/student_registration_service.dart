@@ -325,11 +325,20 @@ class StudentRegistrationService {
     }
   }
 
-  // GET /api/v1/programs/support - Get all support programs
+  // Helper method to get localized program name
+  static String getLocalizedProgramName(Map<String, dynamic> program, String locale) {
+    if (locale == 'ar') {
+      return program['title_ar']?.isNotEmpty == true ? program['title_ar'] : (program['name'] ?? '');
+    } else {
+      return program['title_en']?.isNotEmpty == true ? program['title_en'] : (program['name'] ?? '');
+    }
+  }
+
+  // GET /api/v1/programs - Get all support programs
   Future<List<Map<String, dynamic>>> getSupportPrograms() async {
     try {
-      print('Calling API: /programs/support');
-      final response = await _apiClient.dio.get('/programs/support');
+      print('Calling API: /programs');
+      final response = await _apiClient.dio.get('/programs');
       
       print('API Response for programs: ${response.data}');
       print('Response data type: ${response.data.runtimeType}');
@@ -378,20 +387,32 @@ class StudentRegistrationService {
       final validPrograms = programs.where((program) {
         // Check for different possible field names
         final hasId = program['id'] != null;
+        final hasTitleAr = program['title_ar'] != null;
+        final hasTitleEn = program['title_en'] != null;
         final hasTitle = program['title'] != null;
         final hasName = program['name'] != null;
         
-        final isValid = hasId && (hasTitle || hasName);
+        final isValid = hasId && (hasTitleAr || hasTitleEn || hasTitle || hasName);
         
-        print('Program validation: id=$hasId, title=$hasTitle, name=$hasName, valid=$isValid');
+        print('Program validation: id=$hasId, title_ar=$hasTitleAr, title_en=$hasTitleEn, title=$hasTitle, name=$hasName, valid=$isValid');
         
         return isValid;
       }).map((program) {
-        // Normalize the data structure
+        // Normalize the data structure with bilingual support
+        final titleAr = program['title_ar'] ?? program['title'] ?? program['name'] ?? 'برنامج غير محدد';
+        final titleEn = program['title_en'] ?? program['title'] ?? program['name'] ?? 'Undefined Program';
+        
         return {
           'id': program['id'],
-          'name': program['title'] ?? program['name'] ?? 'برنامج غير محدد',
-          'description': program['description'] ?? '',
+          'name': titleAr, // Use Arabic title as default name
+          'title_ar': titleAr,
+          'title_en': titleEn,
+          'description': program['description_ar'] ?? program['description'] ?? '',
+          'description_ar': program['description_ar'] ?? program['description'] ?? '',
+          'description_en': program['description_en'] ?? program['description'] ?? '',
+          'status': program['status'] ?? 'active',
+          'image': program['image'] ?? '',
+          'category': program['category'] ?? {},
           'original_data': program, // Keep original data for debugging
         };
       }).toList();
