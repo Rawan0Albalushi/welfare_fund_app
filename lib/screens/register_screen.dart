@@ -5,6 +5,8 @@ import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -621,6 +623,11 @@ class _RegisterScreenState extends State<RegisterScreen>
 
         // Show success message and navigate to home
         if (mounted) {
+          // تأكيد تسجيل الدخول تلقائياً عبر مزود الحالة بعد نجاح التسجيل
+          try {
+            await context.read<AuthProvider>().checkAuthStatus();
+          } catch (_) {}
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(

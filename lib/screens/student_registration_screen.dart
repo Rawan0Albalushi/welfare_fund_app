@@ -4,10 +4,12 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../services/student_registration_service.dart';
+import '../providers/auth_provider.dart';
 
 
 class StudentRegistrationScreen extends StatefulWidget {
@@ -128,6 +130,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     // فحص المصادقة بعد تهيئة جميع العناصر
     _initializeScreen();
+    // Prefill user profile data (name, email, phone) after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _prefillFromUserProfile();
+    });
     
     // Load programs from API
     _loadPrograms().then((_) {
@@ -293,6 +299,33 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     // Load gender
     _selectedGender = data['personal']?['gender'] == 'male' ? 'male' : 'female';
+  }
+
+  void _prefillFromUserProfile() {
+    try {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final profile = auth.userProfile;
+      if (profile == null) return;
+
+      final extractedName = profile['name'] ?? profile['user']?['name'] ?? '';
+      final extractedEmail = profile['email'] ?? profile['user']?['email'] ?? '';
+      final extractedPhone = profile['phone'] ?? profile['user']?['phone'] ?? '';
+
+      setState(() {
+        if (extractedName is String && extractedName.isNotEmpty) {
+          _fullNameController.text = extractedName;
+        }
+        if (extractedEmail is String && extractedEmail.isNotEmpty) {
+          _emailController.text = extractedEmail;
+        }
+        if (extractedPhone is String && extractedPhone.isNotEmpty) {
+          _phoneController.text = extractedPhone;
+        }
+      });
+    } catch (e) {
+      // Ignore prefill errors; keep form usable
+      debugPrint('Prefill error: $e');
+    }
   }
 
   String _convertAcademicYearToString(dynamic year) {
@@ -1429,6 +1462,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                 hint: 'please_enter_phone'.tr(),
                                 icon: Icons.phone,
                                 keyboardType: TextInputType.phone,
+                                readOnlyOverride: true,
+                                enabledOverride: false,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'please_enter_phone'.tr();
@@ -1732,13 +1767,17 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     int maxLines = 1,
     List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
+    bool? readOnlyOverride,
+    bool? enabledOverride,
   }) {
+    final bool effectiveReadOnly = readOnlyOverride ?? _isReadOnly;
+    final bool effectiveEnabled = enabledOverride ?? !effectiveReadOnly;
     return Container(
       decoration: BoxDecoration(
-        color: _isReadOnly ? AppColors.surfaceVariant : AppColors.surface,
+        color: effectiveReadOnly ? AppColors.surfaceVariant : AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _isReadOnly ? AppColors.textTertiary.withOpacity(0.3) : AppColors.textTertiary.withOpacity(0.2),
+          color: effectiveReadOnly ? AppColors.textTertiary.withOpacity(0.3) : AppColors.textTertiary.withOpacity(0.2),
           width: 1,
         ),
       ),
@@ -1747,18 +1786,18 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         keyboardType: keyboardType,
         maxLines: maxLines,
         inputFormatters: inputFormatters,
-        validator: _isReadOnly ? null : validator,
-        enabled: !_isReadOnly,
-        readOnly: _isReadOnly,
+        validator: effectiveReadOnly ? null : validator,
+        enabled: effectiveEnabled,
+        readOnly: effectiveReadOnly,
         style: AppTextStyles.bodyLarge.copyWith(
-          color: _isReadOnly ? AppColors.textSecondary : AppColors.textPrimary,
+          color: effectiveReadOnly ? AppColors.textSecondary : AppColors.textPrimary,
         ),
         decoration: InputDecoration(
           labelText: label,
-          hintText: _isReadOnly ? null : hint,
+          hintText: effectiveReadOnly ? null : hint,
           prefixIcon: Icon(
             icon,
-            color: _isReadOnly ? AppColors.textSecondary : AppColors.primary,
+            color: effectiveReadOnly ? AppColors.textSecondary : AppColors.primary,
             size: 20,
           ),
           border: InputBorder.none,
@@ -1767,12 +1806,12 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
             vertical: 16,
           ),
           labelStyle: AppTextStyles.labelMedium.copyWith(
-            color: _isReadOnly ? AppColors.textSecondary : AppColors.textSecondary,
+            color: effectiveReadOnly ? AppColors.textSecondary : AppColors.textSecondary,
           ),
           hintStyle: AppTextStyles.bodyMedium.copyWith(
             color: AppColors.textTertiary,
           ),
-          suffixIcon: _isReadOnly ? const Icon(
+          suffixIcon: effectiveReadOnly ? const Icon(
             Icons.lock_outline,
             color: AppColors.textSecondary,
             size: 16,
