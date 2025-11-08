@@ -9,8 +9,8 @@ import '../constants/app_colors.dart';
 import '../constants/app_config.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
+import '../models/campaign.dart';
 import '../services/campaign_service.dart';
-import '../utils/category_utils.dart';
 import 'checkout_webview.dart';
 import 'donation_success_screen.dart';
 
@@ -18,215 +18,116 @@ class QuickDonateAmountScreen extends StatefulWidget {
   const QuickDonateAmountScreen({super.key});
 
   @override
-  State<QuickDonateAmountScreen> createState() => _QuickDonateAmountScreenState();
+  State<QuickDonateAmountScreen> createState() =>
+      _QuickDonateAmountScreenState();
 }
 
 class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
   double _selectedAmount = 50.0;
   final TextEditingController _customAmountController = TextEditingController();
   bool _isCustomAmount = false;
-  String? _selectedCategory;
   bool _isLoading = false;
 
   List<double> _presetAmounts = [25.0, 50.0, 100.0, 200.0, 500.0, 1000.0];
-  List<Map<String, dynamic>> _categories = [];
   final CampaignService _campaignService = CampaignService();
-
-  // Fallback categories if API fails
-  List<Map<String, dynamic>> get _fallbackCategories {
-    final currentLocale = context.locale.languageCode;
-    final fallbackCategories = CategoryUtils.getLocalizedFallbackCategories();
-    
-    return fallbackCategories.map((category) => {
-      'id': category['id'],
-      'title': CategoryUtils.getCategoryName(
-        nameAr: category['name_ar'],
-        nameEn: category['name_en'],
-        currentLocale: currentLocale,
-      ),
-      'name_ar': category['name_ar'],
-      'name_en': category['name_en'],
-      'description': category['description'],
-      'icon': _getIconFromString(category['icon']),
-      'color': _getColorFromString(category['color']),
-    }).toList();
-  }
-
-  // Helper functions for icon and color conversion
-  IconData _getIconFromString(String iconName) {
-    switch (iconName) {
-      case 'school':
-        return Icons.school;
-      case 'home':
-        return Icons.home;
-      case 'computer':
-        return Icons.computer;
-      case 'assignment':
-        return Icons.assignment;
-      default:
-        return Icons.category;
-    }
-  }
-
-  Color _getColorFromString(String colorName) {
-    switch (colorName) {
-      case 'primary':
-        return AppColors.primary;
-      case 'secondary':
-        return AppColors.secondary;
-      case 'accent':
-        return AppColors.accent;
-      case 'success':
-        return AppColors.success;
-      default:
-        return AppColors.primary;
-    }
-  }
+  Campaign? _selectedCampaign;
+  List<Campaign> _activeCampaigns = [];
+  bool _isLoadingCampaign = false;
+  String? _campaignError;
 
   @override
   void initState() {
     super.initState();
     _customAmountController.text = _selectedAmount.toString();
-    // Initialize with fallback categories first
-    _categories = _fallbackCategories;
-    print('QuickDonate: Initialized with ${_categories.length} fallback categories');
-    _loadDataFromAPI();
+    _loadInitialData();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Refresh categories when locale changes
-    _refreshCategoriesForCurrentLocale();
+  Future<void> _loadInitialData() async {
+    await Future.wait([
+      _loadActiveCampaign(),
+      _loadQuickDonationAmounts(),
+    ]);
   }
 
-  void _refreshCategoriesForCurrentLocale() {
-    if (_categories.isNotEmpty) {
-      final currentLocale = context.locale.languageCode;
-      setState(() {
-        _categories = _categories.map((category) {
-          // If category has bilingual names, update the title
-          if (category.containsKey('name_ar') && category.containsKey('name_en')) {
-            return {
-              ...category,
-              'title': CategoryUtils.getCategoryName(
-                nameAr: category['name_ar'],
-                nameEn: category['name_en'],
-                currentLocale: currentLocale,
-              ),
-            };
-          }
-          return category;
-        }).toList();
-      });
-    }
-  }
+  Future<void> _loadActiveCampaign() async {
+    setState(() {
+      _isLoadingCampaign = true;
+      _campaignError = null;
+    });
 
-  Future<void> _loadDataFromAPI() async {
-    try {
-      // Load categories from API first
-      try {
-        final categories = await _campaignService.getCategories();
-        if (categories.isNotEmpty) {
-          final currentLocale = context.locale.languageCode;
-          setState(() {
-            _categories = categories.map((category) => {
-              'id': category['id'].toString(),
-              'title': CategoryUtils.getCategoryName(
-                nameAr: category['name_ar'] ?? category['name'] ?? '',
-                nameEn: category['name_en'] ?? category['name'] ?? '',
-                fallbackName: category['name'],
-                currentLocale: currentLocale,
-              ),
-              'name_ar': category['name_ar'] ?? category['name'] ?? '',
-              'name_en': category['name_en'] ?? category['name'] ?? '',
-              'description': category['description'] ?? '',
-              'icon': Icons.category,
-              'color': AppColors.primary,
-            }).toList();
-          });
-          print('QuickDonate: Successfully loaded ${categories.length} categories from API');
-        } else {
-          print('QuickDonate: No categories from API, trying campaigns fallback');
-          // If no categories, try loading from campaigns as fallback
-          _loadCategoriesFromCampaigns();
-        }
-      } catch (error) {
-        print('QuickDonate: Error loading categories, trying campaigns fallback: $error');
-        // If categories API fails, try loading from campaigns as fallback
-        _loadCategoriesFromCampaigns();
-      }
-
-      // Load quick amounts from API
-      try {
-        final amounts = await _campaignService.getQuickDonationAmounts();
-        setState(() {
-          _presetAmounts = amounts;
-          // Amounts loaded
-        });
-        print('QuickDonate: Successfully loaded ${amounts.length} quick amounts from API');
-      } catch (error) {
-        print('QuickDonate: Error loading quick amounts, using fallback: $error');
-        setState(() {
-          // Amounts loaded
-        });
-      }
-    } catch (error) {
-      print('QuickDonate: Error loading data from API: $error');
-      setState(() {
-        _categories = _fallbackCategories;
-        // Error handling completed
-      });
-    }
-  }
-
-  // Load categories from campaigns as fallback
-  Future<void> _loadCategoriesFromCampaigns() async {
     try {
       final campaigns = await _campaignService.getCharityCampaigns();
-      if (campaigns.isNotEmpty) {
-        // Group campaigns by category
-        final Map<String, List<Map<String, dynamic>>> groupedCampaigns = {};
-        
-        for (var campaign in campaigns) {
-          final categoryName = campaign.category;
-          if (!groupedCampaigns.containsKey(categoryName)) {
-            groupedCampaigns[categoryName] = [];
-          }
-          groupedCampaigns[categoryName]!.add({
-            'id': campaign.id,
-            'title': campaign.title,
-            'description': campaign.description,
-            'category': campaign.category,
-          });
-        }
-        
-        // Create categories from grouped campaigns
-        final categoriesWithCampaigns = <Map<String, dynamic>>[];
-        groupedCampaigns.forEach((categoryName, campaignList) {
-          categoriesWithCampaigns.add({
-            'id': categoryName,
-            'title': categoryName,
-            'description': '${campaignList.length} حملة متاحة',
-            'icon': _getCategoryIcon(categoryName),
-            'color': _getCategoryColor(categoryName),
-            'campaigns': campaignList,
-            'campaign_count': campaignList.length,
-          });
-        });
-        
+      if (!mounted) return;
+
+      final activeCampaigns =
+          campaigns.where((campaign) => campaign.isActive).toList();
+
+      if (activeCampaigns.isNotEmpty) {
+        activeCampaigns.shuffle();
         setState(() {
-          _categories = categoriesWithCampaigns;
+          _activeCampaigns = activeCampaigns;
+          _selectedCampaign = activeCampaigns.first;
         });
-        
-        print('QuickDonate: Successfully loaded ${campaigns.length} campaigns grouped into ${categoriesWithCampaigns.length} categories');
       } else {
-        print('QuickDonate: No campaigns from API, keeping fallback categories');
+        setState(() {
+          _activeCampaigns = [];
+          _selectedCampaign = null;
+          _campaignError = 'no_campaigns_available'.tr();
+        });
       }
     } catch (error) {
-      print('QuickDonate: Error loading campaigns, keeping fallback: $error');
-      // Keep the fallback categories that were already set in initState
+      if (!mounted) return;
+      setState(() {
+        _activeCampaigns = [];
+        _selectedCampaign = null;
+        _campaignError = 'error_loading_programs'.tr();
+      });
+      print('QuickDonate: Error loading active campaigns: $error');
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingCampaign = false;
+      });
     }
+  }
+
+  Future<void> _loadQuickDonationAmounts() async {
+    try {
+      final amounts = await _campaignService.getQuickDonationAmounts();
+      if (!mounted) return;
+      setState(() {
+        _presetAmounts = amounts;
+      });
+      print(
+          'QuickDonate: Successfully loaded ${amounts.length} quick amounts from API');
+    } catch (error) {
+      print('QuickDonate: Error loading quick amounts, using fallback: $error');
+    }
+  }
+
+  void _showAnotherCampaign() {
+    if (_activeCampaigns.isEmpty) {
+      _loadActiveCampaign();
+      return;
+    }
+
+    if (_activeCampaigns.length == 1) {
+      setState(() {
+        _selectedCampaign = _activeCampaigns.first;
+      });
+      return;
+    }
+
+    final currentId = _selectedCampaign?.id;
+    final shuffledCampaigns = List<Campaign>.from(_activeCampaigns)..shuffle();
+    final nextCampaign = shuffledCampaigns.firstWhere(
+      (campaign) => campaign.id != currentId,
+      orElse: () => shuffledCampaigns.first,
+    );
+
+    setState(() {
+      _selectedCampaign = nextCampaign;
+    });
   }
 
   @override
@@ -252,12 +153,6 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
     }
   }
 
-  void _onCategorySelected(String categoryId) {
-    setState(() {
-      _selectedCategory = categoryId;
-    });
-  }
-
   void _onContinue() {
     if (_selectedAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -269,10 +164,10 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       return;
     }
 
-    if (_selectedCategory == null) {
+    if (_selectedCampaign == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('please_choose_donation_category'.tr()),
+          content: Text('no_campaigns_available'.tr()),
           backgroundColor: AppColors.error,
         ),
       );
@@ -290,18 +185,23 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
     try {
       // ✅ احصل على التوكن (اختياري)
       final token = await _getAuthToken();
-      
+
       // الحصول على origin للمنصة الويب
       final origin = kIsWeb ? Uri.base.origin : AppConfig.serverBaseUrl;
-      
-      // الحصول على campaign_id من الفئة المختارة
-      final campaignId = _getCampaignIdFromCategory();
-      
+
+      // الحصول على campaign_id من الحملة المختارة
+      final campaignIdString = _selectedCampaign?.id ?? '';
+      final campaignId = int.tryParse(campaignIdString);
+      if (campaignId == null) {
+        _showErrorSnackBar('no_campaigns_available'.tr());
+        return;
+      }
+
       // إعداد headers
       final headers = <String, String>{
         'Content-Type': 'application/json',
       };
-      
+
       // إضافة Authorization header فقط إذا كان المستخدم مسجل دخول
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
@@ -309,7 +209,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       } else {
         print('QuickDonate: Using anonymous donation request');
       }
-      
+
       // 1) استدعاء POST /api/v1/donations/with-payment مع return_origin
       final response = await http.post(
         Uri.parse(AppConfig.donationsWithPaymentEndpoint),
@@ -328,30 +228,32 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         print('✅ Quick donation response: $data');
-        
+
         // استخراج البيانات من الاستجابة
-        final sessionId = data['data']?['payment_session']?['session_id'] ?? 
-                         data['session_id'] ?? 
-                         data['data']?['session_id'];
-        final checkoutUrl = data['data']?['payment_session']?['payment_url'] ?? 
-                           data['data']?['payment_url'] ?? 
-                           data['checkout_url'] ?? 
-                           data['payment_url'];
-        
-        print('✅ Payment session created: sessionId=$sessionId, checkoutUrl=$checkoutUrl');
-        
+        final sessionId = data['data']?['payment_session']?['session_id'] ??
+            data['session_id'] ??
+            data['data']?['session_id'];
+        final checkoutUrl = data['data']?['payment_session']?['payment_url'] ??
+            data['data']?['payment_url'] ??
+            data['checkout_url'] ??
+            data['payment_url'];
+
+        print(
+            '✅ Payment session created: sessionId=$sessionId, checkoutUrl=$checkoutUrl');
+
         // التحقق من وجود البيانات المطلوبة
         if (sessionId == null || checkoutUrl == null) {
-          throw Exception('Missing payment session data: sessionId=$sessionId, checkoutUrl=$checkoutUrl');
+          throw Exception(
+              'Missing payment session data: sessionId=$sessionId, checkoutUrl=$checkoutUrl');
         }
-        
+
         // 2) فتح checkout مباشرة في نفس التبويب للمنصة الويب
         if (kIsWeb) {
           await launchUrlString(
             checkoutUrl,
             webOnlyWindowName: '_self', // نفس التبويب
           );
-          
+
           // إظهار رسالة للمستخدم
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -360,7 +262,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
               duration: const Duration(seconds: 3),
             ),
           );
-          
+
           // الانتظار قليلاً ثم التحقق من حالة الدفع
           await Future.delayed(const Duration(seconds: 5));
           await _confirmPayment(sessionId);
@@ -381,22 +283,6 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
         _isLoading = false;
       });
     }
-  }
-
-  int _getCampaignIdFromCategory() {
-    // إذا كانت الفئة المختارة موجودة في القائمة، استخدم أول حملة من الفئة
-    if (_selectedCategory != null) {
-      final category = _categories.firstWhere(
-        (cat) => cat['id'] == _selectedCategory,
-        orElse: () => {'campaigns': []}, // fallback
-      );
-      
-      final campaigns = category['campaigns'] as List<Map<String, dynamic>>?;
-      if (campaigns != null && campaigns.isNotEmpty) {
-        return int.tryParse(campaigns.first['id'].toString()) ?? 1;
-      }
-    }
-    return 1; // fallback campaign ID
   }
 
   void _showErrorSnackBar(String message) {
@@ -444,17 +330,17 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
   Future<void> _confirmPayment(String sessionId) async {
     try {
       final token = await _getAuthToken();
-      
+
       // إعداد headers
       final headers = <String, String>{
         'Content-Type': 'application/json',
       };
-      
+
       // إضافة Authorization header فقط إذا كان المستخدم مسجل دخول
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
-      
+
       final response = await http.post(
         Uri.parse(AppConfig.paymentsConfirmEndpoint),
         headers: headers,
@@ -488,17 +374,18 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
 
   // عرض شاشة نجاح التبرع
   void _showDonationSuccess() {
-    final categoryTitle = _selectedCategory != null
-        ? _categories.firstWhere((cat) => cat['id'] == _selectedCategory)['title']
-        : 'تبرع سريع';
+    final locale = context.locale.languageCode;
+    final campaignTitle = _selectedCampaign != null
+        ? _selectedCampaign!.getLocalizedTitle(locale)
+        : 'quick_donation'.tr();
 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => DonationSuccessScreen(
           amount: _selectedAmount,
-          campaignTitle: categoryTitle,
-          campaignCategory: categoryTitle,
+          campaignTitle: campaignTitle,
+          campaignCategory: campaignTitle,
         ),
       ),
     );
@@ -580,6 +467,19 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
 
             const SizedBox(height: AppConstants.extraLargePadding),
 
+            // Campaign Section
+            Text(
+              'campaign'.tr(),
+              style: AppTextStyles.headlineSmall.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppConstants.defaultPadding),
+            _buildSelectedCampaignSection(),
+
+            const SizedBox(height: AppConstants.extraLargePadding),
+
             // Preset Amounts Section
             Text(
               'suggested_amounts'.tr(),
@@ -603,8 +503,9 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
               itemCount: _presetAmounts.length,
               itemBuilder: (context, index) {
                 final amount = _presetAmounts[index];
-                final isSelected = _selectedAmount == amount && !_isCustomAmount;
-                
+                final isSelected =
+                    _selectedAmount == amount && !_isCustomAmount;
+
                 return GestureDetector(
                   onTap: () => _onAmountSelected(amount),
                   child: Container(
@@ -612,14 +513,14 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                       color: isSelected ? AppColors.primary : AppColors.surface,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isSelected 
-                            ? AppColors.primary 
+                        color: isSelected
+                            ? AppColors.primary
                             : AppColors.textPrimary.withOpacity(0.1),
                         width: isSelected ? 2 : 1,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: isSelected 
+                          color: isSelected
                               ? AppColors.primary.withOpacity(0.3)
                               : AppColors.textPrimary.withOpacity(0.05),
                           blurRadius: 8,
@@ -633,7 +534,9 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                         Text(
                           amount.toStringAsFixed(0),
                           style: AppTextStyles.titleLarge.copyWith(
-                            color: isSelected ? AppColors.surface : AppColors.textPrimary,
+                            color: isSelected
+                                ? AppColors.surface
+                                : AppColors.textPrimary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -641,7 +544,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                         Text(
                           'riyal'.tr(),
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: isSelected 
+                            color: isSelected
                                 ? AppColors.surface.withOpacity(0.8)
                                 : AppColors.textSecondary,
                           ),
@@ -670,8 +573,8 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: _isCustomAmount 
-                      ? AppColors.primary 
+                  color: _isCustomAmount
+                      ? AppColors.primary
                       : AppColors.textPrimary.withOpacity(0.1),
                   width: _isCustomAmount ? 2 : 1,
                 ),
@@ -703,7 +606,8 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                     color: AppColors.textSecondary,
                   ),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(AppConstants.largePadding),
+                  contentPadding:
+                      const EdgeInsets.all(AppConstants.largePadding),
                 ),
               ),
             ),
@@ -749,34 +653,6 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
               ),
               const SizedBox(height: AppConstants.extraLargePadding),
             ],
-
-            // Categories Section
-            Text(
-              'choose_donation_category'.tr(),
-              style: AppTextStyles.headlineSmall.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: AppConstants.defaultPadding),
-
-            // Categories Grid
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: 0.85,
-              children: _categories.map((category) => _buildCategoryCard(
-                category: category,
-                isSelected: _selectedCategory == category['id'],
-                onTap: () => _onCategorySelected(category['id']),
-              )).toList(),
-            ),
-
-            const SizedBox(height: AppConstants.extraLargePadding),
-
             // Note about automatic allocation
             Container(
               width: double.infinity,
@@ -839,11 +715,15 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: (_selectedAmount > 0 && _selectedCategory != null && !_isLoading) 
-                    ? _onContinue 
+                onPressed: (_selectedAmount > 0 &&
+                        _selectedCampaign != null &&
+                        !_isLoading)
+                    ? _onContinue
                     : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: (_selectedAmount > 0 && _selectedCategory != null && !_isLoading)
+                  backgroundColor: (_selectedAmount > 0 &&
+                          _selectedCampaign != null &&
+                          !_isLoading)
                       ? AppColors.primary
                       : AppColors.textSecondary.withOpacity(0.3),
                   foregroundColor: AppColors.surface,
@@ -862,7 +742,8 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -881,9 +762,11 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                           const Icon(Icons.payment, size: 18),
                           const SizedBox(width: 8),
                           Text(
-                            (_selectedAmount > 0 && _selectedCategory != null)
+                            (_selectedAmount > 0 && _selectedCampaign != null)
                                 ? 'proceed_to_payment'.tr()
-                                : 'choose_amount_category'.tr(),
+                                : (_selectedCampaign == null
+                                    ? 'select_campaign_to_continue'.tr()
+                                    : 'choose_donation_amount'.tr()),
                             style: AppTextStyles.buttonLarge.copyWith(
                               color: AppColors.surface,
                               fontWeight: FontWeight.w600,
@@ -899,133 +782,237 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
     );
   }
 
-  Widget _buildCategoryCard({
-    required Map<String, dynamic> category,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final color = category['color'] as Color;
-    final icon = category['icon'] as IconData;
-    final title = category['title'] as String;
-    final description = category['description'] as String;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
+  Widget _buildSelectedCampaignSection() {
+    if (_isLoadingCampaign) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppConstants.largePadding),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.15) : AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? color : color.withOpacity(0.15),
-            width: isSelected ? 2 : 1,
+            color: AppColors.primary.withOpacity(0.1),
           ),
           boxShadow: [
             BoxShadow(
-              color: isSelected 
-                  ? color.withOpacity(0.25)
-                  : AppColors.textPrimary.withOpacity(0.08),
-              blurRadius: isSelected ? 12 : 6,
-              offset: const Offset(0, 3),
+              color: AppColors.textPrimary.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isSelected 
-                      ? color.withOpacity(0.2)
-                      : color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+        child: const Center(
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(strokeWidth: 3),
+          ),
+        ),
+      );
+    }
+
+    if (_campaignError != null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppConstants.largePadding),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.error.withOpacity(0.2),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  color: AppColors.error,
                 ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 20,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _campaignError!,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton.icon(
+                onPressed: _loadActiveCampaign,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                ),
+                icon: const Icon(Icons.refresh),
+                label: Text('try_again'.tr()),
               ),
-              const SizedBox(height: 6),
-              Text(
-                title,
-                style: AppTextStyles.titleSmall.copyWith(
+            ),
+          ],
+        ),
+      );
+    }
+
+    final campaign = _selectedCampaign;
+    if (campaign == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppConstants.largePadding),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.primary.withOpacity(0.1),
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.campaign_outlined,
+              color: AppColors.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'no_campaigns_available'.tr(),
+                style: AppTextStyles.bodyMedium.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
-                  fontSize: 11,
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 2),
-              Text(
-                description,
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                  height: 1.1,
-                  fontSize: 8,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final locale = context.locale.languageCode;
+    final campaignTitle = campaign.getLocalizedTitle(locale);
+    final campaignDescription = campaign.getLocalizedDescription(locale);
+    final progress = campaign.progressPercentage;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppConstants.largePadding),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.textPrimary.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                child: const Icon(
+                  Icons.campaign,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  campaignTitle,
+                  style: AppTextStyles.titleLarge.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 12),
+          Text(
+            campaignDescription,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: AppColors.primary.withOpacity(0.1),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.primary),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${'raised_amount'.tr()}: ${campaign.currentAmount.toStringAsFixed(0)} ${'riyal'.tr()}',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                '${'target_amount'.tr()}: ${campaign.targetAmount.toStringAsFixed(0)} ${'riyal'.tr()}',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${'donors_count'.tr()}: ${campaign.donorCount}',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _showAnotherCampaign,
+                icon: const Icon(Icons.shuffle),
+                label: Text('try_again'.tr()),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  textStyle: AppTextStyles.bodySmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
-
-  IconData _getCategoryIcon(String categoryName) {
-    switch (categoryName.toLowerCase()) {
-      case 'تعليم':
-      case 'education':
-        return Icons.school;
-      case 'سكن':
-      case 'housing':
-        return Icons.home;
-      case 'أجهزة':
-      case 'devices':
-        return Icons.computer;
-      case 'امتحانات':
-      case 'exams':
-        return Icons.assignment;
-      case 'صحة':
-      case 'health':
-        return Icons.health_and_safety;
-      case 'طعام':
-      case 'food':
-        return Icons.restaurant;
-      default:
-        return Icons.category;
-    }
-  }
-
-  Color _getCategoryColor(String categoryName) {
-    switch (categoryName.toLowerCase()) {
-      case 'تعليم':
-      case 'education':
-        return AppColors.primary;
-      case 'سكن':
-      case 'housing':
-        return AppColors.secondary;
-      case 'أجهزة':
-      case 'devices':
-        return AppColors.accent;
-      case 'امتحانات':
-      case 'exams':
-        return AppColors.success;
-      case 'صحة':
-      case 'health':
-        return Colors.red;
-      case 'طعام':
-      case 'food':
-        return Colors.orange;
-      default:
-        return AppColors.primary;
-    }
-  }
-} 
+}

@@ -248,8 +248,9 @@
   "or_enter_custom_amount": "أو أدخل مبلغاً مخصصاً",
   "selected_amount": "المبلغ المختار",
   "important_note": "ملاحظة مهمة",
-  "donation_redirect_note": "سيتم توجيه تبرعك للفئة المختارة للحالات الأشد احتياجاً",
+  "donation_redirect_note": "سيتم توجيه تبرعك للحملة المختارة لدعم الحالات الأشد احتياجاً",
   "choose_amount_category": "اختر المبلغ والفئة",
+  "select_campaign_to_continue": "اختر حملة نشطة للمتابعة",
   "please_enter_valid_amount": "يرجى إدخال مبلغ صحيح",
   "please_choose_donation_category": "يرجى اختيار فئة التبرع",
   
