@@ -221,16 +221,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                 flexibleSpace: FlexibleSpaceBar(
                   background: Stack(
                     children: [
-                      Container(
-                        width: double.infinity,
-                        height: 300,
-                        decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: NetworkImage(_getCampaignImage(widget.campaign.category)),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
+                      _buildCampaignImage(),
                       Container(
                         width: double.infinity,
                         height: 300,
@@ -629,20 +620,55 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
     );
   }
 
-  String _getCampaignImage(String category) {
-    switch (category) {
-      case 'فرص التعليم':
-        return 'https://images.pexels.com/photos/8613318/pexels-photo-8613318.jpeg?auto=compress&cs=tinysrgb&w=800';
-    case 'السكن والنقل':
-        return 'https://images.pexels.com/photos/271816/pexels-photo-271816.jpeg?auto=compress&cs=tinysrgb&w=800';
-      case 'الإعانة الشهرية':
-        return 'https://images.pexels.com/photos/4386375/pexels-photo-4386375.jpeg?auto=compress&cs=tinysrgb&w=800';
-      case 'شراء أجهزة':
-        return 'https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg?auto=compress&cs=tinysrgb&w=800';
-      case 'رسوم الاختبارات':
-        return 'https://images.pexels.com/photos/4145195/pexels-photo-4145195.jpeg?auto=compress&cs=tinysrgb&w=800';
-      default:
-        return 'https://images.pexels.com/photos/5905708/pexels-photo-5905708.jpeg?auto=compress&cs=tinysrgb&w=800';
+  // Build campaign image widget - use imageUrl directly from backend
+  Widget _buildCampaignImage() {
+    final imageUrl = widget.campaign.imageUrl.trim();
+    
+    if (imageUrl.isNotEmpty) {
+      return Image.network(
+        imageUrl,
+        width: double.infinity,
+        height: 300,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) {
+            return child;
+          }
+          print('CampaignDonationScreen: Loading image from: $imageUrl');
+          return Container(
+            width: double.infinity,
+            height: 300,
+            color: Colors.grey[300],
+            child: const Center(child: CircularProgressIndicator()),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          print('CampaignDonationScreen: ERROR loading image from: $imageUrl -> $error');
+          return Container(
+            width: double.infinity,
+            height: 300,
+            color: Colors.grey[300],
+            child: const Icon(
+              Icons.broken_image,
+              color: Colors.grey,
+              size: 48,
+            ),
+          );
+        },
+      );
     }
+    
+    // Fallback if no image URL
+    return Container(
+      width: double.infinity,
+      height: 300,
+      color: Colors.grey[300],
+      child: const Icon(
+        Icons.image_not_supported,
+        color: Colors.grey,
+        size: 48,
+      ),
+    );
   }
+
 }

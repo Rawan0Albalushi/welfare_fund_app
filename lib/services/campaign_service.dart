@@ -25,15 +25,10 @@ class CampaignService {
       
       // Try multiple possible endpoints
       List<String> endpoints = [
-        '/v1/programs',
         '/programs',
-        '/api/v1/programs',
-        '/api/programs',
-        '/v1/programs/support',
-        '/programs/support'
+        '/programs/support',
+        '/student-programs',
       ];
-      
-      DioException? lastError;
       
       for (String endpoint in endpoints) {
                  try {
@@ -55,6 +50,47 @@ class CampaignService {
             }
             
             final List<Campaign> programs = programsData.map((program) {
+              // Debug: Print image fields for debugging
+              if (programsData.indexOf(program) == 0) {
+                print('CampaignService: First program image fields:');
+                print('  - image_url: ${program['image_url']}');
+                print('  - image: ${program['image']}');
+                print('  - photo: ${program['photo']}');
+                print('  - photo_url: ${program['photo_url']}');
+                print('  - banner: ${program['banner']}');
+                print('  - banner_url: ${program['banner_url']}');
+              }
+              
+              // Try multiple possible image field names
+              final imageUrl = program['image_url'] ?? 
+                              program['image'] ?? 
+                              program['photo'] ?? 
+                              program['photo_url'] ?? 
+                              program['banner'] ?? 
+                              program['banner_url'] ?? 
+                              program['imageUrl'] ?? 
+                              '';
+              
+              // 🔍 DEBUG: Print image URL for first program
+              if (programsData.indexOf(program) == 0) {
+                print('═══════════════════════════════════════════════════════════');
+                print('📦 CampaignService: Processing FIRST student program');
+                print('📋 Program ID: ${program['id']}');
+                print('📋 Program title: ${program['title'] ?? program['title_ar'] ?? program['name']}');
+                print('🔍 Raw image fields from backend:');
+                print('   - image_url: "${program['image_url']}"');
+                print('   - image: "${program['image']}"');
+                print('   - photo: "${program['photo']}"');
+                print('   - photo_url: "${program['photo_url']}"');
+                print('   - banner: "${program['banner']}"');
+                print('   - banner_url: "${program['banner_url']}"');
+                print('✅ Final selected imageUrl: "$imageUrl"');
+                print('📏 imageUrl length: ${imageUrl.length}');
+                print('📏 imageUrl startsWith(/): ${imageUrl.startsWith('/')}');
+                print('📏 imageUrl startsWith(http): ${imageUrl.startsWith('http')}');
+                print('═══════════════════════════════════════════════════════════');
+              }
+              
               return Campaign(
                 id: program['id']?.toString() ?? '',
                 title: program['title'] ?? program['title_ar'] ?? program['title_en'] ?? program['name'] ?? '',
@@ -63,7 +99,7 @@ class CampaignService {
                 description: program['description'] ?? program['description_ar'] ?? program['description_en'] ?? '',
                 descriptionAr: program['description_ar'] ?? program['description'] ?? '',
                 descriptionEn: program['description_en'] ?? program['description'] ?? '',
-                imageUrl: program['image_url'] ?? program['image'] ?? '',
+                imageUrl: imageUrl,
                 targetAmount: _parseDouble(program['goal_amount'] ?? program['target_amount'] ?? 0),
                 currentAmount: _parseDouble(program['raised_amount'] ?? program['current_amount'] ?? 0),
                 startDate: DateTime.parse(program['created_at'] ?? DateTime.now().toIso8601String()),
@@ -82,9 +118,6 @@ class CampaignService {
           }
         } catch (error) {
           print('CampaignService: Failed to fetch from endpoint $endpoint: $error');
-          if (error is DioException) {
-            lastError = error;
-          }
           continue; // Try next endpoint
         }
       }
@@ -107,12 +140,32 @@ class CampaignService {
   Future<Campaign?> getStudentProgramDetails(String programId) async {
     try {
       print('CampaignService: Fetching student program details for ID: $programId');
-      final response = await _apiClient.dio.get('/v1/programs/$programId');
+      final response = await _apiClient.dio.get('/programs/$programId');
       
       print('CampaignService: Student Program details API Response: ${response.data}');
       
       if (response.statusCode == 200) {
         final program = response.data['data'] ?? response.data;
+        
+        // Debug: Print image fields
+        print('CampaignService: Program details image fields:');
+        print('  - image_url: ${program['image_url']}');
+        print('  - image: ${program['image']}');
+        print('  - photo: ${program['photo']}');
+        print('  - photo_url: ${program['photo_url']}');
+        print('  - banner: ${program['banner']}');
+        print('  - banner_url: ${program['banner_url']}');
+        
+        // Try multiple possible image field names
+        final imageUrl = program['image_url'] ?? 
+                        program['image'] ?? 
+                        program['photo'] ?? 
+                        program['photo_url'] ?? 
+                        program['banner'] ?? 
+                        program['banner_url'] ?? 
+                        program['imageUrl'] ?? 
+                        '';
+        
         return Campaign(
           id: program['id']?.toString() ?? '',
           title: program['title'] ?? program['title_ar'] ?? program['title_en'] ?? program['name'] ?? '',
@@ -121,7 +174,7 @@ class CampaignService {
           description: program['description'] ?? program['description_ar'] ?? program['description_en'] ?? '',
           descriptionAr: program['description_ar'] ?? program['description'] ?? '',
           descriptionEn: program['description_en'] ?? program['description'] ?? '',
-          imageUrl: program['image_url'] ?? program['image'] ?? '',
+          imageUrl: imageUrl,
           targetAmount: _parseDouble(program['goal_amount'] ?? program['target_amount'] ?? 0),
           currentAmount: _parseDouble(program['raised_amount'] ?? program['current_amount'] ?? 0),
           startDate: DateTime.parse(program['created_at'] ?? DateTime.now().toIso8601String()),
@@ -149,15 +202,9 @@ class CampaignService {
       
       // Try multiple possible endpoints
       List<String> endpoints = [
-        '/v1/campaigns',
         '/campaigns',
-        '/api/v1/campaigns',
-        '/api/campaigns',
-        '/v1/charity-campaigns',
-        '/charity-campaigns'
+        '/charity-campaigns',
       ];
-      
-      DioException? lastError;
       
       for (String endpoint in endpoints) {
                  try {
@@ -172,6 +219,47 @@ class CampaignService {
             final List<dynamic> campaignsData = response.data['data'] ?? response.data;
             
             final List<Campaign> campaigns = campaignsData.map((campaign) {
+              // Debug: Print image fields for debugging
+              if (campaignsData.indexOf(campaign) == 0) {
+                print('CampaignService: First charity campaign image fields:');
+                print('  - image_url: ${campaign['image_url']}');
+                print('  - image: ${campaign['image']}');
+                print('  - photo: ${campaign['photo']}');
+                print('  - photo_url: ${campaign['photo_url']}');
+                print('  - banner: ${campaign['banner']}');
+                print('  - banner_url: ${campaign['banner_url']}');
+              }
+              
+              // Try multiple possible image field names
+              final imageUrl = campaign['image_url'] ?? 
+                              campaign['image'] ?? 
+                              campaign['photo'] ?? 
+                              campaign['photo_url'] ?? 
+                              campaign['banner'] ?? 
+                              campaign['banner_url'] ?? 
+                              campaign['imageUrl'] ?? 
+                              '';
+              
+              // 🔍 DEBUG: Print image URL for first campaign
+              if (campaignsData.indexOf(campaign) == 0) {
+                print('═══════════════════════════════════════════════════════════');
+                print('📦 CampaignService: Processing FIRST charity campaign');
+                print('📋 Campaign ID: ${campaign['id']}');
+                print('📋 Campaign title: ${campaign['title'] ?? campaign['title_ar'] ?? campaign['name']}');
+                print('🔍 Raw image fields from backend:');
+                print('   - image_url: "${campaign['image_url']}"');
+                print('   - image: "${campaign['image']}"');
+                print('   - photo: "${campaign['photo']}"');
+                print('   - photo_url: "${campaign['photo_url']}"');
+                print('   - banner: "${campaign['banner']}"');
+                print('   - banner_url: "${campaign['banner_url']}"');
+                print('✅ Final selected imageUrl: "$imageUrl"');
+                print('📏 imageUrl length: ${imageUrl.length}');
+                print('📏 imageUrl startsWith(/): ${imageUrl.startsWith('/')}');
+                print('📏 imageUrl startsWith(http): ${imageUrl.startsWith('http')}');
+                print('═══════════════════════════════════════════════════════════');
+              }
+              
               return Campaign(
                 id: campaign['id']?.toString() ?? '',
                 title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
@@ -180,7 +268,7 @@ class CampaignService {
                 description: campaign['description'] ?? campaign['description_ar'] ?? campaign['description_en'] ?? '',
                 descriptionAr: campaign['description_ar'] ?? campaign['description'] ?? '',
                 descriptionEn: campaign['description_en'] ?? campaign['description'] ?? '',
-                imageUrl: campaign['image_url'] ?? campaign['image'] ?? '',
+                imageUrl: imageUrl,
                 targetAmount: _parseDouble(campaign['goal_amount'] ?? campaign['target_amount'] ?? 0),
                 currentAmount: _parseDouble(campaign['raised_amount'] ?? campaign['current_amount'] ?? 0),
                 startDate: DateTime.parse(campaign['created_at'] ?? DateTime.now().toIso8601String()),
@@ -204,9 +292,6 @@ class CampaignService {
           }
         } catch (error) {
           print('CampaignService: Failed to fetch from endpoint $endpoint: $error');
-          if (error is DioException) {
-            lastError = error;
-          }
           continue; // Try next endpoint
         }
       }
@@ -229,7 +314,7 @@ class CampaignService {
   Future<List<Campaign>> getUrgentCampaigns() async {
     try {
       print('CampaignService: Fetching urgent campaigns from API...');
-      final response = await _apiClient.dio.get('/v1/campaigns/urgent');
+      final response = await _apiClient.dio.get('/campaigns/urgent');
       
       print('CampaignService: Urgent Campaigns API Response: ${response.data}');
       
@@ -237,6 +322,16 @@ class CampaignService {
         final List<dynamic> campaignsData = response.data['data'] ?? response.data;
         
         final List<Campaign> campaigns = campaignsData.map((campaign) {
+          // Try multiple possible image field names
+          final imageUrl = campaign['image_url'] ?? 
+                          campaign['image'] ?? 
+                          campaign['photo'] ?? 
+                          campaign['photo_url'] ?? 
+                          campaign['banner'] ?? 
+                          campaign['banner_url'] ?? 
+                          campaign['imageUrl'] ?? 
+                          '';
+          
           return Campaign(
             id: campaign['id']?.toString() ?? '',
             title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
@@ -245,7 +340,7 @@ class CampaignService {
             description: campaign['description'] ?? campaign['description_ar'] ?? campaign['description_en'] ?? '',
             descriptionAr: campaign['description_ar'] ?? campaign['description'] ?? '',
             descriptionEn: campaign['description_en'] ?? campaign['description'] ?? '',
-            imageUrl: campaign['image_url'] ?? campaign['image'] ?? '',
+            imageUrl: imageUrl,
             targetAmount: _parseDouble(campaign['goal_amount'] ?? campaign['target_amount'] ?? 0),
             currentAmount: _parseDouble(campaign['raised_amount'] ?? campaign['current_amount'] ?? 0),
             startDate: DateTime.parse(campaign['created_at'] ?? DateTime.now().toIso8601String()),
@@ -277,7 +372,7 @@ class CampaignService {
   Future<List<Campaign>> getFeaturedCampaigns() async {
     try {
       print('CampaignService: Fetching featured campaigns from API...');
-      final response = await _apiClient.dio.get('/v1/campaigns/featured');
+      final response = await _apiClient.dio.get('/campaigns/featured');
       
       print('CampaignService: Featured Campaigns API Response: ${response.data}');
       
@@ -285,6 +380,16 @@ class CampaignService {
         final List<dynamic> campaignsData = response.data['data'] ?? response.data;
         
         final List<Campaign> campaigns = campaignsData.map((campaign) {
+          // Try multiple possible image field names
+          final imageUrl = campaign['image_url'] ?? 
+                          campaign['image'] ?? 
+                          campaign['photo'] ?? 
+                          campaign['photo_url'] ?? 
+                          campaign['banner'] ?? 
+                          campaign['banner_url'] ?? 
+                          campaign['imageUrl'] ?? 
+                          '';
+          
           return Campaign(
             id: campaign['id']?.toString() ?? '',
             title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
@@ -293,7 +398,7 @@ class CampaignService {
             description: campaign['description'] ?? campaign['description_ar'] ?? campaign['description_en'] ?? '',
             descriptionAr: campaign['description_ar'] ?? campaign['description'] ?? '',
             descriptionEn: campaign['description_en'] ?? campaign['description'] ?? '',
-            imageUrl: campaign['image_url'] ?? campaign['image'] ?? '',
+            imageUrl: imageUrl,
             targetAmount: _parseDouble(campaign['goal_amount'] ?? campaign['target_amount'] ?? 0),
             currentAmount: _parseDouble(campaign['raised_amount'] ?? campaign['current_amount'] ?? 0),
             startDate: DateTime.parse(campaign['created_at'] ?? DateTime.now().toIso8601String()),
@@ -325,12 +430,32 @@ class CampaignService {
   Future<Campaign?> getCharityCampaignDetails(String campaignId) async {
     try {
       print('CampaignService: Fetching charity campaign details for ID: $campaignId');
-      final response = await _apiClient.dio.get('/v1/campaigns/$campaignId');
+      final response = await _apiClient.dio.get('/campaigns/$campaignId');
       
       print('CampaignService: Charity Campaign details API Response: ${response.data}');
       
       if (response.statusCode == 200) {
         final campaign = response.data['data'] ?? response.data;
+        
+        // Debug: Print image fields
+        print('CampaignService: Charity campaign details image fields:');
+        print('  - image_url: ${campaign['image_url']}');
+        print('  - image: ${campaign['image']}');
+        print('  - photo: ${campaign['photo']}');
+        print('  - photo_url: ${campaign['photo_url']}');
+        print('  - banner: ${campaign['banner']}');
+        print('  - banner_url: ${campaign['banner_url']}');
+        
+        // Try multiple possible image field names
+        final imageUrl = campaign['image_url'] ?? 
+                        campaign['image'] ?? 
+                        campaign['photo'] ?? 
+                        campaign['photo_url'] ?? 
+                        campaign['banner'] ?? 
+                        campaign['banner_url'] ?? 
+                        campaign['imageUrl'] ?? 
+                        '';
+        
         return Campaign(
           id: campaign['id']?.toString() ?? '',
           title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
@@ -339,7 +464,7 @@ class CampaignService {
           description: campaign['description'] ?? campaign['description_ar'] ?? campaign['description_en'] ?? '',
           descriptionAr: campaign['description_ar'] ?? campaign['description'] ?? '',
           descriptionEn: campaign['description_en'] ?? campaign['description'] ?? '',
-          imageUrl: campaign['image_url'] ?? campaign['image'] ?? '',
+          imageUrl: imageUrl,
           targetAmount: _parseDouble(campaign['goal_amount'] ?? campaign['target_amount'] ?? 0),
           currentAmount: _parseDouble(campaign['raised_amount'] ?? campaign['current_amount'] ?? 0),
           startDate: DateTime.parse(campaign['created_at'] ?? DateTime.now().toIso8601String()),
@@ -369,7 +494,7 @@ class CampaignService {
   Future<List<Map<String, dynamic>>> getCategories() async {
     try {
       print('CampaignService: Fetching categories from API...');
-      final response = await _apiClient.dio.get('/v1/categories');
+      final response = await _apiClient.dio.get('/categories');
       
       print('CampaignService: Categories API Response: ${response.data}');
       
@@ -419,7 +544,7 @@ class CampaignService {
       
       print('CampaignService: Donation data: $donationData');
       
-      final response = await _apiClient.dio.post('/v1/donations', data: donationData);
+      final response = await _apiClient.dio.post('/donations', data: donationData);
       
       print('CampaignService: Donation API Response: ${response.data}');
       
@@ -442,7 +567,7 @@ class CampaignService {
   Future<List<double>> getQuickDonationAmounts() async {
     try {
       print('CampaignService: Fetching quick donation amounts...');
-      final response = await _apiClient.dio.get('/v1/donations/quick-amounts');
+      final response = await _apiClient.dio.get('/donations/quick-amounts');
       
       print('CampaignService: Quick amounts API Response: ${response.data}');
       

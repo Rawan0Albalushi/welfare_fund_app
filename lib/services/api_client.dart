@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../constants/app_config.dart';
+
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
@@ -10,8 +12,8 @@ class ApiClient {
   static const String _tokenKey = 'auth_token';
 
   Future<void> initialize() async {
-    // Use default URL to avoid dotenv issues
-    const baseUrl = 'http://localhost:8000/api/v1';
+    // Use configured base URL to avoid dotenv issues
+    const baseUrl = AppConfig.apiBaseUrlV1;
     print('API Base URL: $baseUrl'); // Debug print
     
     _dio = Dio(BaseOptions(

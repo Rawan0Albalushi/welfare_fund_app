@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_config.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../services/campaign_service.dart';
@@ -291,7 +292,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       final token = await _getAuthToken();
       
       // الحصول على origin للمنصة الويب
-      final origin = kIsWeb ? Uri.base.origin : 'http://localhost:8000';
+      final origin = kIsWeb ? Uri.base.origin : AppConfig.serverBaseUrl;
       
       // الحصول على campaign_id من الفئة المختارة
       final campaignId = _getCampaignIdFromCategory();
@@ -311,7 +312,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       
       // 1) استدعاء POST /api/v1/donations/with-payment مع return_origin
       final response = await http.post(
-        Uri.parse('http://localhost:8000/api/v1/donations/with-payment'),
+        Uri.parse(AppConfig.donationsWithPaymentEndpoint),
         headers: headers,
         body: jsonEncode({
           'campaign_id': campaignId,
@@ -421,8 +422,8 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       MaterialPageRoute(
         builder: (context) => CheckoutWebView(
           checkoutUrl: checkoutUrl,
-          successUrl: 'http://localhost:8000/api/v1/payments/success',
-          cancelUrl: 'http://localhost:8000/api/v1/payments/cancel',
+          successUrl: AppConfig.paymentsSuccessUrl,
+          cancelUrl: AppConfig.paymentsCancelUrl,
         ),
       ),
     );
@@ -455,7 +456,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       }
       
       final response = await http.post(
-        Uri.parse('http://localhost:8000/api/v1/payments/confirm'),
+        Uri.parse(AppConfig.paymentsConfirmEndpoint),
         headers: headers,
         body: jsonEncode({
           'session_id': sessionId,

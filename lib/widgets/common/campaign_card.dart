@@ -36,18 +36,7 @@ class CampaignCard extends StatelessWidget {
           child: Stack(
             children: [
               // Background Image
-              Container(
-                width: double.infinity,
-                height: 200,
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: NetworkImage(
-                      _getCampaignImage(campaign.category),
-                    ),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
+              _buildCampaignImage(campaign),
               // Gradient Overlay
               Container(
                 width: double.infinity,
@@ -226,35 +215,68 @@ class CampaignCard extends StatelessWidget {
     return category;
   }
 
-  String _getCampaignImage(String category) {
-    switch (category) {
-      case 'فرص التعليم':
-      case 'فرص تعليمية':
-      case 'Education Opportunities':
-        // صورة للتعليم
-        return 'https://images.pexels.com/photos/8613318/pexels-photo-8613318.jpeg?auto=compress&cs=tinysrgb&w=800';
-      case 'السكن والنقل':
-      case 'Housing & Transport':
-        // صورة للسكن أو وسائل النقل
-        return 'https://images.pexels.com/photos/271816/pexels-photo-271816.jpeg?auto=compress&cs=tinysrgb&w=800';
-      case 'الإعانة الشهرية':
-      case 'Emergency Support':
-      case 'الدعم الطارئ':
-        // صورة لمساعدة مالية شهرية
-        return 'https://images.pexels.com/photos/4386375/pexels-photo-4386375.jpeg?auto=compress&cs=tinysrgb&w=800';
-      case 'شراء أجهزة':
-      case 'شراء الأجهزة':
-      case 'Device Purchase':
-        // صورة لأجهزة إلكترونية أو كمبيوتر
-        return 'https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg?auto=compress&cs=tinysrgb&w=800';
-      case 'رسوم الاختبارات':
-      case 'الامتحانات':
-      case 'Exams':
-        // صورة لامتحانات أو أوراق اختبار
-        return 'https://images.pexels.com/photos/4145195/pexels-photo-4145195.jpeg?auto=compress&cs=tinysrgb&w=800';
-      default:
-        // صورة افتراضية
-        return 'https://images.pexels.com/photos/5905708/pexels-photo-5905708.jpeg?auto=compress&cs=tinysrgb&w=800';
+  // Build campaign image widget - use imageUrl directly from backend
+  Widget _buildCampaignImage(Campaign campaign) {
+    print('═══════════════════════════════════════════════════════════');
+    print('🔍 CampaignCard: Building image for campaign: "${campaign.title}"');
+    print('📋 Campaign ID: ${campaign.id}');
+    print('📋 Campaign imageUrl from model: "${campaign.imageUrl}"');
+    print('📋 Campaign imageUrl length: ${campaign.imageUrl.length}');
+    print('📋 Campaign imageUrl isEmpty: ${campaign.imageUrl.isEmpty}');
+    
+    final imageUrl = campaign.imageUrl.trim();
+    
+    print('✅ Final imageUrl to use: "$imageUrl"');
+    print('═══════════════════════════════════════════════════════════');
+    
+    if (imageUrl.isNotEmpty) {
+      return Image.network(
+        imageUrl,
+        width: double.infinity,
+        height: 200,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) {
+            return child;
+          }
+          print('⏳ CampaignCard: Loading image from: $imageUrl');
+          return Container(
+            width: double.infinity,
+            height: 200,
+            color: Colors.grey[300],
+            child: const Center(child: CircularProgressIndicator()),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          print('❌ CampaignCard: ERROR loading image from: $imageUrl');
+          print('❌ CampaignCard: Error details: $error');
+          print('❌ CampaignCard: Error type: ${error.runtimeType}');
+          return Container(
+            width: double.infinity,
+            height: 200,
+            color: Colors.grey[300],
+            child: const Icon(
+              Icons.broken_image,
+              color: Colors.grey,
+              size: 48,
+            ),
+          );
+        },
+      );
     }
+    
+    // Fallback if no image URL
+    print('⚠️ CampaignCard: No image URL, showing placeholder');
+    return Container(
+      width: double.infinity,
+      height: 200,
+      color: Colors.grey[300],
+      child: const Icon(
+        Icons.image_not_supported,
+        color: Colors.grey,
+        size: 48,
+      ),
+    );
   }
-} 
+
+}

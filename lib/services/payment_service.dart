@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../constants/app_config.dart';
 import '../models/payment_request.dart';
 import '../models/payment_response.dart' hide PaymentStatusResponse;
 import '../models/payment_status_response.dart';
@@ -17,8 +18,8 @@ class PaymentService {
 
   // قاعدة API المستخدمة في بقية الخدمات أيضًا
   // تأكد أن هذا يطابق العنوان في ApiClient.initialize
-  static const String _baseUrl = 'http://localhost:8000/api/v1';
-  static const String baseUrl = 'http://localhost:8000/api/v1';
+  static const String _baseUrl = AppConfig.apiBaseUrlV1;
+  static const String baseUrl = AppConfig.apiBaseUrlV1;
 
   String get _apiBase => _baseUrl;
 
@@ -74,7 +75,7 @@ class PaymentService {
         returnOrigin: returnOrigin,
       );
 
-      final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+\$"), "")}/payments/create');
+      final uri = Uri.parse('${AppConfig.apiBaseUrlV1}/payments/create');
       final response = await http.post(uri, headers: headers, body: jsonEncode(req.toJson()));
 
       // Debug (اختياري)
@@ -147,7 +148,7 @@ class PaymentService {
         print('PaymentService: Using anonymous status check');
       }
 
-      final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+\$"), "")}/payments/status/$sessionId');
+      final uri = Uri.parse('${AppConfig.apiBaseUrlV1}/payments/status/$sessionId');
       final response = await http.get(uri, headers: headers);
 
       // Debug (اختياري)
@@ -191,7 +192,7 @@ class PaymentService {
       final token = prefs.getString('auth_token');
       
       final response = await http.post(
-        Uri.parse('$baseUrl/donations/with-payment'),
+        Uri.parse(AppConfig.donationsWithPaymentEndpoint),
         headers: {
           'Authorization': 'Bearer $token', // ✅ مهم جداً!
           'Content-Type': 'application/json',

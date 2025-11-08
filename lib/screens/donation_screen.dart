@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 import '../constants/app_colors.dart';
+import '../constants/app_config.dart';
 import '../constants/app_text_styles.dart';
 import 'checkout_webview.dart';
 
@@ -86,11 +87,11 @@ class _DonationScreenState extends State<DonationScreen> {
       }
 
       // الحصول على origin للمنصة الويب
-      final origin = Uri.base.origin; // مثال: http://localhost:49887
+      final origin = kIsWeb ? Uri.base.origin : AppConfig.serverBaseUrl;
       
       // 1) استدعاء POST /api/v1/donations/with-payment مع return_origin
       final response = await http.post(
-        Uri.parse('http://localhost:8000/api/v1/donations/with-payment'),
+        Uri.parse(AppConfig.donationsWithPaymentEndpoint),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -177,8 +178,8 @@ class _DonationScreenState extends State<DonationScreen> {
       MaterialPageRoute(
         builder: (context) => CheckoutWebView(
           checkoutUrl: checkoutUrl,
-          successUrl: 'http://localhost:8000/api/v1/payments/success',
-          cancelUrl: 'http://localhost:8000/api/v1/payments/cancel',
+          successUrl: AppConfig.paymentsSuccessUrl,
+          cancelUrl: AppConfig.paymentsCancelUrl,
         ),
       ),
     );
@@ -201,7 +202,7 @@ class _DonationScreenState extends State<DonationScreen> {
       final token = await _getAuthToken();
       
       final response = await http.post(
-        Uri.parse('http://localhost:8000/api/v1/payments/confirm'),
+        Uri.parse(AppConfig.paymentsConfirmEndpoint),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

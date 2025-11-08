@@ -1,8 +1,8 @@
 // donation_service.dart
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
 
+import '../constants/app_config.dart';
 import '../models/payment_request.dart';
 import '../models/payment_response.dart' hide PaymentStatusResponse;
 import '../models/payment_status_response.dart';
@@ -23,14 +23,7 @@ class DonationService {
   // Android Emulator يصل لمضيف جهازك بـ 10.0.2.2
   // iOS Simulator غالباً يقدر على localhost
   // الأجهزة الفعلية استخدمي IP الشبكة (مثال: 192.168.1.100)
-  static String _resolveFallbackBase() {
-    try {
-      if (Platform.isAndroid) return 'http://localhost:8000/api/v1';
-      if (Platform.isIOS) return 'http://localhost:8000/api/v1';
-    } catch (_) {}
-    // Fallback عام (غيّريه لعنوان جهازك على الشبكة)
-    return 'http://localhost:8000/api/v1';
-  }
+  static String _resolveFallbackBase() => AppConfig.apiBaseUrlV1;
 
   String get _apiBase {
     // لو ApiClient مهيّأ بقاعدة مخصّصة نستخدمها؛ غير كذا نستخدم المحلي أعلاه

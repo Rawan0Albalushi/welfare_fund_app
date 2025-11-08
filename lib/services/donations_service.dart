@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../constants/app_config.dart';
+
 class DonationsService {
-  static const String baseUrl = 'http://localhost:8000/api/v1';
+  static const String baseUrl = AppConfig.apiBaseUrlV1;
   
   // احصل على التوكن من التخزين المحلي
   Future<String?> _getAuthToken() async {

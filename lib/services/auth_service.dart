@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../constants/app_config.dart';
+
 class AuthService {
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
@@ -10,8 +12,8 @@ class AuthService {
   static const String _tokenKey = 'auth_token';
 
   Future<void> initialize() async {
-    // Use default URL to avoid dotenv issues
-    const baseUrl = 'http://localhost:8000/api';
+    // Use configured base URL to avoid dotenv issues
+    const baseUrl = AppConfig.authBaseUrl;
     print('AuthService: Using base URL: $baseUrl');
     
     _dio = Dio(BaseOptions(
@@ -59,7 +61,7 @@ class AuthService {
     }
     
     try {
-             final response = await _dio!.post('/auth/register', data: {
+      final response = await _dio!.post('/auth/register', data: {
          'phone': phone,
          'password': password,
          'password_confirmation': passwordConfirmation,

@@ -53,6 +53,9 @@ dependencies:
   # State Management
   provider: ^6.1.1
   webview_flutter_web: ^0.2.3+4
+  
+  # Image Caching
+  cached_network_image: ^3.3.0
 
 dev_dependencies:
   flutter_test:
