@@ -47,7 +47,9 @@ class Campaign {
 
   double get progressPercentage {
     if (targetAmount == 0) return 0;
-    return (currentAmount / targetAmount) * 100;
+    final ratio = currentAmount / targetAmount;
+    if (ratio.isNaN || ratio.isInfinite) return 0;
+    return ratio.clamp(0.0, 1.0).toDouble();
   }
 
   int get remainingDays {
@@ -63,7 +65,7 @@ class Campaign {
   }
 
   bool get isCompleted {
-    return progressPercentage >= 100;
+    return progressPercentage >= 1;
   }
 
   // Helper methods to get localized content

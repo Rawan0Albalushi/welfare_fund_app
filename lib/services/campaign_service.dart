@@ -11,9 +11,55 @@ class CampaignService {
     if (value is double) return value;
     if (value is int) return value.toDouble();
     if (value is String) {
-      return double.tryParse(value) ?? 0.0;
+      final normalized = _normalizeNumberString(value);
+      if (normalized.isEmpty) return 0.0;
+      return double.tryParse(normalized) ?? 0.0;
     }
     return 0.0;
+  }
+
+  String _normalizeNumberString(String value) {
+    const arabicToEnglishDigits = {
+      '٠': '0',
+      '١': '1',
+      '٢': '2',
+      '٣': '3',
+      '٤': '4',
+      '٥': '5',
+      '٦': '6',
+      '٧': '7',
+      '٨': '8',
+      '٩': '9',
+      '۰': '0',
+      '۱': '1',
+      '۲': '2',
+      '۳': '3',
+      '۴': '4',
+      '۵': '5',
+      '۶': '6',
+      '۷': '7',
+      '۸': '8',
+      '۹': '9',
+    };
+
+    final buffer = StringBuffer();
+    for (final codePoint in value.trim().runes) {
+      final char = String.fromCharCode(codePoint);
+      if (arabicToEnglishDigits.containsKey(char)) {
+        buffer.write(arabicToEnglishDigits[char]);
+      } else if (char == ',' || char == '٬') {
+        // Skip thousands separators
+        continue;
+      } else if (char == '.' || char == '٫') {
+        buffer.write('.');
+      } else if (char == '-' && buffer.isEmpty) {
+        buffer.write('-');
+      } else if (RegExp(r'[0-9]').hasMatch(char)) {
+        buffer.write(char);
+      }
+      // Ignore any other characters (like currency symbols or spaces)
+    }
+    return buffer.toString();
   }
 
   // ===== STUDENT SUPPORT PROGRAMS (البرامج الموجودة) =====
