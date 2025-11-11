@@ -1,9 +1,19 @@
-import 'package:dio/dio.dart';
+import 'dart:developer' as developer;
 import 'dart:typed_data';
+import 'package:dio/dio.dart';
 import 'api_client.dart';
 
 class StudentRegistrationService {
   final ApiClient _apiClient = ApiClient();
+
+  void _log(String message, [Object? error, StackTrace? stackTrace]) {
+    developer.log(
+      message,
+      name: 'StudentRegistrationService',
+      error: error,
+      stackTrace: stackTrace,
+    );
+  }
 
   // POST /api/v1/students/registration - Submit student registration
   Future<Map<String, dynamic>> submitStudentRegistration({
@@ -34,12 +44,6 @@ class StudentRegistrationService {
       // Convert academic year string to number
       int academicYearNumber = _convertAcademicYearToNumber(academicYear);
       
-      // Convert family size string to number
-      int familySizeNumber = _convertFamilySizeToNumber(familySize);
-      
-      // Convert income level to number
-      double familyIncome = _convertIncomeLevelToNumber(incomeLevel);
-      
       Map<String, dynamic> data = {
         'program_id': programId ?? 1, // Use selected program ID or default to 1
         'personal[full_name]': fullName,
@@ -58,9 +62,9 @@ class StudentRegistrationService {
       };
 
       // Print the data being sent to API
-      print('API Data being sent (form-data format):');
+      _log('API Data being sent (form-data format):');
       data.forEach((key, value) {
-        print('$key: $value');
+        _log('$key: $value');
       });
 
       // Always use FormData for multipart/form-data
@@ -205,21 +209,21 @@ class StudentRegistrationService {
   // Get current user's student registration
   Future<Map<String, dynamic>?> getCurrentUserRegistration() async {
     try {
-      print('Calling API: /students/registration/my-registration');
+      _log('Calling API: /students/registration/my-registration');
       final response = await _apiClient.dio.get('/students/registration/my-registration');
-      print('API Response: ${response.data}');
+      _log('API Response: ${response.data}');
       
       // Extract data from response
-      print('Response data type: ${response.data.runtimeType}');
-      print('Response data keys: ${response.data.keys}');
+      _log('Response data type: ${response.data.runtimeType}');
+      _log('Response data keys: ${response.data.keys}');
       
       Map<String, dynamic> registrationData;
       
       if (response.data['data'] != null) {
-        print('Returning data from response.data[\'data\']');
+        _log('Returning data from response.data[\'data\']');
         registrationData = Map<String, dynamic>.from(response.data['data']);
       } else {
-        print('Returning full response.data');
+        _log('Returning full response.data');
         registrationData = Map<String, dynamic>.from(response.data);
       }
       
@@ -267,17 +271,17 @@ class StudentRegistrationService {
         registrationData['rejection_reason'] = null;
       }
       
-      print('Processed registration data: $registrationData');
-      print('Final status: ${registrationData['status']}');
-      print('Final rejection reason: ${registrationData['rejection_reason']}');
+      _log('Processed registration data: $registrationData');
+      _log("Final status: ${registrationData['status']}");
+      _log("Final rejection reason: ${registrationData['rejection_reason']}");
       
       return registrationData;
     } on DioException catch (e) {
-      print('DioException in getCurrentUserRegistration: ${e.message}');
-      print('Response status: ${e.response?.statusCode}');
-      print('Response data: ${e.response?.data}');
+      _log('DioException in getCurrentUserRegistration: ${e.message}');
+      _log('Response status: ${e.response?.statusCode}');
+      _log('Response data: ${e.response?.data}');
       if (e.response?.statusCode == 404) {
-        print('No registration found (404)');
+        _log('No registration found (404)');
         return null; // No registration found
       }
       throw _handleDioError(e);
@@ -337,20 +341,20 @@ class StudentRegistrationService {
   // GET /api/v1/programs - Get all support programs
   Future<List<Map<String, dynamic>>> getSupportPrograms() async {
     try {
-      print('Calling API: /programs');
+      _log('Calling API: /programs');
       final response = await _apiClient.dio.get('/programs');
       
-      print('API Response for programs: ${response.data}');
-      print('Response data type: ${response.data.runtimeType}');
-      print('Response status code: ${response.statusCode}');
+      _log('API Response for programs: ${response.data}');
+      _log('Response data type: ${response.data.runtimeType}');
+      _log('Response status code: ${response.statusCode}');
       
       List<Map<String, dynamic>> programs = [];
       
       if (response.data['data'] != null) {
         // Handle Laravel Resource format
         final data = response.data['data'];
-        print('Data field found: $data');
-        print('Data type: ${data.runtimeType}');
+        _log('Data field found: $data');
+        _log('Data type: ${data.runtimeType}');
         
         if (data is List) {
           programs = List<Map<String, dynamic>>.from(data);
@@ -361,26 +365,26 @@ class StudentRegistrationService {
       } else if (response.data is List) {
         // Handle direct list response
         programs = List<Map<String, dynamic>>.from(response.data);
-        print('Direct list response: $programs');
+        _log('Direct list response: $programs');
       } else if (response.data is Map) {
         // Handle single object response
         programs = [Map<String, dynamic>.from(response.data)];
-        print('Single object response: $programs');
+        _log('Single object response: $programs');
       }
       
-      print('Raw programs data: $programs');
-      print('Programs count: ${programs.length}');
+      _log('Raw programs data: $programs');
+      _log('Programs count: ${programs.length}');
       
       // Print each program details for debugging
       for (int i = 0; i < programs.length; i++) {
         final program = programs[i];
-        print('Program $i:');
-        print('  - Raw data: $program');
-        print('  - Keys: ${program.keys.toList()}');
-        print('  - ID: ${program['id']} (type: ${program['id']?.runtimeType})');
-        print('  - Title: ${program['title']} (type: ${program['title']?.runtimeType})');
-        print('  - Name: ${program['name']} (type: ${program['name']?.runtimeType})');
-        print('  - Description: ${program['description']} (type: ${program['description']?.runtimeType})');
+        _log('Program $i:');
+        _log('  - Raw data: $program');
+        _log('  - Keys: ${program.keys.toList()}');
+        _log('  - ID: ${program['id']} (type: ${program['id']?.runtimeType})');
+        _log('  - Title: ${program['title']} (type: ${program['title']?.runtimeType})');
+        _log('  - Name: ${program['name']} (type: ${program['name']?.runtimeType})');
+        _log('  - Description: ${program['description']} (type: ${program['description']?.runtimeType})');
       }
       
       // Validate and normalize programs
@@ -394,7 +398,7 @@ class StudentRegistrationService {
         
         final isValid = hasId && (hasTitleAr || hasTitleEn || hasTitle || hasName);
         
-        print('Program validation: id=$hasId, title_ar=$hasTitleAr, title_en=$hasTitleEn, title=$hasTitle, name=$hasName, valid=$isValid');
+        _log('Program validation: id=$hasId, title_ar=$hasTitleAr, title_en=$hasTitleEn, title=$hasTitle, name=$hasName, valid=$isValid');
         
         return isValid;
       }).map((program) {
@@ -417,29 +421,35 @@ class StudentRegistrationService {
         };
       }).toList();
       
-      print('Valid programs count: ${validPrograms.length}');
+      _log('Valid programs count: ${validPrograms.length}');
       if (validPrograms.isNotEmpty) {
-        print('Valid programs: ${validPrograms.map((p) => '${p['id']}: ${p['name']}').join(', ')}');
+        _log(
+          'Valid programs: ${validPrograms.map((p) => '${p['id']}: ${p['name']}').join(', ')}',
+        );
       } else {
-        print('No valid programs found. All programs: ${programs.map((p) => p.toString()).join(', ')}');
+        _log('No valid programs found. All programs: ${programs.map((p) => p.toString()).join(', ')}');
       }
       
       return validPrograms;
     } on DioException catch (e) {
-      print('Error fetching support programs: ${e.message}');
-      print('Response status: ${e.response?.statusCode}');
-      print('Response data: ${e.response?.data}');
-      print('Request URL: ${e.requestOptions.uri}');
-      print('Request method: ${e.requestOptions.method}');
+      _log('Error fetching support programs: ${e.message}');
+      _log('Response status: ${e.response?.statusCode}');
+      _log('Response data: ${e.response?.data}');
+      _log('Request URL: ${e.requestOptions.uri}');
+      _log('Request method: ${e.requestOptions.method}');
       
       if (e.response?.statusCode == 404) {
-        print('No programs found (404) - Support category not found');
+        _log('No programs found (404) - Support category not found');
         throw Exception('Support category not found. Please contact the administrator to add support programs.');
       }
       
       throw _handleDioError(e);
-    } catch (error) {
-      print('Unexpected error fetching support programs: $error');
+    } catch (error, stackTrace) {
+      _log(
+        'Unexpected error fetching support programs: $error',
+        error,
+        stackTrace,
+      );
       throw Exception('Failed to load support programs. Please try again later.');
     }
   }
@@ -461,34 +471,6 @@ class StudentRegistrationService {
         return 6;
       default:
         return 1;
-    }
-  }
-
-  int _convertFamilySizeToNumber(String familySize) {
-    switch (familySize) {
-      case '1-3':
-        return 3;
-      case '4-6':
-        return 6;
-      case '7-9':
-        return 8;
-      case '10+':
-        return 10;
-      default:
-        return 3;
-    }
-  }
-
-  double _convertIncomeLevelToNumber(String incomeLevel) {
-    switch (incomeLevel) {
-      case 'منخفض':
-        return 2000.0;
-      case 'متوسط':
-        return 5000.0;
-      case 'مرتفع':
-        return 10000.0;
-      default:
-        return 5000.0;
     }
   }
 

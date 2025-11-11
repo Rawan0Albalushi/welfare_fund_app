@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../providers/auth_provider.dart';
@@ -71,49 +70,46 @@ class _SplashScreenState extends State<SplashScreen>
     _startAnimations();
   }
 
-  void _startAnimations() async {
+  Future<void> _startAnimations() async {
     await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
     _fadeController.forward();
+
     await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
     _slideController.forward();
+
     await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
     _scaleController.forward();
-    
-    // Initialize auth provider
+
+    if (!mounted) return;
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.initialize();
-    
-    // Check for payment redirects
-    if (mounted) {
-      _checkForPaymentRedirect();
-    }
+
+    if (!mounted) return;
+    _checkForPaymentRedirect();
   }
   
   void _checkForPaymentRedirect() {
     if (kIsWeb) {
       try {
-        final currentPath = kIsWeb ? '/' : '/';
-        final queryParams = Uri.base.queryParameters;
-        
-        print('SplashScreen: Checking for payment redirect');
-        print('SplashScreen: Current path: $currentPath');
-        print('SplashScreen: Query params: $queryParams');
-        
-        if (currentPath?.contains('/payment/success') == true) {
-          print('SplashScreen: Redirecting to payment success screen');
-          // توجيه فوري للـ payment success بدون انتظار
+        final uri = Uri.base;
+        final currentPath = uri.path;
+        final queryParams = uri.queryParameters;
+
+        if (currentPath.contains('/payment/success')) {
           _navigateToPaymentSuccess(queryParams);
           return;
         }
-        
-        if (currentPath?.contains('/payment/cancel') == true) {
-          print('SplashScreen: Redirecting to payment cancel screen');
-          // توجيه فوري للـ payment cancel بدون انتظار
+
+        if (currentPath.contains('/payment/cancel')) {
           _navigateToPaymentCancel(queryParams);
           return;
         }
-      } catch (e) {
-        print('SplashScreen: Error checking payment redirect: $e');
+      } catch (error, stackTrace) {
+        debugPrint('SplashScreen: Error checking payment redirect: $error');
+        debugPrint('$stackTrace');
       }
     }
     
@@ -126,12 +122,12 @@ class _SplashScreenState extends State<SplashScreen>
   }
   
   void _navigateToPaymentSuccess(Map<String, String> queryParams) {
+    if (!mounted) return;
+
     final donationId = queryParams['donation_id'];
     final sessionId = queryParams['session_id'];
     final amount = double.tryParse(queryParams['amount'] ?? '0');
     final campaignTitle = queryParams['campaign_title'];
-    
-    print('SplashScreen: Payment success params - donationId: $donationId, amount: $amount');
     
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
@@ -150,13 +146,13 @@ class _SplashScreenState extends State<SplashScreen>
   }
   
   void _navigateToPaymentCancel(Map<String, String> queryParams) {
+    if (!mounted) return;
+
     final donationId = queryParams['donation_id'];
     final sessionId = queryParams['session_id'];
     final amount = double.tryParse(queryParams['amount'] ?? '0');
     final campaignTitle = queryParams['campaign_title'];
     final errorMessage = queryParams['error_message'];
-    
-    print('SplashScreen: Payment cancel params - donationId: $donationId, amount: $amount');
     
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
@@ -184,6 +180,8 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _navigateToHome() {
+    if (!mounted) return;
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>

@@ -31,7 +31,6 @@ class _EditProfileScreenState extends State<EditProfileScreen>
   final _emailController = TextEditingController();
 
   // Form State
-  final bool _isLoading = false;
   bool _isSaving = false;
   
   // Auth Service

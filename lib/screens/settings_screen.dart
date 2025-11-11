@@ -5,7 +5,6 @@ import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
-import '../services/auth_service.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/language_switcher.dart';
 import 'login_screen.dart' as login;
@@ -23,9 +22,6 @@ class _SettingsScreenState extends State<SettingsScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-
-  // Auth Repository
-  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -72,10 +68,6 @@ class _SettingsScreenState extends State<SettingsScreen>
       builder: (context, authProvider, child) {
         final isAuthenticated = authProvider.isAuthenticated;
         final userProfile = authProvider.userProfile;
-        
-        print('SettingsScreen: Building with isAuthenticated: $isAuthenticated');
-        print('SettingsScreen: User profile: ${userProfile?.keys}');
-        print('SettingsScreen: Full user profile: $userProfile');
         
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -265,15 +257,9 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Widget _buildAuthenticatedProfileSection(Map<String, dynamic>? userProfile) {
-    print('SettingsScreen: Building profile section with userProfile: $userProfile');
-    
     final userName = userProfile?['name'] ?? userProfile?['user']?['name'] ?? 'user'.tr();
     final userEmail = userProfile?['email'] ?? userProfile?['user']?['email'] ?? '';
     final userPhone = userProfile?['phone'] ?? userProfile?['user']?['phone'] ?? '';
-    
-    print('SettingsScreen: Extracted userName: $userName');
-    print('SettingsScreen: Extracted userEmail: $userEmail');
-    print('SettingsScreen: Extracted userPhone: $userPhone');
     
     return Container(
       padding: const EdgeInsets.all(24),
@@ -678,58 +664,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  Widget _buildSocialMediaButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color,
-              color.withOpacity(0.8),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: AppColors.surface,
-              size: 28,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.surface,
-                fontWeight: FontWeight.w600,
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildLoginButton() {
     return Container(
       width: double.infinity,
@@ -914,44 +848,52 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Future<void> _performLogout() async {
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    NavigatorState? dialogNavigator;
+
     try {
       // Show loading indicator
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          content: Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 25,
-                  offset: const Offset(0, 15),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'logging_out'.tr(),
-                  style: AppTextStyles.headlineSmall.copyWith(
-                    fontWeight: FontWeight.bold,
+        builder: (dialogBuilderContext) {
+          dialogNavigator ??= Navigator.of(dialogBuilderContext);
+          return AlertDialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            content: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 25,
+                    offset: const Offset(0, 15),
                   ),
-                ),
-              ],
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'logging_out'.tr(),
+                    style: AppTextStyles.headlineSmall.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       );
 
       // Get auth provider and logout
@@ -959,55 +901,55 @@ class _SettingsScreenState extends State<SettingsScreen>
       await authProvider.logout();
 
       // Close loading dialog
-      Navigator.of(context).pop();
+      dialogNavigator?.pop();
+      dialogNavigator = null;
+
+      if (!mounted) return;
 
       // Show success message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'logout_successful'.tr(),
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.surface,
-              ),
-            ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'logout_successful'.tr(),
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.surface,
             ),
           ),
-        );
-      }
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      );
 
       // Navigate back to home screen and clear navigation stack
-      if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          AppConstants.homeRoute,
-          (route) => false,
-        );
-      }
+      navigator.pushNamedAndRemoveUntil(
+        AppConstants.homeRoute,
+        (route) => false,
+      );
     } catch (error) {
       // Close loading dialog
-      Navigator.of(context).pop();
+      dialogNavigator?.pop();
+      dialogNavigator = null;
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${'logout_error'.tr()}: ${error.toString()}',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.surface,
-              ),
-            ),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+      if (!mounted) return;
+
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            '${'logout_error'.tr()}: ${error.toString()}',
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.surface,
             ),
           ),
-        );
-      }
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      );
     }
   }
 
@@ -1093,7 +1035,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ],
               ),
             ),
-            Icon(
+            const Icon(
               Icons.arrow_forward_ios,
               color: AppColors.textTertiary,
               size: 16,
@@ -1202,7 +1144,7 @@ class _SettingsScreenState extends State<SettingsScreen>
               ),
             ),
             if (isSelected)
-              Icon(
+              const Icon(
                 Icons.check_circle,
                 color: AppColors.primary,
                 size: 20,
