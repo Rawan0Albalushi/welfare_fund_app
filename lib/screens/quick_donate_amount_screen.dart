@@ -853,7 +853,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                   foregroundColor: AppColors.primary,
                 ),
                 icon: const Icon(Icons.refresh),
-                label: Text('try_again'.tr()),
+                label: Text('change_campaign'.tr()),
               ),
             ),
           ],
@@ -1001,7 +1001,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
               TextButton.icon(
                 onPressed: _showAnotherCampaign,
                 icon: const Icon(Icons.shuffle),
-                label: Text('try_again'.tr()),
+                label: Text('change_campaign'.tr()),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   textStyle: AppTextStyles.bodySmall.copyWith(

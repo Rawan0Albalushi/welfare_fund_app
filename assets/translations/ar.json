@@ -111,6 +111,7 @@
   "payment_cancelled": "تم إلغاء الدفع",
   "return_to_app": "العودة للتطبيق",
   "try_again": "حاول مرة أخرى",
+  "change_campaign": "تغيير الحملة",
   "contact_support": "اتصل بالدعم",
   
   "profile": "الملف الشخصي",
@@ -292,6 +293,7 @@
   "be_hope": "كن أملًا لطالب محتاج",
   "all_campaigns": "جميع الحملات",
   "all_campaigns_subtitle": "استكشف جميع الحالات المتاحة وادعم الطالب الأنسب لك",
+  "view_campaigns": "عرض الحملات",
   "view_all_campaigns": "عرض جميع الحملات",
   "swipe_to_explore": "مرر لاستكشاف المزيد",
   "tap_to_donate": "اضغط للتبرع فوراً",

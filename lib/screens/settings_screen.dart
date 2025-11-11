@@ -9,6 +9,7 @@ import '../providers/auth_provider.dart';
 import '../widgets/language_switcher.dart';
 import 'login_screen.dart' as login;
 import 'edit_profile_screen.dart';
+import 'my_donations_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -62,6 +63,37 @@ class _SettingsScreenState extends State<SettingsScreen>
     // No need to check here as it's handled globally
   }
 
+  void _onBottomNavigationTap(int index, bool isAuthenticated) {
+    if (index == 2) {
+      return;
+    }
+
+    if (index == 0) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+      return;
+    }
+
+    if (index == 1) {
+      if (isAuthenticated) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MyDonationsScreen(),
+          ),
+        );
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const login.LoginScreen(),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
@@ -113,6 +145,27 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
               ),
             ),
+          ),
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: 2,
+            onTap: (index) => _onBottomNavigationTap(index, isAuthenticated),
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: AppColors.primary,
+            unselectedItemColor: AppColors.textSecondary,
+            items: [
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.home),
+                label: 'home'.tr(),
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.history),
+                label: 'my_donations'.tr(),
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.settings),
+                label: 'settings'.tr(),
+              ),
+            ],
           ),
         );
       },
