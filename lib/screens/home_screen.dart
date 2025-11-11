@@ -19,6 +19,7 @@ import 'student_registration_screen.dart';
 import 'settings_screen.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
+import 'all_campaigns_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1034,12 +1035,25 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _onViewAllCampaigns() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AllCampaignsScreen(
+          initialCampaigns: _allCampaigns,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         final isAuthenticated = authProvider.isAuthenticated;
         final userProfile = authProvider.userProfile;
+        final List<Campaign> displayedCampaigns = _campaigns.take(5).toList();
+        final bool shouldShowViewAllButton = _campaigns.isNotEmpty;
         
         print('HomeScreen: Building with isAuthenticated: $isAuthenticated');
         print('HomeScreen: User profile: ${userProfile?.keys}');
@@ -1427,7 +1441,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   
                   const SizedBox(height: AppConstants.defaultPadding),
                   
-                  if (_campaigns.isEmpty)
+                  if (_isLoadingCampaigns && displayedCampaigns.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppConstants.extraLargePadding,
+                      ),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    )
+                  else if (_campaigns.isEmpty)
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.all(AppConstants.extraLargePadding),
@@ -1451,10 +1476,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     )
                   else
-                    ..._campaigns.map((campaign) => CampaignCard(
-                      campaign: campaign,
-                      onTap: () => _onCampaignTap(campaign),
-                    )),
+                    ...[
+                      ...displayedCampaigns.map(
+                        (campaign) => CampaignCard(
+                          campaign: campaign,
+                          onTap: () => _onCampaignTap(campaign),
+                        ),
+                      ),
+                      if (shouldShowViewAllButton) _buildViewAllButton(),
+                    ],
                     
                     const SizedBox(height: AppConstants.extraLargePadding),
                     
@@ -1789,6 +1819,57 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildViewAllButton() {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppConstants.smallPadding),
+      child: GestureDetector(
+        onTap: _onViewAllCampaigns,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppConstants.largePadding,
+            vertical: AppConstants.defaultPadding,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: AppColors.modernGradient,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.25),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.auto_awesome,
+                color: AppColors.surface,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'view_all_campaigns'.tr(),
+                style: AppTextStyles.buttonLarge.copyWith(
+                  color: AppColors.surface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                Icons.arrow_forward_ios,
+                color: AppColors.surface,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
