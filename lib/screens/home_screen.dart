@@ -20,6 +20,7 @@ import 'settings_screen.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
 import 'all_campaigns_screen.dart';
+import '../utils/category_utils.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,7 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Campaign> _allCampaigns = []; // جميع الحملات الأصلية
   List<Donation> _recentDonations = []; // التبرعات الأخيرة
   int _currentIndex = 0; // Home tab is active (الرئيسية في index 0)
-  String _selectedFilter = 'الكل'; // Track selected filter
+  List<Map<String, dynamic>> _categories = [];
+  Map<String, List<String>> _categoryMatchers = {};
+  bool _isLoadingCategories = false;
+  String _selectedCategoryId = 'all';
   
   // Application status variables
   Map<String, dynamic>? _applicationData;
@@ -48,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _loadCategories();
     _loadCampaignsFromAPI(); // Load from API instead of sample data
     _loadRecentDonations(); // Load recent donations from API
     _checkApplicationStatus();
@@ -63,6 +68,54 @@ class _HomeScreenState extends State<HomeScreen> {
     // Update application status when auth state changes
     print('HomeScreen: Auth state changed, updating application status...');
     _checkApplicationStatus();
+  }
+
+  Future<void> _loadCategories() async {
+    setState(() {
+      _isLoadingCategories = true;
+    });
+
+    try {
+      print('HomeScreen: Loading categories from API...');
+      final categoriesFromApi = await _campaignService.getCategories();
+
+      if (!mounted) return;
+
+      final bool hasApiCategories = categoriesFromApi.isNotEmpty;
+      final normalizedCategories = hasApiCategories
+          ? _normalizeCategories(categoriesFromApi)
+          : _normalizeCategories(CategoryUtils.getLocalizedFallbackCategories());
+
+      if (!hasApiCategories) {
+        print('HomeScreen: Categories API returned empty list, using localized fallback categories.');
+      } else {
+        print('HomeScreen: Loaded ${normalizedCategories.length} categories from API.');
+      }
+
+      setState(() {
+        _categories = normalizedCategories;
+        _categoryMatchers = _createCategoryMatchers(normalizedCategories);
+        _isLoadingCategories = false;
+      });
+    } catch (error) {
+      print('HomeScreen: Error loading categories: $error');
+
+      if (!mounted) return;
+
+      final fallbackCategories = _normalizeCategories(
+        CategoryUtils.getLocalizedFallbackCategories(),
+      );
+
+      setState(() {
+        _categories = fallbackCategories;
+        _categoryMatchers = _createCategoryMatchers(fallbackCategories);
+        _isLoadingCategories = false;
+      });
+    }
+
+    if (!mounted) return;
+
+    _applyCategoryFilter(_selectedCategoryId);
   }
 
   Future<void> _loadCampaignsFromAPI() async {
@@ -90,10 +143,11 @@ class _HomeScreenState extends State<HomeScreen> {
       // Only use data from API - no fallback
       if (allCampaigns.isNotEmpty) {
         setState(() {
-          _campaigns = allCampaigns;
           _allCampaigns = List.from(allCampaigns);
           _isLoadingCampaigns = false;
         });
+
+        _applyCategoryFilter(_selectedCategoryId);
         
         print('HomeScreen: Successfully loaded ${allCampaigns.length} total campaigns from API');
         print('HomeScreen: Campaign IDs: ${allCampaigns.map((c) => c.id).toList()}');
@@ -105,6 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _campaigns = [];
           _allCampaigns = [];
           _isLoadingCampaigns = false;
+          _selectedCategoryId = 'all';
         });
         
         // Show message to user
@@ -132,6 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _campaigns = [];
         _allCampaigns = [];
         _isLoadingCampaigns = false;
+        _selectedCategoryId = 'all';
       });
       
       // Show error message to user
@@ -1418,26 +1474,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: AppConstants.defaultPadding),
                   
                   // Modern Filters
-                  SizedBox(
-                    height: 50,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      children: [
-                        _buildFilterChip('all'.tr(), _selectedFilter == 'الكل'),
-                        const SizedBox(width: 12),
-                        _buildFilterChip('education_opportunities'.tr(), _selectedFilter == 'فرص التعليم'),
-                        const SizedBox(width: 12),
-                        _buildFilterChip('housing_transport'.tr(), _selectedFilter == 'السكن والنقل'),
-                        const SizedBox(width: 12),
-                        _buildFilterChip('monthly_allowance'.tr(), _selectedFilter == 'الإعانة الشهرية'),
-                        const SizedBox(width: 12),
-                        _buildFilterChip('device_purchase'.tr(), _selectedFilter == 'شراء أجهزة'),
-                        const SizedBox(width: 12),
-                        _buildFilterChip('test_fees'.tr(), _selectedFilter == 'رسوم الاختبارات'),
-                      ],
-                    ),
-                  ),
+                  _buildCategoryFilterSection(),
                   
                   const SizedBox(height: AppConstants.defaultPadding),
                   
@@ -1575,33 +1612,179 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, bool isSelected) {
-    bool isCurrentlySelected = _selectedFilter == label;
-    return FilterChip(
-      label: Text(label),
-      selected: false, // Remove checkmark
-      onSelected: (bool selected) {
-        setState(() {
-          _selectedFilter = label;
-          if (label == 'all'.tr()) {
-            _campaigns = _allCampaigns;
-          } else {
-            _campaigns = _allCampaigns.where((campaign) => campaign.category == label).toList();
-          }
-        });
-      },
-      selectedColor: AppColors.surface, // Keep background white
-      backgroundColor: AppColors.surface,
-      labelStyle: AppTextStyles.bodySmall.copyWith(
-        color: isCurrentlySelected ? AppColors.primary : AppColors.textSecondary,
-        fontWeight: isCurrentlySelected ? FontWeight.w600 : FontWeight.normal,
+  Widget _buildCategoryFilterSection() {
+    if (_isLoadingCategories && _categories.isEmpty) {
+      return const SizedBox(
+        height: 50,
+        child: Center(
+          child: CircularProgressIndicator(
+            color: AppColors.primary,
+          ),
+        ),
+      );
+    }
+
+    final chips = <Widget>[
+      _buildFilterChip(id: 'all', label: 'all'.tr()),
+    ];
+
+    for (final category in _categories) {
+      final label = _getLocalizedCategoryLabel(category);
+      if (label.isEmpty) continue;
+      final categoryKey = _deriveCategoryKey(category);
+      chips.add(_buildFilterChip(id: categoryKey, label: label));
+    }
+
+    if (chips.isEmpty) {
+      chips.add(_buildFilterChip(id: 'all', label: 'all'.tr()));
+    }
+
+    return SizedBox(
+      height: 50,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        children: chips,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: isCurrentlySelected ? AppColors.primary : AppColors.textSecondary.withOpacity(0.2),
-          width: isCurrentlySelected ? 2 : 1, // Thicker border for selected
+    );
+  }
+
+  String _getLocalizedCategoryLabel(Map<String, dynamic> category) {
+    final locale = context.locale.languageCode;
+    if (locale == 'ar') {
+      final label = category['name_ar']?.toString() ?? '';
+      if (label.isNotEmpty) return label;
+    } else {
+      final label = category['name_en']?.toString() ?? '';
+      if (label.isNotEmpty) return label;
+    }
+
+    final fallbackName = category['name']?.toString() ?? '';
+    if (fallbackName.isNotEmpty) return fallbackName;
+
+    return category['title']?.toString() ?? '';
+  }
+
+  String _deriveCategoryKey(Map<String, dynamic> category) {
+    final id = (category['id'] ?? '').toString();
+    if (id.isNotEmpty) return id;
+
+    final candidates = [
+      category['name'],
+      category['name_ar'],
+      category['name_en'],
+      category['title'],
+    ];
+
+    for (final candidate in candidates) {
+      if (candidate == null) continue;
+      final value = candidate.toString().trim();
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+
+    return 'all';
+  }
+
+  Map<String, List<String>> _createCategoryMatchers(List<Map<String, dynamic>> categories) {
+    final matchers = <String, List<String>>{};
+
+    for (final category in categories) {
+      final key = _deriveCategoryKey(category);
+      final names = <String>{};
+
+      for (final candidate in [
+        category['name'],
+        category['name_ar'],
+        category['name_en'],
+        category['title'],
+      ]) {
+        if (candidate == null) continue;
+        final value = candidate.toString().trim().toLowerCase();
+        if (value.isNotEmpty) {
+          names.add(value);
+        }
+      }
+
+      if (key.isNotEmpty) {
+        names.add(key.trim().toLowerCase());
+      }
+
+      if (names.isNotEmpty) {
+        matchers[key] = names.toList();
+      }
+    }
+
+    return matchers;
+  }
+
+  List<Map<String, dynamic>> _normalizeCategories(List<Map<String, dynamic>> categories) {
+    return categories.map((category) {
+      final normalized = Map<String, dynamic>.from(category);
+      normalized['id'] = (normalized['id'] ?? '').toString();
+      final fallbackName = (normalized['name'] ?? normalized['title'] ?? '').toString();
+      normalized['name'] = fallbackName;
+      normalized['name_ar'] = (normalized['name_ar'] ?? fallbackName).toString();
+      normalized['name_en'] = (normalized['name_en'] ?? fallbackName).toString();
+      normalized['status'] = (normalized['status'] ?? 'active').toString();
+      return normalized;
+    }).toList();
+  }
+
+  void _applyCategoryFilter(String categoryKey) {
+    final normalizedKey = categoryKey.isEmpty ? 'all' : categoryKey;
+    List<Campaign> filteredCampaigns;
+
+    if (normalizedKey == 'all') {
+      filteredCampaigns = List.from(_allCampaigns);
+    } else {
+      final matcherValues = _categoryMatchers[normalizedKey] ??
+          _categoryMatchers.values.firstWhere(
+            (names) => names.contains(normalizedKey.toLowerCase()),
+            orElse: () => <String>[],
+          );
+
+      if (matcherValues.isEmpty) {
+        filteredCampaigns = List.from(_allCampaigns);
+      } else {
+        filteredCampaigns = _allCampaigns.where((campaign) {
+          final campaignCategory = campaign.category.toString().trim().toLowerCase();
+          return matcherValues.contains(campaignCategory);
+        }).toList();
+      }
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _selectedCategoryId = normalizedKey;
+      _campaigns = filteredCampaigns;
+    });
+  }
+
+  Widget _buildFilterChip({required String id, required String label}) {
+    final isSelected = _selectedCategoryId == id;
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: FilterChip(
+        label: Text(label),
+        selected: isSelected,
+        showCheckmark: false,
+        onSelected: (_) => _applyCategoryFilter(id),
+        selectedColor: AppColors.surface,
+        backgroundColor: AppColors.surface,
+        labelStyle: AppTextStyles.bodySmall.copyWith(
+          color: isSelected ? AppColors.primary : AppColors.textSecondary,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: isSelected ? AppColors.primary : AppColors.textSecondary.withOpacity(0.2),
+            width: isSelected ? 2 : 1,
+          ),
         ),
       ),
     );

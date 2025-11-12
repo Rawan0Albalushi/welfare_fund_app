@@ -486,10 +486,7 @@ class DonationService {
 
   // Helper method to get all donations with pagination
   Future<List<Donation>> _getAllDonationsWithPagination(Map<String, String> headers) async {
-    List<Donation> allDonations = [];
-    int currentPage = 1;
-    int limit = 50; // Fetch 50 donations per page
-    bool hasMoreData = true;
+    const int limit = 50; // Fetch 50 donations per page
     
     print('DonationService: Starting to fetch all donations with pagination...');
     
@@ -501,6 +498,11 @@ class DonationService {
     ];
     
     for (final endpoint in endpoints) {
+      int currentPage = 1;
+      bool hasMoreData = true;
+      final List<Donation> collectedDonations = [];
+      bool receivedSuccessfulResponse = false;
+
       try {
         print('DonationService: Trying endpoint $endpoint for pagination...');
         
@@ -518,14 +520,15 @@ class DonationService {
           print('DonationService: Response status: ${response.statusCode}');
           
           if (response.statusCode == 200) {
+            receivedSuccessfulResponse = true;
             final pageDonations = _parseDonationsResponse(response.body);
             
             if (pageDonations.isEmpty) {
-              print('DonationService: No more donations on page $currentPage, stopping pagination');
+              print('DonationService: No donations returned on page $currentPage, stopping pagination for $endpoint');
               hasMoreData = false;
             } else {
-              allDonations.addAll(pageDonations);
-              print('DonationService: Added ${pageDonations.length} donations from page $currentPage. Total: ${allDonations.length}');
+              collectedDonations.addAll(pageDonations);
+              print('DonationService: Added ${pageDonations.length} donations from page $currentPage. Total so far: ${collectedDonations.length}');
               
               // Check if we got less than the limit, which means this is the last page
               if (pageDonations.length < limit) {
@@ -536,18 +539,17 @@ class DonationService {
               }
             }
           } else if (response.statusCode == 404) {
-            print('DonationService: Endpoint $endpoint not found, trying next...');
-            break; // Try next endpoint
+            print('DonationService: Endpoint $endpoint not found (404), moving to next endpoint');
+            hasMoreData = false;
           } else {
             print('DonationService: Error with endpoint $endpoint: HTTP ${response.statusCode}');
             throw Exception('HTTP ${response.statusCode}: ${response.body}');
           }
         }
         
-        // If we successfully fetched donations from this endpoint, return them
-        if (allDonations.isNotEmpty) {
-          print('DonationService: Successfully fetched ${allDonations.length} total donations from $endpoint');
-          return allDonations;
+        if (receivedSuccessfulResponse) {
+          print('DonationService: Successfully fetched ${collectedDonations.length} total donations from $endpoint');
+          return collectedDonations;
         }
         
       } catch (e) {
@@ -555,10 +557,6 @@ class DonationService {
         if (endpoint == endpoints.last) {
           rethrow; // If this is the last endpoint, rethrow the error
         }
-        // Reset for next endpoint
-        allDonations.clear();
-        currentPage = 1;
-        hasMoreData = true;
         continue; // Try next endpoint
       }
     }
