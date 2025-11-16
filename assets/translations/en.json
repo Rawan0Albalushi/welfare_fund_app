@@ -1,4 +1,18 @@
 {
+  "splash": {
+    "title": "Donate with us",
+    "subtitle": "Making a difference, one donation at a time",
+    "welcome": "Welcome to the donations platform",
+    "description": "We help those in need through community donations",
+    "startNow": "Start now",
+    "logoLabel": "Donations platform logo"
+  },
+  "payment": {
+    "invalidData": "Invalid payment data. Please try again.",
+    "notCompleted": "Payment not completed yet.",
+    "verifyError": "Unable to verify payment status."
+  }
+,
   "app_title": "Student Welfare Fund",
   "hello": "Hello",
   "donate_now": "Donate now",

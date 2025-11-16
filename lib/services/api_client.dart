@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 import '../constants/app_config.dart';
 
@@ -35,6 +36,18 @@ class ApiClient {
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
+        if (!kReleaseMode) {
+          // Lightweight logging in debug/profile
+          final redactedHeaders = Map<String, dynamic>.from(options.headers);
+          if (redactedHeaders.containsKey('Authorization')) {
+            redactedHeaders['Authorization'] = 'Bearer ***';
+          }
+          debugPrint('[API][REQ] ${options.method} ${options.uri}');
+          debugPrint('[API][HDR] $redactedHeaders');
+          if (options.data != null) {
+            debugPrint('[API][BDY] ${options.data}');
+          }
+        }
         handler.next(options);
       },
       onError: (error, handler) async {
@@ -44,7 +57,20 @@ class ApiClient {
           await prefs.remove(_tokenKey);
           // You can add navigation logic here if needed
         }
+        if (!kReleaseMode) {
+          debugPrint('[API][ERR] ${error.requestOptions.method} ${error.requestOptions.uri}');
+          debugPrint('[API][STS] ${error.response?.statusCode}');
+          debugPrint('[API][BDY] ${error.response?.data}');
+        }
         handler.next(error);
+      },
+      onResponse: (response, handler) {
+        if (!kReleaseMode) {
+          debugPrint('[API][RES] ${response.requestOptions.method} ${response.requestOptions.uri}');
+          debugPrint('[API][STS] ${response.statusCode}');
+          debugPrint('[API][BDY] ${response.data}');
+        }
+        handler.next(response);
       },
     ));
   }

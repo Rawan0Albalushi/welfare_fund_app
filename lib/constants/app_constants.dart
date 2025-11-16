@@ -33,6 +33,12 @@ class AppConstants {
   static const Duration longAnimationDuration = Duration(milliseconds: 500);
   static const Duration pageTransitionDuration = Duration(milliseconds: 300);
   
+  // Splash-specific timings
+  static const Duration splashFadeDuration = Duration(milliseconds: 2000);
+  static const Duration splashSlideDuration = Duration(milliseconds: 1500);
+  static const Duration splashScaleDuration = Duration(milliseconds: 1000);
+  static const Duration splashToHomeDelay = Duration(milliseconds: 2000);
+  
   // Screen dimensions
   static const double mobileBreakpoint = 600.0;
   static const double tabletBreakpoint = 900.0;

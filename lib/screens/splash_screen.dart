@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../providers/auth_provider.dart';
 import 'home_screen.dart';
 import 'donation_success_screen.dart';
 import 'payment_failed_screen.dart';
+import '../services/payment_service.dart';
+import '../services/browser_url_service_stub.dart'
+  if (dart.library.html) '../services/browser_url_service_web.dart';
+import '../utils/redirect_utils.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -23,23 +28,25 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _scaleAnimation;
+  bool _navigated = false;
+  final BrowserUrlService _browserUrl = BrowserUrlServiceImpl();
 
   @override
   void initState() {
     super.initState();
     
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+      duration: AppConstants.splashFadeDuration,
       vsync: this,
     );
     
     _slideController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: AppConstants.splashSlideDuration,
       vsync: this,
     );
     
     _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+      duration: AppConstants.splashScaleDuration,
       vsync: this,
     );
     
@@ -95,16 +102,19 @@ class _SplashScreenState extends State<SplashScreen>
     if (kIsWeb) {
       try {
         final uri = Uri.base;
-        final currentPath = uri.path;
-        final queryParams = uri.queryParameters;
+        final redirect = parsePaymentRedirect(uri);
 
-        if (currentPath.contains('/payment/success')) {
-          _navigateToPaymentSuccess(queryParams);
+        if (redirect.type == PaymentRedirectType.success) {
+          _navigated = true;
+          _browserUrl.cleanQuery();
+          _navigateToPaymentSuccess(redirect.queryParams);
           return;
         }
 
-        if (currentPath.contains('/payment/cancel')) {
-          _navigateToPaymentCancel(queryParams);
+        if (redirect.type == PaymentRedirectType.cancel) {
+          _navigated = true;
+          _browserUrl.cleanQuery();
+          _navigateToPaymentCancel(redirect.queryParams);
           return;
         }
       } catch (error, stackTrace) {
@@ -114,20 +124,51 @@ class _SplashScreenState extends State<SplashScreen>
     }
     
     // Navigate to home after animations complete
-    Future.delayed(const Duration(milliseconds: 2000), () {
-      if (mounted) {
+    Future.delayed(AppConstants.splashToHomeDelay, () {
+      if (mounted && !_navigated) {
         _navigateToHome();
       }
     });
   }
   
-  void _navigateToPaymentSuccess(Map<String, String> queryParams) {
+  Future<void> _navigateToPaymentSuccess(Map<String, String> queryParams) async {
     if (!mounted) return;
 
     final donationId = queryParams['donation_id'];
     final sessionId = queryParams['session_id'];
-    final amount = double.tryParse(queryParams['amount'] ?? '0');
+    final amount = double.tryParse(queryParams['amount'] ?? '');
     final campaignTitle = queryParams['campaign_title'];
+    
+    // Basic validation
+    if (sessionId == null || sessionId.isEmpty || amount == null || !amount.isFinite || amount <= 0) {
+      return _navigateToPaymentCancel({
+        ...queryParams,
+        'error_message': 'payment.invalidData'.tr(),
+      });
+    }
+    
+    // Optional server verification if sessionId is present (guaranteed non-null above)
+    final verifiedSessionId = sessionId;
+    if (verifiedSessionId.isNotEmpty) {
+      try {
+        final status = await PaymentService().checkPaymentStatus(verifiedSessionId);
+        if (!mounted) return;
+        if (!(status.isCompleted)) {
+          // If not completed, fallback to failure route with friendly message
+          return _navigateToPaymentCancel({
+            ...queryParams,
+            'error_message': status.message ?? status.error ?? 'payment.notCompleted'.tr(),
+          });
+        }
+      } catch (e) {
+        // On verification error, proceed but prefer failure screen
+        if (!mounted) return;
+        return _navigateToPaymentCancel({
+          ...queryParams,
+          'error_message': 'payment.verifyError'.tr(),
+        });
+      }
+    }
     
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
@@ -145,12 +186,12 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
   
-  void _navigateToPaymentCancel(Map<String, String> queryParams) {
+  Future<void> _navigateToPaymentCancel(Map<String, String> queryParams) async {
     if (!mounted) return;
 
     final donationId = queryParams['donation_id'];
     final sessionId = queryParams['session_id'];
-    final amount = double.tryParse(queryParams['amount'] ?? '0');
+    final amount = double.tryParse(queryParams['amount'] ?? '');
     final campaignTitle = queryParams['campaign_title'];
     final errorMessage = queryParams['error_message'];
     
@@ -247,30 +288,34 @@ class _SplashScreenState extends State<SplashScreen>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   // Modern logo with enhanced styling
-                                  Container(
-                                    width: 140,
-                                    height: 140,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surface,
-                                      borderRadius: BorderRadius.circular(70),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.primary.withOpacity(0.3),
-                                          blurRadius: 30,
-                                          offset: const Offset(0, 15),
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Icon(
-                                      Icons.favorite,
-                                      size: 70,
-                                      color: AppColors.primary,
+                                  Semantics(
+                                    label: 'splash.logoLabel'.tr(),
+                                    image: true,
+                                    child: Container(
+                                      width: 140,
+                                      height: 140,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surface,
+                                        borderRadius: BorderRadius.circular(70),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppColors.primary.withOpacity(0.3),
+                                            blurRadius: 30,
+                                            offset: const Offset(0, 15),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.favorite,
+                                        size: 70,
+                                        color: AppColors.primary,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: 32),
-                                  const Text(
-                                    'تبرع معنا',
-                                    style: TextStyle(
+                                  Text(
+                                    'splash.title'.tr(), // 'تبرع معنا'
+                                    style: const TextStyle(
                                       fontSize: 28,
                                       fontWeight: FontWeight.bold,
                                       color: AppColors.surface,
@@ -280,7 +325,7 @@ class _SplashScreenState extends State<SplashScreen>
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'تصنع الفرق، تبرعاً تلو الآخر',
+                                    'splash.subtitle'.tr(), // 'تصنع الفرق، تبرعاً تلو الآخر'
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w500,
@@ -315,9 +360,9 @@ class _SplashScreenState extends State<SplashScreen>
                               ),
                               child: Column(
                                 children: [
-                                  const Text(
-                                    'مرحباً بك في منصة التبرعات',
-                                    style: TextStyle(
+                                  Text(
+                                    'splash.welcome'.tr(), // 'مرحباً بك في منصة التبرعات'
+                                    style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.surface,
@@ -327,7 +372,7 @@ class _SplashScreenState extends State<SplashScreen>
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'نساعد المحتاجين من خلال تبرعات المجتمع',
+                                    'splash.description'.tr(), // 'نساعد المحتاجين من خلال تبرعات المجتمع'
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.normal,
@@ -359,27 +404,35 @@ class _SplashScreenState extends State<SplashScreen>
                               child: Material(
                                 color: Colors.transparent,
                                 child: InkWell(
-                                  onTap: _navigateToHome,
+                                  onTap: _navigated ? null : () {
+                                    _navigated = true;
+                                    _navigateToHome();
+                                  },
                                   borderRadius: BorderRadius.circular(AppConstants.defaultRadius),
-                                  child: const Center(
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          'ابدأ الآن',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.primary,
+                                  child: Semantics(
+                                    button: true,
+                                    enabled: !_navigated,
+                                    label: 'splash.startNow'.tr(),
+                                    child: Center(
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            'splash.startNow'.tr(), // 'ابدأ الآن'
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.primary,
+                                            ),
                                           ),
-                                        ),
-                                        SizedBox(width: 8),
-                                        Icon(
-                                          Icons.arrow_forward,
-                                          color: AppColors.primary,
-                                          size: 20,
-                                        ),
-                                      ],
+                                          const SizedBox(width: 8),
+                                          const Icon(
+                                            Icons.arrow_forward,
+                                            color: AppColors.primary,
+                                            size: 20,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
