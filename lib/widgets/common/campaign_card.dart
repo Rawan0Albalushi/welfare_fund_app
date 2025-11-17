@@ -37,6 +37,15 @@ class CampaignCard extends StatelessWidget {
             children: [
               // Background Image
               _buildCampaignImage(campaign),
+              // Completed Overlay (if campaign is completed)
+              if (campaign.isCompleted)
+                Container(
+                  width: double.infinity,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withOpacity(0.15),
+                  ),
+                ),
               // Gradient Overlay
               Container(
                 width: double.infinity,
@@ -47,11 +56,58 @@ class CampaignCard extends StatelessWidget {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.7),
+                      Colors.black.withOpacity(campaign.isCompleted ? 0.8 : 0.7),
                     ],
                   ),
                 ),
               ),
+              // Completed Badge (top right)
+              if (campaign.isCompleted)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.success,
+                          AppColors.success.withOpacity(0.8),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.success.withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'campaign_completed'.tr(),
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               // Content
               Positioned(
                 bottom: 0,
@@ -69,7 +125,9 @@ class CampaignCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: campaign.isCompleted 
+                              ? AppColors.success 
+                              : AppColors.primary,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -102,10 +160,17 @@ class CampaignCard extends StatelessWidget {
                         ),
                         child: FractionallySizedBox(
                           alignment: Alignment.centerLeft,
-                          widthFactor: campaign.progressPercentage,
+                          widthFactor: campaign.progressPercentage.clamp(0.0, 1.0),
                           child: Container(
                             decoration: BoxDecoration(
-                              gradient: AppColors.modernGradient,
+                              gradient: campaign.isCompleted
+                                  ? LinearGradient(
+                                      colors: [
+                                        AppColors.success,
+                                        AppColors.success.withOpacity(0.8),
+                                      ],
+                                    )
+                                  : AppColors.modernGradient,
                               borderRadius: BorderRadius.circular(3),
                             ),
                           ),
@@ -127,7 +192,9 @@ class CampaignCard extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  'من ${campaign.targetAmount.toStringAsFixed(0)} ريال',
+                                  campaign.isCompleted
+                                      ? 'campaign_goal_achieved'.tr()
+                                      : 'من ${campaign.targetAmount.toStringAsFixed(0)} ريال',
                                   style: AppTextStyles.bodySmall.copyWith(
                                     color: Colors.white.withOpacity(0.8),
                                   ),
@@ -135,43 +202,78 @@ class CampaignCard extends StatelessWidget {
                               ],
                             ),
                           ),
-                          // Donate Button
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppConstants.smallPadding,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
+                          // Donate Button or Completed Status
+                          if (campaign.isCompleted)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppConstants.smallPadding,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.success.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: AppColors.success.withOpacity(0.5),
+                                  width: 1.5,
                                 ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.favorite,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'donate_now'.tr(),
-                                  style: AppTextStyles.bodySmall.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.check_circle_outline,
+                                    color: AppColors.success,
+                                    size: 16,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'completed'.tr(),
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.success,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppConstants.smallPadding,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.favorite,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'donate_now'.tr(),
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ],

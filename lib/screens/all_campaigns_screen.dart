@@ -253,19 +253,84 @@ class _AllCampaignsScreenState extends State<AllCampaignsScreen> {
                       top: 18,
                       left: 18,
                       right: 18,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: _buildGlassChip(
-                          icon: Icons.category_outlined,
-                          label: campaign.category.isNotEmpty
-                              ? campaign.category
-                              : 'campaign'.tr(),
-                          background: AppColors.surface.withOpacity(0.9),
-                          iconColor: AppColors.primary,
-                          textColor: AppColors.primary,
-                        ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: _buildGlassChip(
+                                icon: Icons.category_outlined,
+                                label: campaign.category.isNotEmpty
+                                    ? campaign.category
+                                    : 'campaign'.tr(),
+                                background: campaign.isCompleted
+                                    ? AppColors.success.withOpacity(0.9)
+                                    : AppColors.surface.withOpacity(0.9),
+                                iconColor: campaign.isCompleted
+                                    ? Colors.white
+                                    : AppColors.primary,
+                                textColor: campaign.isCompleted
+                                    ? Colors.white
+                                    : AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          if (campaign.isCompleted)
+                            Container(
+                              margin: const EdgeInsets.only(left: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.success,
+                                    AppColors.success.withOpacity(0.8),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.success.withOpacity(0.4),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'completed'.tr(),
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
                     ),
+                    // Completed overlay
+                    if (campaign.isCompleted)
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -299,12 +364,15 @@ class _AllCampaignsScreenState extends State<AllCampaignsScreen> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: LinearProgressIndicator(
-                        value: campaign.progressPercentage,
+                        value: campaign.progressPercentage.clamp(0.0, 1.0),
                         minHeight: 8,
                         backgroundColor:
                             AppColors.textSecondary.withOpacity(0.12),
-                        valueColor:
-                            const AlwaysStoppedAnimation<Color>(AppColors.secondary),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          campaign.isCompleted
+                              ? AppColors.success
+                              : AppColors.secondary,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -331,31 +399,65 @@ class _AllCampaignsScreenState extends State<AllCampaignsScreen> {
                             ],
                           ),
                         ),
-                        FilledButton.icon(
-                          onPressed: () => _onCampaignTap(campaign),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.surface,
+                        if (campaign.isCompleted)
+                          Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 18,
                               vertical: 12,
                             ),
-                            shape: RoundedRectangleBorder(
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppColors.success.withOpacity(0.4),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  color: AppColors.success,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'completed'.tr(),
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.success,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          FilledButton.icon(
+                            onPressed: () => _onCampaignTap(campaign),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: AppColors.surface,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.volunteer_activism,
+                              size: 18,
+                            ),
+                            label: Text(
+                              'donate_now'.tr(),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.surface,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                          icon: const Icon(
-                            Icons.volunteer_activism,
-                            size: 18,
-                          ),
-                          label: Text(
-                            'donate_now'.tr(),
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.surface,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ],

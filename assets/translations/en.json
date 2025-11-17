@@ -475,5 +475,11 @@
   "category_device_purchase": "Device Purchase",
   "category_exams": "Exams",
   "category_emergency_support": "Emergency Support",
-  "category_general_support": "General Support"
+  "category_general_support": "General Support",
+  
+  "campaign_completed": "Campaign Completed",
+  "campaign_goal_achieved": "Goal Achieved",
+  "campaign_completed_no_donations": "This campaign is completed and cannot accept new donations",
+  "campaign_completed_message": "This campaign has been successfully completed! Thank you to all donors who contributed to achieving the goal.",
+  "goal_achieved": "Goal Achieved"
 }

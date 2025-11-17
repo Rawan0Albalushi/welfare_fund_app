@@ -437,5 +437,11 @@
   "category_device_purchase": "شراء الأجهزة",
   "category_exams": "الامتحانات",
   "category_emergency_support": "الدعم الطارئ",
-  "category_general_support": "الدعم العام"
+  "category_general_support": "الدعم العام",
+  
+  "campaign_completed": "الحملة مكتملة",
+  "campaign_goal_achieved": "تم تحقيق الهدف",
+  "campaign_completed_no_donations": "هذه الحملة مكتملة ولا يمكن قبول تبرعات جديدة",
+  "campaign_completed_message": "تم إكمال هذه الحملة بنجاح! شكراً لجميع المتبرعين الذين ساهموا في تحقيق الهدف.",
+  "goal_achieved": "تم تحقيق الهدف"
 }

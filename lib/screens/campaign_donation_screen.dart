@@ -81,6 +81,21 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
   }
 
   Future<void> _proceedToDonation() async {
+    // Check if campaign is completed
+    if (widget.campaign.isCompleted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('campaign_completed_no_donations'.tr()),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
     if (!_validateAmount()) return;
 
     final provider = context.read<PaymentProvider>();
@@ -287,7 +302,9 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                                           ),
                                         ),
                                         Text(
-                                          '${'target_amount'.tr()}: ${widget.campaign.targetAmount.toStringAsFixed(0)} ${'riyal'.tr()}',
+                                          widget.campaign.isCompleted
+                                              ? 'campaign_goal_achieved'.tr()
+                                              : '${'target_amount'.tr()}: ${widget.campaign.targetAmount.toStringAsFixed(0)} ${'riyal'.tr()}',
                                           style: AppTextStyles.bodyMedium.copyWith(
                                             color: AppColors.surface.withOpacity(0.8),
                                           ),
@@ -298,19 +315,81 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: AppColors.accent,
+                                      color: widget.campaign.isCompleted
+                                          ? AppColors.success
+                                          : AppColors.accent,
                                       borderRadius: BorderRadius.circular(20),
+                                      boxShadow: widget.campaign.isCompleted
+                                          ? [
+                                              BoxShadow(
+                                                color: AppColors.success.withOpacity(0.4),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ]
+                                          : null,
                                     ),
-                                    child: Text(
-                                      '${(widget.campaign.progressPercentage * 100).toStringAsFixed(1)}%',
-                                      style: AppTextStyles.bodySmall.copyWith(
-                                        color: AppColors.surface,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (widget.campaign.isCompleted)
+                                          const Icon(
+                                            Icons.check_circle,
+                                            color: Colors.white,
+                                            size: 14,
+                                          ),
+                                        if (widget.campaign.isCompleted)
+                                          const SizedBox(width: 4),
+                                        Text(
+                                          widget.campaign.isCompleted
+                                              ? '${(widget.campaign.progressPercentage * 100).toStringAsFixed(0)}% ${'completed'.tr()}'
+                                              : '${(widget.campaign.progressPercentage * 100).toStringAsFixed(1)}%',
+                                          style: AppTextStyles.bodySmall.copyWith(
+                                            color: AppColors.surface,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
+                              // Completed Badge
+                              if (widget.campaign.isCompleted) ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.success.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.success.withOpacity(0.5),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.celebration,
+                                        color: AppColors.success,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'campaign_completed'.tr(),
+                                        style: AppTextStyles.bodySmall.copyWith(
+                                          color: AppColors.success,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -380,151 +459,233 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                       ),
                       const SizedBox(height: 32),
 
-                      // اختيار المبلغ
-                      _buildSection(
-                        title: 'select_amount'.tr(),
-                        icon: Icons.favorite_outline,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'suggested_amounts'.tr(),
-                              style: AppTextStyles.titleMedium.copyWith(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w600,
+                      // اختيار المبلغ (فقط إذا لم تكن الحملة مكتملة)
+                      if (!widget.campaign.isCompleted)
+                        _buildSection(
+                          title: 'select_amount'.tr(),
+                          icon: Icons.favorite_outline,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'suggested_amounts'.tr(),
+                                style: AppTextStyles.titleMedium.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: _quickAmounts.map((amount) {
-                                  final isSelected = _selectedAmount == amount;
-                                  return Container(
-                                    margin: const EdgeInsets.only(right: 12),
-                                    child: GestureDetector(
-                                      onTap: () => _selectAmount(amount),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                        decoration: BoxDecoration(
-                                          color: isSelected ? AppColors.primary : AppColors.surface,
-                                          borderRadius: BorderRadius.circular(16),
-                                          border: Border.all(
-                                            color: isSelected ? AppColors.primary : AppColors.textTertiary,
-                                            width: 1.5,
+                              const SizedBox(height: 12),
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: _quickAmounts.map((amount) {
+                                    final isSelected = _selectedAmount == amount;
+                                    return Container(
+                                      margin: const EdgeInsets.only(right: 12),
+                                      child: GestureDetector(
+                                        onTap: () => _selectAmount(amount),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                          decoration: BoxDecoration(
+                                            color: isSelected ? AppColors.primary : AppColors.surface,
+                                            borderRadius: BorderRadius.circular(16),
+                                            border: Border.all(
+                                              color: isSelected ? AppColors.primary : AppColors.textTertiary,
+                                              width: 1.5,
+                                            ),
+                                            boxShadow: isSelected
+                                                ? [
+                                                    BoxShadow(
+                                                      color: AppColors.primary.withOpacity(0.2),
+                                                      blurRadius: 8,
+                                                      offset: const Offset(0, 4),
+                                                    ),
+                                                  ]
+                                                : null,
                                           ),
-                                          boxShadow: isSelected
-                                              ? [
-                                                  BoxShadow(
-                                                    color: AppColors.primary.withOpacity(0.2),
-                                                    blurRadius: 8,
-                                                    offset: const Offset(0, 4),
-                                                  ),
-                                                ]
-                                              : null,
-                                        ),
-                                        child: Text(
-                                          '${amount.toStringAsFixed(0)} ${'riyal'.tr()}',
-                                          style: AppTextStyles.bodyMedium.copyWith(
-                                            color: isSelected ? AppColors.surface : AppColors.textPrimary,
-                                            fontWeight: FontWeight.w600,
+                                          child: Text(
+                                            '${amount.toStringAsFixed(0)} ${'riyal'.tr()}',
+                                            style: AppTextStyles.bodyMedium.copyWith(
+                                              color: isSelected ? AppColors.surface : AppColors.textPrimary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            Text(
-                              'or_enter_custom_amount'.tr(),
-                              style: AppTextStyles.titleMedium.copyWith(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppColors.textTertiary, width: 1.5),
-                              ),
-                              child: TextField(
-                                controller: _customAmountController,
-                                keyboardType: TextInputType.number,
-                                style: AppTextStyles.bodyLarge,
-                                decoration: InputDecoration(
-                                  hintText: 'enter_amount'.tr(),
-                                  hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                                  suffixText: 'riyal'.tr(),
-                                  suffixStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                                    );
+                                  }).toList(),
                                 ),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedAmount = double.tryParse(value) ?? 0;
-                                  });
-                                },
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 20),
+                              Text(
+                                'or_enter_custom_amount'.tr(),
+                                style: AppTextStyles.titleMedium.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppColors.textTertiary, width: 1.5),
+                                ),
+                                child: TextField(
+                                  controller: _customAmountController,
+                                  keyboardType: TextInputType.number,
+                                  style: AppTextStyles.bodyLarge,
+                                  decoration: InputDecoration(
+                                    hintText: 'enter_amount'.tr(),
+                                    hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                                    suffixText: 'riyal'.tr(),
+                                    suffixStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                                  ),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedAmount = double.tryParse(value) ?? 0;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
                       const SizedBox(height: 40),
 
-                      // زر التبرع
-                      SizedBox(
-                        width: double.infinity,
-                        height: 60,
-                        child: ElevatedButton(
-                          onPressed: isLoading ? null : _proceedToDonation,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.surface,
-                            elevation: 8,
-                            shadowColor: AppColors.primary.withOpacity(0.3),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                      // زر التبرع أو حالة الإكمال
+                      if (widget.campaign.isCompleted)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.success.withOpacity(0.1),
+                                AppColors.success.withOpacity(0.05),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.success.withOpacity(0.3),
+                              width: 2,
+                            ),
                           ),
-                          child: isLoading
-                              ? Row(
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.success,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'campaign_completed'.tr(),
+                                style: AppTextStyles.headlineSmall.copyWith(
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'campaign_completed_message'.tr(),
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.success.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.surface),
-                                        strokeWidth: 2,
-                                      ),
+                                    Icon(
+                                      Icons.celebration,
+                                      color: AppColors.success,
+                                      size: 20,
                                     ),
-                                    SizedBox(width: 12),
+                                    const SizedBox(width: 8),
                                     Text(
-                                      'processing_payment'.tr(),
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                                    ),
-                                  ],
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.favorite, size: 24),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      'donate_now'.tr(),
-                                      style: AppTextStyles.buttonLarge.copyWith(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        height: 1.2,
+                                      '${(widget.campaign.progressPercentage * 100).toStringAsFixed(0)}% ${'goal_achieved'.tr()}',
+                                      style: AppTextStyles.bodyMedium.copyWith(
+                                        color: AppColors.success,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                   ],
                                 ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        SizedBox(
+                          width: double.infinity,
+                          height: 60,
+                          child: ElevatedButton(
+                            onPressed: isLoading ? null : _proceedToDonation,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: AppColors.surface,
+                              elevation: 8,
+                              shadowColor: AppColors.primary.withOpacity(0.3),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: isLoading
+                                ? Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.surface),
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                      SizedBox(width: 12),
+                                      Text(
+                                        'processing_payment'.tr(),
+                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                      ),
+                                    ],
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.favorite, size: 24),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        'donate_now'.tr(),
+                                        style: AppTextStyles.buttonLarge.copyWith(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          height: 1.2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
                         ),
-                      ),
                       const SizedBox(height: 20),
 
                       // ملاحظة الأمان
