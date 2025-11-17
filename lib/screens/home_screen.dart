@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../widgets/common/campaign_card.dart';
 import '../models/campaign.dart';
+import '../models/app_banner.dart';
 import '../services/student_registration_service.dart';
 import '../services/campaign_service.dart';
 import '../services/donation_service.dart';
+import '../services/banner_service.dart';
 import '../models/donation.dart';
 import '../providers/auth_provider.dart';
 import 'quick_donate_amount_screen.dart';
@@ -34,9 +37,12 @@ class _HomeScreenState extends State<HomeScreen> {
   final StudentRegistrationService _studentService = StudentRegistrationService();
   final CampaignService _campaignService = CampaignService();
   final DonationService _donationService = DonationService();
+  final BannerService _bannerService = BannerService();
+  final PageController _bannerPageController = PageController(viewportFraction: 0.92);
   List<Campaign> _campaigns = [];
   List<Campaign> _allCampaigns = []; // جميع الحملات الأصلية
   List<Donation> _recentDonations = []; // التبرعات الأخيرة
+  List<AppBanner> _banners = [];
   int _currentIndex = 0; // Home tab is active (الرئيسية في index 0)
   List<Map<String, dynamic>> _categories = [];
   Map<String, List<String>> _categoryMatchers = {};
@@ -48,6 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isCheckingApplication = false;
   bool _isLoadingCampaigns = false;
   bool _isLoadingRecentDonations = false;
+  bool _isLoadingBanners = false;
+  int _activeHeroIndex = 0;
 
   @override
   void initState() {
@@ -55,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadCategories();
     _loadCampaignsFromAPI(); // Load from API instead of sample data
     _loadRecentDonations(); // Load recent donations from API
+    _loadBanners();
     _checkApplicationStatus();
     
     // Listen to auth changes
@@ -234,6 +243,44 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _loadBanners() async {
+    setState(() {
+      _isLoadingBanners = true;
+    });
+
+    try {
+      final featured = await _bannerService.getFeaturedBanners();
+      final active = await _bannerService.getActiveBanners();
+      final combined = <AppBanner>[];
+      final seenIds = <String>{};
+
+      for (final banner in [...featured, ...active]) {
+        if (banner.id.isEmpty || seenIds.contains(banner.id)) continue;
+        seenIds.add(banner.id);
+        combined.add(banner);
+      }
+      combined.sort((a, b) => a.priority.compareTo(b.priority));
+
+      if (!mounted) return;
+      setState(() {
+        _banners = combined;
+        _activeHeroIndex = 0;
+      });
+    } catch (error) {
+      print('HomeScreen: Error loading banners: $error');
+      if (!mounted) return;
+      setState(() {
+        _banners = [];
+        _activeHeroIndex = 0;
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingBanners = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
     // Remove auth listener
@@ -245,6 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     
     _searchController.dispose();
+    _bannerPageController.dispose();
     super.dispose();
   }
 
@@ -1317,152 +1365,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   
                   const SizedBox(height: AppConstants.largePadding),
                   
-                                     // Modern Student Help Banner - Image Background with Gradient Overlay
-                   Container(
-                     width: double.infinity,
-                     decoration: BoxDecoration(
-                       borderRadius: BorderRadius.circular(20),
-                       boxShadow: [
-                         BoxShadow(
-                           color: AppColors.primary.withOpacity(0.25),
-                           blurRadius: 15,
-                           offset: const Offset(0, 8),
-                         ),
-                       ],
-                     ),
-                     child: ClipRRect(
-                       borderRadius: BorderRadius.circular(20),
-                       child: Stack(
-                         children: [
-                           // Background Image
-                           Container(
-                             width: double.infinity,
-                             height: 200,
-                             decoration: const BoxDecoration(
-                               image: DecorationImage(
-                                 image: NetworkImage(
-                                   'https://images.pexels.com/photos/5905708/pexels-photo-5905708.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                                 ),
-                                 fit: BoxFit.cover,
-                               ),
-                             ),
-                           ),
-                           // Gradient Overlay for better text readability
-                           Container(
-                             width: double.infinity,
-                             height: 200,
-                             decoration: BoxDecoration(
-                               gradient: LinearGradient(
-                                 begin: Alignment.topLeft,
-                                 end: Alignment.bottomRight,
-                                 colors: [
-                                   AppColors.primary.withOpacity(0.7),
-                                   AppColors.secondary.withOpacity(0.6),
-                                   Colors.black.withOpacity(0.4),
-                                 ],
-                               ),
-                             ),
-                           ),
-                           // Centered Content
-                           SizedBox(
-                             width: double.infinity,
-                             height: 200,
-                             child: Column(
-                               mainAxisAlignment: MainAxisAlignment.center,
-                               crossAxisAlignment: CrossAxisAlignment.center,
-                               children: [
-                                 Text(
-                                   'start_journey'.tr(),
-                                   style: AppTextStyles.titleLarge.copyWith(
-                                     fontWeight: FontWeight.bold,
-                                     color: Colors.white,
-                                     height: 1.2,
-                                     shadows: [
-                                       Shadow(
-                                         color: Colors.black.withOpacity(0.3),
-                                         blurRadius: 8,
-                                         offset: const Offset(0, 2),
-                                       ),
-                                     ],
-                                   ),
-                                   textAlign: TextAlign.center,
-                                 ),
-                                 const SizedBox(height: 8),
-                                 Text(
-                                   'enable_education'.tr(),
-                                   style: AppTextStyles.bodyMedium.copyWith(
-                                     color: Colors.white.withOpacity(0.95),
-                                     shadows: [
-                                       Shadow(
-                                         color: Colors.black.withOpacity(0.2),
-                                         blurRadius: 6,
-                                         offset: const Offset(0, 1),
-                                       ),
-                                     ],
-                                   ),
-                                   textAlign: TextAlign.center,
-                                 ),
-                                 const SizedBox(height: 18),
-                                 Padding(
-                                   padding: const EdgeInsets.symmetric(horizontal: 32),
-                                   child: Container(
-                                     width: double.infinity,
-                                     height: 48,
-                                     decoration: BoxDecoration(
-                                       color: Colors.white,
-                                       borderRadius: BorderRadius.circular(12),
-                                       boxShadow: [
-                                         BoxShadow(
-                                           color: Colors.black.withOpacity(0.15),
-                                           blurRadius: 8,
-                                           offset: const Offset(0, 4),
-                                         ),
-                                       ],
-                                     ),
-                                     child: Material(
-                                       color: Colors.transparent,
-                                       child: InkWell(
-                                         onTap: _onRegister,
-                                         borderRadius: BorderRadius.circular(12),
-                                         child: Center(
-                                           child: Row(
-                                             mainAxisAlignment: MainAxisAlignment.center,
-                                             mainAxisSize: MainAxisSize.min,
-                                             children: [
-                                               const Icon(
-                                                 Icons.edit_note,
-                                                 color: AppColors.primary,
-                                                 size: 20,
-                                               ),
-                                               const SizedBox(width: 8),
-                                               Text(
-                                                 _getButtonText(),
-                                                 style: AppTextStyles.buttonMedium.copyWith(
-                                                   color: _getButtonColor(),
-                                                   fontWeight: FontWeight.w600,
-                                                   fontSize: 15,
-                                                   shadows: [
-                                                     Shadow(
-                                                       color: Colors.black.withOpacity(0.08),
-                                                       blurRadius: 2,
-                                                     ),
-                                                   ],
-                                                 ),
-                                               ),
-                                             ],
-                                           ),
-                                         ),
-                                       ),
-                                     ),
-                                   ),
-                                 ),
-                               ],
-                             ),
-                           ),
-                         ],
-                       ),
-                     ),
-                   ),
+                  _buildStudentBannerCarousel(),
                   
                   const SizedBox(height: AppConstants.extraLargePadding),
                   
@@ -1610,6 +1513,427 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildStudentBannerCarousel() {
+    final heroCards = <Widget>[
+      _buildStudentRegistrationCard(),
+    ];
+
+    if (_isLoadingBanners) {
+      heroCards.add(_buildBannerLoadingCard());
+    } else if (_banners.isNotEmpty) {
+      heroCards.addAll(_banners.map(_buildBannerCard));
+    }
+
+    final showIndicators = heroCards.length > 1;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 200,
+          child: PageView.builder(
+            controller: _bannerPageController,
+            itemCount: heroCards.length,
+            onPageChanged: (index) {
+              setState(() {
+                _activeHeroIndex = index;
+              });
+            },
+            itemBuilder: (context, index) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: heroCards[index],
+            ),
+          ),
+        ),
+        if (showIndicators) ...[
+          const SizedBox(height: 12),
+          _buildHeroIndicators(heroCards.length),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildStudentRegistrationCard() {
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.25),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: NetworkImage(
+                    'https://images.pexels.com/photos/5905708/pexels-photo-5905708.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                  ),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.primary.withOpacity(0.7),
+                    AppColors.secondary.withOpacity(0.6),
+                    Colors.black.withOpacity(0.4),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'start_journey'.tr(),
+                    style: AppTextStyles.titleLarge.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      height: 1.2,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'enable_education'.tr(),
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.white.withOpacity(0.95),
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 6,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 18),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Container(
+                      width: double.infinity,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _onRegister,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.edit_note,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _getButtonText(),
+                                  style: AppTextStyles.buttonMedium.copyWith(
+                                    color: _getButtonColor(),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black.withOpacity(0.08),
+                                        blurRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBannerLoadingCard() {
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: LinearGradient(
+          colors: [
+            AppColors.surface.withOpacity(0.9),
+            AppColors.surfaceVariant.withOpacity(0.9),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(
+          color: AppColors.surfaceVariant,
+          width: 1,
+        ),
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBannerCard(AppBanner banner) {
+    final title = _getBannerTitle(banner);
+    final subtitle = _getBannerSubtitle(banner);
+    final description = _getBannerDescription(banner);
+    final imageUrl = banner.mobileImageUrl ?? banner.imageUrl;
+    final hasAction = (banner.actionUrl ?? '').isNotEmpty;
+    final actionLabel = banner.actionLabel ?? 'donate_now'.tr();
+
+    return GestureDetector(
+      onTap: hasAction ? () => _handleBannerTap(banner) : null,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          height: 200,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            color: AppColors.primary,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.2),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (imageUrl != null && imageUrl.isNotEmpty)
+                Positioned.fill(
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          gradient: AppColors.modernGradient,
+                        ),
+                      );
+                    },
+                  ),
+                )
+              else
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: AppColors.modernGradient,
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (subtitle.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.4),
+                          ),
+                        ),
+                        child: Text(
+                          subtitle,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    if (subtitle.isNotEmpty) const SizedBox(height: 12),
+                    Text(
+                      title,
+                      style: AppTextStyles.headlineSmall.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        height: 1.1,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    if (description.isNotEmpty)
+                      Text(
+                        description,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: Colors.white.withOpacity(0.92),
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    const Spacer(),
+                    if (hasAction)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.18),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              actionLabel,
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              size: 14,
+                              color: AppColors.primary,
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroIndicators(int count) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(count, (index) {
+        final isActive = index == _activeHeroIndex;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          height: 6,
+          width: isActive ? 24 : 8,
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.primary : AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        );
+      }),
+    );
+  }
+
+  String _getBannerTitle(AppBanner banner) {
+    final locale = context.locale.languageCode;
+    if (locale == 'ar') {
+      return banner.titleAr?.isNotEmpty == true
+          ? banner.titleAr!
+          : (banner.title ?? banner.titleEn ?? '');
+    }
+    return banner.titleEn?.isNotEmpty == true
+        ? banner.titleEn!
+        : (banner.title ?? banner.titleAr ?? '');
+  }
+
+  String _getBannerSubtitle(AppBanner banner) {
+    final locale = context.locale.languageCode;
+    if (locale == 'ar') {
+      return banner.subtitleAr?.isNotEmpty == true
+          ? banner.subtitleAr!
+          : (banner.subtitle ?? banner.subtitleEn ?? '');
+    }
+    return banner.subtitleEn?.isNotEmpty == true
+        ? banner.subtitleEn!
+        : (banner.subtitle ?? banner.subtitleAr ?? '');
+  }
+
+  String _getBannerDescription(AppBanner banner) {
+    final locale = context.locale.languageCode;
+    if (locale == 'ar') {
+      return banner.descriptionAr?.isNotEmpty == true
+          ? banner.descriptionAr!
+          : (banner.description ?? banner.descriptionEn ?? '');
+    }
+    return banner.descriptionEn?.isNotEmpty == true
+        ? banner.descriptionEn!
+        : (banner.description ?? banner.descriptionAr ?? '');
+  }
+
+  Future<void> _handleBannerTap(AppBanner banner) async {
+    final url = banner.actionUrl;
+    if (url == null || url.isEmpty) {
+      return;
+    }
+    try {
+      final launched = await launchUrlString(
+        url,
+        webOnlyWindowName: '_self',
+      );
+      if (!launched) {
+        print('HomeScreen: Could not launch banner URL: $url');
+      }
+    } catch (error) {
+      print('HomeScreen: Error launching banner URL ($url): $error');
+    }
   }
 
   Widget _buildCategoryFilterSection() {
