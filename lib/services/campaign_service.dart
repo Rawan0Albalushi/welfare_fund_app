@@ -255,91 +255,194 @@ class CampaignService {
       for (String endpoint in endpoints) {
                  try {
            print('CampaignService: Trying endpoint: $endpoint');
-           final response = await _apiClient.dio.get(endpoint);
            
-           print('CampaignService: Charity Campaigns API Response status: ${response.statusCode}');
-           print('CampaignService: Full URL: ${_apiClient.dio.options.baseUrl}$endpoint');
-           print('CampaignService: Response data length: ${response.data.toString().length}');
-          
-          if (response.statusCode == 200) {
-            final List<dynamic> campaignsData = response.data['data'] ?? response.data;
-            
-            final List<Campaign> campaigns = campaignsData.map((campaign) {
-              // Debug: Print image fields for debugging
-              if (campaignsData.indexOf(campaign) == 0) {
-                print('CampaignService: First charity campaign image fields:');
-                print('  - image_url: ${campaign['image_url']}');
-                print('  - image: ${campaign['image']}');
-                print('  - photo: ${campaign['photo']}');
-                print('  - photo_url: ${campaign['photo_url']}');
-                print('  - banner: ${campaign['banner']}');
-                print('  - banner_url: ${campaign['banner_url']}');
-              }
-              
-              // Try multiple possible image field names
-              final imageUrl = campaign['image_url'] ?? 
-                              campaign['image'] ?? 
-                              campaign['photo'] ?? 
-                              campaign['photo_url'] ?? 
-                              campaign['banner'] ?? 
-                              campaign['banner_url'] ?? 
-                              campaign['imageUrl'] ?? 
-                              '';
-              
-              // 🔍 DEBUG: Print image URL for first campaign
-              if (campaignsData.indexOf(campaign) == 0) {
-                print('═══════════════════════════════════════════════════════════');
-                print('📦 CampaignService: Processing FIRST charity campaign');
-                print('📋 Campaign ID: ${campaign['id']}');
-                print('📋 Campaign title: ${campaign['title'] ?? campaign['title_ar'] ?? campaign['name']}');
-                print('🔍 Raw image fields from backend:');
-                print('   - image_url: "${campaign['image_url']}"');
-                print('   - image: "${campaign['image']}"');
-                print('   - photo: "${campaign['photo']}"');
-                print('   - photo_url: "${campaign['photo_url']}"');
-                print('   - banner: "${campaign['banner']}"');
-                print('   - banner_url: "${campaign['banner_url']}"');
-                print('✅ Final selected imageUrl: "$imageUrl"');
-                print('📏 imageUrl length: ${imageUrl.length}');
-                print('📏 imageUrl startsWith(/): ${imageUrl.startsWith('/')}');
-                print('📏 imageUrl startsWith(http): ${imageUrl.startsWith('http')}');
-                print('═══════════════════════════════════════════════════════════');
-              }
-              
-              return Campaign(
-                id: campaign['id']?.toString() ?? '',
-                title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
-                titleAr: campaign['title_ar'] ?? campaign['title'] ?? '',
-                titleEn: campaign['title_en'] ?? campaign['title'] ?? '',
-                description: campaign['description'] ?? campaign['description_ar'] ?? campaign['description_en'] ?? '',
-                descriptionAr: campaign['description_ar'] ?? campaign['description'] ?? '',
-                descriptionEn: campaign['description_en'] ?? campaign['description'] ?? '',
-                imageUrl: imageUrl,
-                targetAmount: _parseDouble(campaign['goal_amount'] ?? campaign['target_amount'] ?? 0),
-                currentAmount: _parseDouble(campaign['raised_amount'] ?? campaign['current_amount'] ?? 0),
-                startDate: DateTime.parse(campaign['created_at'] ?? DateTime.now().toIso8601String()),
-                endDate: DateTime.parse(campaign['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
-                isActive: campaign['status'] == 'active' || campaign['is_active'] == true,
-                category: campaign['category']?['name'] ?? campaign['category_name'] ?? '',
-                impactDescription: campaign['impact_description'] as String?,
-                impactDescriptionAr: campaign['impact_description_ar'] as String?,
-                impactDescriptionEn: campaign['impact_description_en'] as String?,
-                donorCount: campaign['donor_count'] ?? campaign['donors_count'] ?? 0,
-                type: 'charity_campaign', // Mark as charity campaign
-                isUrgentFlag: campaign['is_urgent'] ?? false,
-                isFeatured: campaign['is_featured'] ?? false,
+           // Try to fetch all campaigns with pagination
+           List<Campaign> allCampaigns = [];
+           int currentPage = 1;
+           const int limit = 100; // Fetch 100 campaigns per page
+           bool hasMorePages = true;
+           
+           while (hasMorePages) {
+             try {
+               // Build query parameters
+              final queryParams = <String, dynamic>{
+                'page': currentPage.toString(),
+                'limit': limit.toString(),
+                'per_page': limit.toString(),
+              };
+               
+               print('CampaignService: Fetching page $currentPage with limit $limit from endpoint: $endpoint');
+              final response = await _apiClient.dio.get(
+                endpoint,
+                queryParameters: queryParams,
               );
-            }).toList();
-            
-                         print('CampaignService: Successfully parsed ${campaigns.length} charity campaigns from endpoint: $endpoint');
-             print('CampaignService: Charity campaign IDs: ${campaigns.map((c) => c.id).toList()}');
-             print('CampaignService: Charity campaign titles: ${campaigns.map((c) => c.title).toList()}');
-             return campaigns;
-          }
-        } catch (error) {
-          print('CampaignService: Failed to fetch from endpoint $endpoint: $error');
-          continue; // Try next endpoint
-        }
+               
+               print('CampaignService: Charity Campaigns API Response status: ${response.statusCode}');
+               print('CampaignService: Full URL: ${_apiClient.dio.options.baseUrl}$endpoint?page=$currentPage&limit=$limit');
+               
+               if (response.statusCode == 200) {
+                final dynamic responseData = response.data;
+                List<dynamic> pageCampaigns = [];
+                if (responseData is Map<String, dynamic>) {
+                  final dynamic nestedData = responseData['data'];
+                  if (nestedData is List) {
+                    pageCampaigns = List<dynamic>.from(nestedData);
+                  }
+                } else if (responseData is List) {
+                  pageCampaigns = List<dynamic>.from(responseData);
+                }
+                 
+                 if (pageCampaigns.isEmpty) {
+                   print('CampaignService: No campaigns returned on page $currentPage, stopping pagination');
+                   hasMorePages = false;
+                   break;
+                 }
+                 
+                 final List<Campaign> parsedCampaigns = pageCampaigns.map((campaign) {
+                   // Debug: Print image fields for debugging
+                   if (pageCampaigns.indexOf(campaign) == 0 && currentPage == 1) {
+                     print('CampaignService: First charity campaign image fields:');
+                     print('  - image_url: ${campaign['image_url']}');
+                     print('  - image: ${campaign['image']}');
+                     print('  - photo: ${campaign['photo']}');
+                     print('  - photo_url: ${campaign['photo_url']}');
+                     print('  - banner: ${campaign['banner']}');
+                     print('  - banner_url: ${campaign['banner_url']}');
+                   }
+                   
+                   // Try multiple possible image field names
+                   final imageUrl = campaign['image_url'] ?? 
+                                   campaign['image'] ?? 
+                                   campaign['photo'] ?? 
+                                   campaign['photo_url'] ?? 
+                                   campaign['banner'] ?? 
+                                   campaign['banner_url'] ?? 
+                                   campaign['imageUrl'] ?? 
+                                   '';
+                   
+                   return Campaign(
+                     id: campaign['id']?.toString() ?? '',
+                     title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
+                     titleAr: campaign['title_ar'] ?? campaign['title'] ?? '',
+                     titleEn: campaign['title_en'] ?? campaign['title'] ?? '',
+                     description: campaign['description'] ?? campaign['description_ar'] ?? campaign['description_en'] ?? '',
+                     descriptionAr: campaign['description_ar'] ?? campaign['description'] ?? '',
+                     descriptionEn: campaign['description_en'] ?? campaign['description'] ?? '',
+                     imageUrl: imageUrl,
+                     targetAmount: _parseDouble(campaign['goal_amount'] ?? campaign['target_amount'] ?? 0),
+                     currentAmount: _parseDouble(campaign['raised_amount'] ?? campaign['current_amount'] ?? 0),
+                     startDate: DateTime.parse(campaign['created_at'] ?? DateTime.now().toIso8601String()),
+                     endDate: DateTime.parse(campaign['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
+                     isActive: campaign['status'] == 'active' || campaign['is_active'] == true,
+                     category: campaign['category']?['name'] ?? campaign['category_name'] ?? '',
+                     impactDescription: campaign['impact_description'] as String?,
+                     impactDescriptionAr: campaign['impact_description_ar'] as String?,
+                     impactDescriptionEn: campaign['impact_description_en'] as String?,
+                     donorCount: campaign['donor_count'] ?? campaign['donors_count'] ?? 0,
+                     type: 'charity_campaign', // Mark as charity campaign
+                     isUrgentFlag: campaign['is_urgent'] ?? false,
+                     isFeatured: campaign['is_featured'] ?? false,
+                   );
+                 }).toList();
+                 
+                 allCampaigns.addAll(parsedCampaigns);
+                 print('CampaignService: Added ${parsedCampaigns.length} campaigns from page $currentPage. Total so far: ${allCampaigns.length}');
+                 
+                 // Check if we got less than the limit, which means this is the last page
+                 if (parsedCampaigns.length < limit) {
+                   print('CampaignService: Got ${parsedCampaigns.length} campaigns (less than limit $limit), this is the last page');
+                   hasMorePages = false;
+                 } else {
+                   currentPage++;
+                 }
+               } else {
+                 print('CampaignService: Unexpected status code: ${response.statusCode}');
+                 hasMorePages = false;
+                 break;
+               }
+             } catch (pageError) {
+               print('CampaignService: Error fetching page $currentPage: $pageError');
+               hasMorePages = false;
+               break;
+             }
+           }
+           
+           if (allCampaigns.isNotEmpty) {
+             print('CampaignService: Successfully parsed ${allCampaigns.length} charity campaigns from endpoint: $endpoint');
+             print('CampaignService: Charity campaign IDs: ${allCampaigns.map((c) => c.id).toList()}');
+             print('CampaignService: Charity campaign titles: ${allCampaigns.map((c) => c.title).toList()}');
+             return allCampaigns;
+           }
+         } catch (error) {
+           print('CampaignService: Failed to fetch from endpoint $endpoint: $error');
+           // If pagination fails, try without pagination as fallback
+           try {
+             print('CampaignService: Trying endpoint $endpoint without pagination as fallback...');
+            final response = await _apiClient.dio.get(
+              endpoint,
+              queryParameters: const {
+                'limit': 500,
+                'per_page': 500,
+              },
+            );
+             
+             if (response.statusCode == 200) {
+              final dynamic responseData = response.data;
+              List<dynamic> campaignsData = [];
+              if (responseData is Map<String, dynamic>) {
+                final dynamic nestedData = responseData['data'];
+                if (nestedData is List) {
+                  campaignsData = List<dynamic>.from(nestedData);
+                }
+              } else if (responseData is List) {
+                campaignsData = List<dynamic>.from(responseData);
+              }
+              
+              if (campaignsData.isNotEmpty) {
+                final List<Campaign> campaigns = campaignsData.map((campaign) {
+                   final imageUrl = campaign['image_url'] ?? 
+                                   campaign['image'] ?? 
+                                   campaign['photo'] ?? 
+                                   campaign['photo_url'] ?? 
+                                   campaign['banner'] ?? 
+                                   campaign['banner_url'] ?? 
+                                   campaign['imageUrl'] ?? 
+                                   '';
+                   
+                   return Campaign(
+                     id: campaign['id']?.toString() ?? '',
+                     title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
+                     titleAr: campaign['title_ar'] ?? campaign['title'] ?? '',
+                     titleEn: campaign['title_en'] ?? campaign['title'] ?? '',
+                     description: campaign['description'] ?? campaign['description_ar'] ?? campaign['description_en'] ?? '',
+                     descriptionAr: campaign['description_ar'] ?? campaign['description'] ?? '',
+                     descriptionEn: campaign['description_en'] ?? campaign['description'] ?? '',
+                     imageUrl: imageUrl,
+                     targetAmount: _parseDouble(campaign['goal_amount'] ?? campaign['target_amount'] ?? 0),
+                     currentAmount: _parseDouble(campaign['raised_amount'] ?? campaign['current_amount'] ?? 0),
+                     startDate: DateTime.parse(campaign['created_at'] ?? DateTime.now().toIso8601String()),
+                     endDate: DateTime.parse(campaign['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
+                     isActive: campaign['status'] == 'active' || campaign['is_active'] == true,
+                     category: campaign['category']?['name'] ?? campaign['category_name'] ?? '',
+                     impactDescription: campaign['impact_description'] as String?,
+                     impactDescriptionAr: campaign['impact_description_ar'] as String?,
+                     impactDescriptionEn: campaign['impact_description_en'] as String?,
+                     donorCount: campaign['donor_count'] ?? campaign['donors_count'] ?? 0,
+                     type: 'charity_campaign',
+                     isUrgentFlag: campaign['is_urgent'] ?? false,
+                     isFeatured: campaign['is_featured'] ?? false,
+                   );
+                 }).toList();
+                 
+                 print('CampaignService: Successfully parsed ${campaigns.length} charity campaigns from endpoint: $endpoint (fallback, no pagination)');
+                 return campaigns;
+               }
+             }
+           } catch (fallbackError) {
+             print('CampaignService: Fallback also failed for endpoint $endpoint: $fallbackError');
+           }
+           continue; // Try next endpoint
+         }
       }
       
       // If all endpoints failed, return empty list instead of throwing
