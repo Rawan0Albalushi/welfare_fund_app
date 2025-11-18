@@ -366,30 +366,6 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                       const SizedBox(height: 16),
                     ],
                     
-                    // Donation ID (if available)
-                    if (_donationId != null) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'رقم التبرع',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          Text(
-                            _donationId!,
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    
                     // Date
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,

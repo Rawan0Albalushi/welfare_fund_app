@@ -120,6 +120,7 @@ class StudentWelfareFundApp extends StatelessWidget {
         // Theme configuration
         theme: ThemeData(
           useMaterial3: true,
+          fontFamily: 'Calibri',
           colorScheme: ColorScheme.fromSeed(
             seedColor: AppColors.primary,
             brightness: Brightness.light,

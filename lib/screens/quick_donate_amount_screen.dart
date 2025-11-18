@@ -59,8 +59,9 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       final campaigns = await _campaignService.getCharityCampaigns();
       if (!mounted) return;
 
-      final activeCampaigns =
-          campaigns.where((campaign) => campaign.isActive).toList();
+      final activeCampaigns = campaigns
+          .where((campaign) => campaign.isActive && !campaign.isCompleted)
+          .toList();
 
       if (activeCampaigns.isNotEmpty) {
         activeCampaigns.shuffle();
@@ -898,121 +899,346 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
     final campaignTitle = campaign.getLocalizedTitle(locale);
     final campaignDescription = campaign.getLocalizedDescription(locale);
     final progress = campaign.progressPercentage;
+    final progressPercentage = (progress * 100).toStringAsFixed(0);
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppConstants.largePadding),
       decoration: BoxDecoration(
-        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.primary.withOpacity(0.1),
-        ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withOpacity(0.05),
-            blurRadius: 10,
+            color: AppColors.primary.withOpacity(0.12),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.campaign,
-                  color: AppColors.primary,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  campaignTitle,
-                  style: AppTextStyles.titleLarge.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            campaignDescription,
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.4,
-            ),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: AppColors.primary.withOpacity(0.1),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.primary),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: Border.all(
+              color: AppColors.primary.withOpacity(0.15),
+              width: 1,
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                '${'raised_amount'.tr()}: ${campaign.currentAmount.toStringAsFixed(0)} ${'riyal'.tr()}',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                '${'target_amount'.tr()}: ${campaign.targetAmount.toStringAsFixed(0)} ${'riyal'.tr()}',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${'donors_count'.tr()}: ${campaign.donorCount}',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              TextButton.icon(
-                onPressed: _showAnotherCampaign,
-                icon: const Icon(Icons.shuffle),
-                label: Text('change_campaign'.tr()),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  textStyle: AppTextStyles.bodySmall.copyWith(
-                    fontWeight: FontWeight.w600,
+              // Campaign Image
+              Stack(
+                children: [
+                  SizedBox(
+                    height: 140,
+                    width: double.infinity,
+                    child: campaign.imageUrl.isNotEmpty
+                        ? Image.network(
+                            campaign.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                              decoration: BoxDecoration(
+                                gradient: AppColors.modernGradient,
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.campaign_rounded,
+                                  color: Colors.white,
+                                  size: 48,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Container(
+                            decoration: BoxDecoration(
+                              gradient: AppColors.modernGradient,
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.campaign_rounded,
+                                color: Colors.white,
+                                size: 48,
+                              ),
+                            ),
+                          ),
                   ),
+                  // Gradient Overlay
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.3),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Campaign Badge
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.campaign_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'campaign'.tr(),
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              // Content Section
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title
+                    Text(
+                      campaignTitle,
+                      style: AppTextStyles.titleMedium.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    
+                    // Description
+                    Text(
+                      campaignDescription,
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                        height: 1.4,
+                        fontSize: 12,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Progress Bar
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: FractionallySizedBox(
+                                widthFactor: progress.clamp(0.0, 1.0),
+                                alignment: Alignment.centerLeft,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: AppColors.modernGradient,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$progressPercentage%',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    
+                    // Statistics Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildCompactStatItem(
+                            icon: Icons.trending_up_rounded,
+                            value: '${campaign.currentAmount.toStringAsFixed(0)}',
+                            label: 'riyal'.tr(),
+                            color: AppColors.success,
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 30,
+                          color: AppColors.primary.withOpacity(0.15),
+                        ),
+                        Expanded(
+                          child: _buildCompactStatItem(
+                            icon: Icons.flag_rounded,
+                            value: '${campaign.targetAmount.toStringAsFixed(0)}',
+                            label: 'riyal'.tr(),
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 30,
+                          color: AppColors.primary.withOpacity(0.15),
+                        ),
+                        Expanded(
+                          child: _buildCompactStatItem(
+                            icon: Icons.people_rounded,
+                            value: campaign.donorCount.toString(),
+                            label: 'donors_count'.tr(),
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    
+                    // Change Campaign Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _showAnotherCampaign,
+                        icon: const Icon(Icons.shuffle_rounded, size: 16),
+                        label: Text(
+                          'change_campaign'.tr(),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: BorderSide(
+                            color: AppColors.primary.withOpacity(0.25),
+                            width: 1,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildStatItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: color,
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: color,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactStatItem({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color color,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          color: color,
+          size: 16,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: AppTextStyles.bodySmall.copyWith(
+            color: color,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+            fontSize: 10,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }

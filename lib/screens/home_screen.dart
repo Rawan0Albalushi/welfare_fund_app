@@ -2461,7 +2461,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: SizedBox(
               width: 280,
               child: _buildRecentDonationCard(
-                donorName: donation.isAnonymous ? 'donor'.tr() : (donation.donorName ?? 'donor'.tr()),
+                donorName: 'donor'.tr(),
                 amount: donation.amount,
                 campaignTitle: campaignTitle,
                 timeAgo: _formatTimeAgo(donation.date),

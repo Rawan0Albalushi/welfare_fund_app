@@ -316,6 +316,7 @@ class _SplashScreenState extends State<SplashScreen>
                                   Text(
                                     'splash.title'.tr(), // 'تبرع معنا'
                                     style: const TextStyle(
+                                      fontFamily: 'Calibri',
                                       fontSize: 28,
                                       fontWeight: FontWeight.bold,
                                       color: AppColors.surface,
@@ -327,6 +328,7 @@ class _SplashScreenState extends State<SplashScreen>
                                   Text(
                                     'splash.subtitle'.tr(), // 'تصنع الفرق، تبرعاً تلو الآخر'
                                     style: TextStyle(
+                                      fontFamily: 'Calibri',
                                       fontSize: 16,
                                       fontWeight: FontWeight.w500,
                                       color: AppColors.surface.withOpacity(0.8),
@@ -363,6 +365,7 @@ class _SplashScreenState extends State<SplashScreen>
                                   Text(
                                     'splash.welcome'.tr(), // 'مرحباً بك في منصة التبرعات'
                                     style: const TextStyle(
+                                      fontFamily: 'Calibri',
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.surface,
@@ -374,6 +377,7 @@ class _SplashScreenState extends State<SplashScreen>
                                   Text(
                                     'splash.description'.tr(), // 'نساعد المحتاجين من خلال تبرعات المجتمع'
                                     style: TextStyle(
+                                      fontFamily: 'Calibri',
                                       fontSize: 14,
                                       fontWeight: FontWeight.normal,
                                       color: AppColors.surface.withOpacity(0.9),
@@ -420,6 +424,7 @@ class _SplashScreenState extends State<SplashScreen>
                                           Text(
                                             'splash.startNow'.tr(), // 'ابدأ الآن'
                                             style: const TextStyle(
+                                              fontFamily: 'Calibri',
                                               fontSize: 18,
                                               fontWeight: FontWeight.w600,
                                               color: AppColors.primary,
