@@ -5,7 +5,7 @@ class AppConfig {
   static const String serverBaseUrl = String.fromEnvironment(
     'APP_URL',
     /*defaultValue: 'http://localhost:8000',*/
-    defaultValue: 'http://192.168.100.66:8000', // ⚠️ للاختبار المحلي فقط
+    defaultValue: 'http://192.168.1.15:8000', // ⚠️ للاختبار المحلي فقط
   );
 
   static const String apiBaseUrlV1 = '$serverBaseUrl/api/v1';

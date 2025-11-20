@@ -65,6 +65,8 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   void _onBottomNavigationTap(int index, bool isAuthenticated) {
     if (index == 2) {
+      // Already on Settings page - refresh by rebuilding (AuthProvider will handle updates)
+      setState(() {});
       return;
     }
 

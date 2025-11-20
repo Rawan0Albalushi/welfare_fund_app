@@ -79,6 +79,15 @@ class _HomeScreenState extends State<HomeScreen> {
     _checkApplicationStatus();
   }
 
+  Future<void> _refreshHomeData() async {
+    // Reload all data when returning to home screen
+    print('HomeScreen: Refreshing home data...');
+    _loadCampaignsFromAPI();
+    _loadRecentDonations();
+    _loadBanners();
+    _checkApplicationStatus();
+  }
+
   Future<void> _loadCategories() async {
     setState(() {
       _isLoadingCategories = true;
@@ -1448,7 +1457,13 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) async {
-          if (index == 1) { // تبرعاتي
+          if (index == 0) {
+            // Already on Home page - refresh data
+            _refreshHomeData();
+            setState(() {
+              _currentIndex = index;
+            });
+          } else if (index == 1) { // تبرعاتي
             _onMyDonations();
           } else if (index == 2) { // الإعدادات
             Navigator.push(
