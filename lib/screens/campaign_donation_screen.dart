@@ -24,6 +24,63 @@ class CampaignDonationScreen extends StatefulWidget {
   State<CampaignDonationScreen> createState() => _CampaignDonationScreenState();
 }
 
+class _CampaignPaymentResult {
+  final PaymentState? state;
+  final double? amount;
+  final String? campaignTitle;
+  final String? donationId;
+  final String? sessionId;
+
+  const _CampaignPaymentResult({
+    this.state,
+    this.amount,
+    this.campaignTitle,
+    this.donationId,
+    this.sessionId,
+  });
+
+  factory _CampaignPaymentResult.fromNavigatorResult(dynamic result) {
+    if (result is Map) {
+      final map = Map<String, dynamic>.from(result as Map);
+      return _CampaignPaymentResult(
+        state: _parseState(map['state']),
+        amount: _parseAmount(map['amount']),
+        campaignTitle: _asString(map['campaignTitle']) ?? _asString(map['campaign_title']),
+        donationId: _asString(map['donationId']) ?? _asString(map['donation_id']),
+        sessionId: _asString(map['sessionId']) ?? _asString(map['session_id']),
+      );
+    }
+
+    if (result is PaymentState) {
+      return _CampaignPaymentResult(state: result);
+    }
+
+    return const _CampaignPaymentResult();
+  }
+
+  static PaymentState? _parseState(dynamic value) {
+    if (value is PaymentState) return value;
+    if (value is String) {
+      for (final state in PaymentState.values) {
+        if (state.name == value) return state;
+      }
+    }
+    return null;
+  }
+
+  static double? _parseAmount(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final normalized = value.replaceAll(RegExp(r'[^0-9\.\-]'), '');
+      return double.tryParse(normalized);
+    }
+    return null;
+  }
+
+  static String? _asString(dynamic value) {
+    return value?.toString();
+  }
+}
 class _CampaignDonationScreenState extends State<CampaignDonationScreen>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
@@ -132,7 +189,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
       // افتح الـ WebView داخل التطبيق
       provider.startPayment();
 
-      final result = await Navigator.push<PaymentState>(
+      final result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => PaymentWebView(
@@ -142,22 +199,27 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
         ),
       );
 
+      final paymentResult = _CampaignPaymentResult.fromNavigatorResult(result);
+      final PaymentState? resultState = paymentResult.state;
+
       // التعامل مع نتيجة الـ WebView
-      if (result == PaymentState.paymentSuccess || provider.isPaymentSuccessful) {
+      if (resultState == PaymentState.paymentSuccess || provider.isPaymentSuccessful) {
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => DonationSuccessScreen(
               amount: _selectedAmount,
-              campaignTitle: widget.campaign.title,
+              campaignTitle: paymentResult.campaignTitle ?? widget.campaign.title,
               campaignCategory: widget.campaign.category,
+              donationId: paymentResult.donationId,
+              sessionId: paymentResult.sessionId ?? provider.currentSessionId,
             ),
           ),
         );
-      } else if (result == PaymentState.paymentFailed ||
-          result == PaymentState.paymentCancelled ||
-          result == PaymentState.paymentExpired ||
+      } else if (resultState == PaymentState.paymentFailed ||
+          resultState == PaymentState.paymentCancelled ||
+          resultState == PaymentState.paymentExpired ||
           provider.isPaymentFailed) {
         if (!mounted) return;
         Navigator.pushReplacement(
@@ -170,8 +232,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
             ),
           ),
         );
-      } else {
-        // حالة غير متوقعة — تحقّق من الحالة من الباكند
+      } else if (result != null) {
         await provider.checkPaymentStatus();
         if (provider.isPaymentSuccessful) {
           if (!mounted) return;
@@ -198,6 +259,8 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
             ),
           );
         }
+      } else {
+        provider.cancelPayment();
       }
     } else {
       // فشل إنشاء الجلسة

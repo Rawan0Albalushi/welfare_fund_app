@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -27,15 +29,20 @@ class _PaymentWebViewState extends State<PaymentWebView> {
   bool _isLoading = true;
   final _donationService = DonationService();
   bool _hasCheckedStatus = false;
+  Timer? _statusCheckTimer;
+  bool _hasPopped = false;
+  bool _pollingDisabled = false;
+  bool _isHandlingSuccess = false;
 
   bool _isSuccessUrl(String url) {
     return url.contains('/payment/bridge/success') ||
            url.contains('/payments/success') ||
+           url.contains('/payments/mobile/success') ||
            url.contains('/pay/success') ||
-           url.contains('success') ||
            url.contains('payment_success') ||
            url.contains('sfund.app') ||
-           url.contains('thawani.om') && url.contains('success');
+           (url.contains('thawani.om') && url.contains('success')) ||
+           (url.contains('/mobile/success') && url.contains('donation_id'));
   }
   
   bool _isCancelUrl(String url) {
@@ -47,46 +54,208 @@ class _PaymentWebViewState extends State<PaymentWebView> {
            url.contains('thawani.om') && url.contains('cancel');
   }
 
-  Future<void> _finishAndPop() async {
-    if (_hasCheckedStatus) return; // Prevent multiple checks
+  void _cancelScheduledStatusCheck() {
+    _statusCheckTimer?.cancel();
+    _statusCheckTimer = null;
+  }
+
+  Future<void> _safePop(Map<String, dynamic> payload) async {
+    if (_hasPopped) return;
+    _hasPopped = true;
+    _cancelScheduledStatusCheck();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.pop(context, payload);
+      }
+    });
+  }
+
+  Future<void> _handleSuccessNavigation(String url) async {
+    if (_hasPopped || _hasCheckedStatus || _isHandlingSuccess) return;
+    // إيقاف الـ polling فوراً قبل أي شيء
+    print('PaymentWebView: Disabling polling and handling success navigation');
+    _isHandlingSuccess = true;
+    _pollingDisabled = true;
     _hasCheckedStatus = true;
-    
+    _cancelScheduledStatusCheck();
+
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
+
+    try {
+      print('PaymentWebView: Fetching mobile success data...');
+      final response = await _donationService.fetchMobilePaymentSuccessData(successUrl: url);
+      if (!mounted) return;
+
+      final payload = _buildSuccessResult(response, url);
+      await _safePop(payload);
+    } catch (e) {
+      print('PaymentWebView: Error fetching mobile success data: $e');
+      _isHandlingSuccess = false;
+      _pollingDisabled = false;
+      _hasCheckedStatus = false;
+      await _checkPaymentStatusAndComplete();
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Map<String, dynamic> _buildSuccessResult(Map<String, dynamic> response, String successUrl) {
+    final dynamic rawData = response['data'];
+    final Map<String, dynamic> data;
+    if (rawData is Map<String, dynamic>) {
+      data = Map<String, dynamic>.from(rawData);
+    } else {
+      data = response;
+    }
+
+    // استخراج بيانات التبرع (قد تكون في donation object أو مباشرة)
+    final dynamic donationObj = data['donation'];
+    final Map<String, dynamic> donationData;
+    if (donationObj is Map<String, dynamic>) {
+      donationData = Map<String, dynamic>.from(donationObj);
+    } else {
+      donationData = data;
+    }
+
+    // استخراج بيانات الحملة (قد تكون في campaign object أو مباشرة)
+    final dynamic campaignObj = data['campaign'] ?? donationData['campaign'];
+    String? campaignTitle;
+    if (campaignObj is Map<String, dynamic>) {
+      campaignTitle = (campaignObj['title'] ?? campaignObj['name'])?.toString();
+    }
+    campaignTitle ??= (data['campaign_title'] ?? 
+                       donationData['campaign_title'] ?? 
+                       data['campaign'] ?? 
+                       data['campaign_name'])?.toString();
+
+    // استخراج donation_id
+    final donationId = (donationData['donation_id'] ?? 
+                       donationData['donationId'] ?? 
+                       donationData['id'] ?? 
+                       data['donation_id'] ?? 
+                       data['donationId'])?.toString();
+
+    // استخراج session_id
+    final sessionId = (data['session_id'] ?? 
+                       data['sessionId'] ?? 
+                       data['payment_session_id'] ?? 
+                       donationData['payment_session_id'] ?? 
+                       widget.sessionId)?.toString();
+
+    // استخراج المبلغ (paid_amount أولاً، ثم amount)
+    final amount = _tryParseAmount(
+      donationData['paid_amount'] ?? 
+      donationData['amount'] ?? 
+      data['paid_amount'] ?? 
+      data['amount'] ?? 
+      data['donation_amount']
+    );
+
+    print('PaymentWebView: Built success result - donationId: $donationId, amount: $amount, campaignTitle: $campaignTitle');
+
+    return {
+      'state': PaymentState.paymentSuccess.name,
+      'donationId': donationId,
+      'sessionId': sessionId,
+      'campaignTitle': campaignTitle,
+      'amount': amount,
+      'rawResponse': response,
+      'successUrl': successUrl,
+    };
+  }
+
+  double? _tryParseAmount(dynamic value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      final normalized = value.replaceAll(RegExp(r'[^0-9\.\-]'), '');
+      return double.tryParse(normalized);
+    }
+    return null;
+  }
+
+  Future<void> _checkPaymentStatusAndComplete() async {
+    // حماية من race conditions: التحقق من الحالة قبل وبعد الاستدعاء
+    if (!mounted || _hasPopped || _pollingDisabled || _isHandlingSuccess) {
+      if (_pollingDisabled || _isHandlingSuccess) {
+        print('PaymentWebView: Polling disabled or handling success, skipping status check');
+      }
+      return;
+    }
+
     try {
       final status = await _donationService.checkPaymentStatus(widget.sessionId);
-      if (!mounted) return;
+      
+      // التحقق مرة أخرى بعد الاستدعاء لتجنب race conditions
+      if (!mounted || _hasPopped || _pollingDisabled || _isHandlingSuccess) {
+        print('PaymentWebView: Polling was disabled or handling success, ignoring status check result');
+        return;
+      }
 
       print('PaymentWebView: Payment status check result: ${status.status}');
       print('PaymentWebView: Is completed: ${status.isCompleted}');
 
       if (status.isCompleted) {
-        Navigator.pop(context, PaymentState.paymentSuccess);
+        if (_isHandlingSuccess) {
+          print('PaymentWebView: Success is being handled via mobile API, ignoring polling result');
+          return;
+        }
+        _hasCheckedStatus = true;
+        await _safePop({
+          'state': PaymentState.paymentSuccess.name,
+          'sessionId': status.sessionId ?? widget.sessionId,
+          if (status.amount != null) 'amount': status.amount,
+          if (status.raw != null) 'rawResponse': status.raw,
+        });
       } else if (status.isCancelled) {
-        Navigator.pop(context, PaymentState.paymentCancelled);
+        if (!_pollingDisabled && !_hasPopped && !_isHandlingSuccess) {
+          await _safePop({'state': PaymentState.paymentCancelled.name});
+        }
       } else if (status.isExpired) {
-        Navigator.pop(context, PaymentState.paymentExpired);
+        if (!_pollingDisabled && !_hasPopped && !_isHandlingSuccess) {
+          await _safePop({'state': PaymentState.paymentExpired.name});
+        }
       } else if (status.isFailed) {
-        Navigator.pop(context, PaymentState.paymentFailed);
+        if (!_pollingDisabled && !_hasPopped && !_isHandlingSuccess) {
+          await _safePop({
+            'state': PaymentState.paymentFailed.name,
+            if (status.error != null) 'error': status.error,
+          });
+        }
       } else {
-        // Still pending - try again after a short delay
-        _hasCheckedStatus = false; // Reset flag for retry
+        // لا نستمر في الـ polling إذا تم تعطيله أو تم pop
+        if (_hasPopped || _pollingDisabled || _isHandlingSuccess) return;
         await Future.delayed(const Duration(seconds: 3));
-        await _finishAndPop();
+        if (!_hasPopped && !_pollingDisabled) {
+          await _checkPaymentStatusAndComplete();
+        }
       }
     } catch (e) {
-      print('PaymentWebView: Error checking payment status: $e');
-      if (!mounted) return;
-      Navigator.pop(context, PaymentState.paymentFailed);
+      // معالجة الأخطاء بشكل آمن دون تسريب معلومات حساسة
+      print('PaymentWebView: Error checking payment status');
+      if (!mounted || _hasPopped || _isHandlingSuccess) return;
+      
+      // لا نطبع تفاصيل الخطأ في رسالة المستخدم لأسباب أمنية
+      await _safePop({
+        'state': PaymentState.paymentFailed.name,
+        'error': 'حدث خطأ في التحقق من حالة الدفع',
+      });
     }
   }
-
 
   @override
   void initState() {
     super.initState();
     
     // Start periodic status checking after 10 seconds
-    Future.delayed(const Duration(seconds: 10), () {
-      if (mounted && !_hasCheckedStatus) {
+    _statusCheckTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted && !_hasCheckedStatus && !_hasPopped && !_pollingDisabled && !_isHandlingSuccess) {
         _checkPaymentStatusPeriodically();
       }
     });
@@ -108,12 +277,10 @@ class _PaymentWebViewState extends State<PaymentWebView> {
             
             if (_isSuccessUrl(url)) {
               print('PaymentWebView: Detected success URL, checking payment status...');
-              await _finishAndPop();
+              await _handleSuccessNavigation(url);
             } else if (_isCancelUrl(url)) {
               print('PaymentWebView: Detected cancel URL, returning cancelled...');
-              if (mounted) {
-                Navigator.pop(context, PaymentState.paymentCancelled);
-              }
+              _safePop({'state': PaymentState.paymentCancelled.name});
             }
           },
           onNavigationRequest: (request) {
@@ -121,13 +288,11 @@ class _PaymentWebViewState extends State<PaymentWebView> {
             
             if (_isSuccessUrl(request.url)) {
               print('PaymentWebView: Intercepting success URL');
-              _finishAndPop();
+              _handleSuccessNavigation(request.url);
               return NavigationDecision.prevent;
             } else if (_isCancelUrl(request.url)) {
               print('PaymentWebView: Intercepting cancel URL');
-              if (mounted) {
-                Navigator.pop(context, PaymentState.paymentCancelled);
-              }
+              _safePop({'state': PaymentState.paymentCancelled.name});
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
@@ -158,7 +323,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
         
         // Wait for user to complete payment, then auto-check
         await Future.delayed(const Duration(seconds: 5));
-        await _finishAndPop();
+        await _checkPaymentStatusAndComplete();
       }
     } catch (e) {
       if (mounted) {
@@ -168,16 +333,19 @@ class _PaymentWebViewState extends State<PaymentWebView> {
             backgroundColor: AppColors.error,
           ),
         );
-        Navigator.pop(context, PaymentState.paymentFailed);
+        await _safePop({
+          'state': PaymentState.paymentFailed.name,
+          'error': e.toString(),
+        });
       }
     }
   }
 
   void _checkPaymentStatusPeriodically() {
-    if (!mounted || _hasCheckedStatus) return;
+    if (!mounted || _hasCheckedStatus || _hasPopped || _pollingDisabled || _isHandlingSuccess) return;
     
     print('PaymentWebView: Starting periodic payment status check...');
-    _finishAndPop();
+    _checkPaymentStatusAndComplete();
   }
 
   @override
@@ -228,8 +396,8 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                 const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: () {
-                    if (!_hasCheckedStatus) {
-                      _finishAndPop();
+                    if (!_hasCheckedStatus && !_hasPopped) {
+                      _checkPaymentStatusAndComplete();
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -261,7 +429,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
         ),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => Navigator.pop(context, PaymentState.paymentCancelled),
+          onPressed: () => _safePop({'state': PaymentState.paymentCancelled.name}),
         ),
         actions: [
           if (_isLoading)
@@ -304,5 +472,11 @@ class _PaymentWebViewState extends State<PaymentWebView> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _cancelScheduledStatusCheck();
+    super.dispose();
   }
 }

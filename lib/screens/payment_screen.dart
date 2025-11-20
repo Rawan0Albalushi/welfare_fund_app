@@ -85,14 +85,44 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
   }
 
   bool _validateForm() {
+    // التحقق من المبلغ
     if (_selectedAmount <= 0) {
       _toast('يرجى اختيار مبلغ للتبرع');
       return false;
     }
-    if (_donorNameController.text.trim().isEmpty) {
+    
+    // حد أدنى للمبلغ (1 ريال)
+    const double minAmount = 1.0;
+    if (_selectedAmount < minAmount) {
+      _toast('الحد الأدنى للمبلغ هو $minAmount ريال');
+      return false;
+    }
+    
+    // حد أقصى للمبلغ (100,000 ريال) لحماية من القيم غير المعقولة
+    const double maxAmount = 100000.0;
+    if (_selectedAmount > maxAmount) {
+      _toast('الحد الأقصى للمبلغ هو ${maxAmount.toStringAsFixed(0)} ريال. يرجى الاتصال بالدعم للمبالغ الكبيرة');
+      return false;
+    }
+    
+    // التحقق من الاسم
+    final donorName = _donorNameController.text.trim();
+    if (donorName.isEmpty) {
       _toast('يرجى إدخال اسم المتبرع');
       return false;
     }
+    
+    // التحقق من طول الاسم (2-100 حرف)
+    if (donorName.length < 2) {
+      _toast('اسم المتبرع يجب أن يكون على الأقل حرفين');
+      return false;
+    }
+    if (donorName.length > 100) {
+      _toast('اسم المتبرع طويل جداً (الحد الأقصى 100 حرف)');
+      return false;
+    }
+    
+    // التحقق من البريد الإلكتروني
     final email = _donorEmailController.text.trim();
     if (email.isNotEmpty) {
       final emailRegex = RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$');
@@ -100,7 +130,36 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
         _toast('يرجى إدخال بريد إلكتروني صحيح');
         return false;
       }
+      // التحقق من طول البريد الإلكتروني
+      if (email.length > 255) {
+        _toast('البريد الإلكتروني طويل جداً');
+        return false;
+      }
     }
+    
+    // التحقق من رقم الهاتف (إذا تم إدخاله)
+    final phone = _donorPhoneController.text.trim();
+    if (phone.isNotEmpty) {
+      // إزالة المسافات والرموز للتحقق
+      final cleanPhone = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+      // التحقق من أن الرقم يحتوي على أرقام فقط وطوله معقول (8-15 رقم)
+      if (!RegExp(r'^[0-9]+$').hasMatch(cleanPhone)) {
+        _toast('يرجى إدخال رقم هاتف صحيح (أرقام فقط)');
+        return false;
+      }
+      if (cleanPhone.length < 8 || cleanPhone.length > 15) {
+        _toast('رقم الهاتف يجب أن يكون بين 8 و 15 رقم');
+        return false;
+      }
+    }
+    
+    // التحقق من طول الرسالة (إذا تم إدخالها)
+    final message = _messageController.text.trim();
+    if (message.isNotEmpty && message.length > 500) {
+      _toast('الرسالة طويلة جداً (الحد الأقصى 500 حرف)');
+      return false;
+    }
+    
     return true;
   }
 
@@ -112,93 +171,90 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
 
   Future<void> _proceedToPayment() async {
     if (!_validateForm()) return;
+    
+    if (!mounted) return;
 
-    final provider = context.read<PaymentProvider>();
+    try {
+      final provider = context.read<PaymentProvider>();
 
-    // ابدأ دورة الدفع بقيمة المبلغ
-    provider.initializePayment(_selectedAmount);
+      // ابدأ دورة الدفع بقيمة المبلغ
+      provider.initializePayment(_selectedAmount);
 
-    // حوّلي itemId إلى int حسب النوع
-    int? programId;
-    int? campaignId;
-    final rawId = widget.itemId ?? '';
-    final parsedId = int.tryParse(rawId);
-    if (parsedId != null) {
-      if (widget.itemType == 'program') programId = parsedId;
-      if (widget.itemType == 'campaign') campaignId = parsedId;
-    }
+      // حوّلي itemId إلى int حسب النوع
+      int? programId;
+      int? campaignId;
+      final rawId = widget.itemId ?? '';
+      final parsedId = int.tryParse(rawId);
+      if (parsedId != null) {
+        if (widget.itemType == 'program') programId = parsedId;
+        if (widget.itemType == 'campaign') campaignId = parsedId;
+      }
 
-    // إنشاء التبرع مع الدفع مباشرة
-    await provider.initiateDonationWithPayment(
-      amount: _selectedAmount,
-      donorName: _donorNameController.text.trim(),
-      donorEmail: _donorEmailController.text.trim().isNotEmpty ? _donorEmailController.text.trim() : null,
-      donorPhone: _donorPhoneController.text.trim().isNotEmpty ? _donorPhoneController.text.trim() : null,
-      message: _messageController.text.trim().isNotEmpty ? _messageController.text.trim() : null,
-      itemId: widget.itemId,
-      itemType: widget.itemType,
-      programId: programId,
-      campaignId: campaignId,
-      note: _messageController.text.trim().isNotEmpty ? _messageController.text.trim() : null,
-    );
-
-    if (provider.state == PaymentState.sessionCreated && provider.paymentUrl != null) {
-      // انتقل للـ WebView
-      provider.startPayment();
-
-      final result = await Navigator.push<PaymentState>(
-        context,
-        MaterialPageRoute(
-          builder: (_) => PaymentWebView(
-            paymentUrl: provider.paymentUrl!,
-            sessionId: provider.currentSessionId!, // للاحتفاظ به محليًا
-          ),
-        ),
+      // إنشاء التبرع مع الدفع مباشرة
+      await provider.initiateDonationWithPayment(
+        amount: _selectedAmount,
+        donorName: _donorNameController.text.trim(),
+        donorEmail: _donorEmailController.text.trim().isNotEmpty ? _donorEmailController.text.trim() : null,
+        donorPhone: _donorPhoneController.text.trim().isNotEmpty ? _donorPhoneController.text.trim() : null,
+        message: _messageController.text.trim().isNotEmpty ? _messageController.text.trim() : null,
+        itemId: widget.itemId,
+        itemType: widget.itemType,
+        programId: programId,
+        campaignId: campaignId,
+        note: _messageController.text.trim().isNotEmpty ? _messageController.text.trim() : null,
       );
 
-      // التعامل مع النتيجة
-      if (result == PaymentState.paymentSuccess) {
-        if (!mounted) return;
-        Navigator.pushReplacement(
+      if (!mounted) return;
+
+      if (provider.state == PaymentState.sessionCreated && provider.paymentUrl != null) {
+        // انتقل للـ WebView
+        provider.startPayment();
+
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => DonationSuccessScreen(
-              amount: _selectedAmount,
-              campaignTitle: widget.campaignTitle ?? 'تبرع خيري',
-              campaignCategory: widget.campaignCategory ?? 'تبرع عام',
+            builder: (_) => PaymentWebView(
+              paymentUrl: provider.paymentUrl!,
+              sessionId: provider.currentSessionId!, // للاحتفاظ به محليًا
             ),
           ),
         );
-      } else if (result == PaymentState.paymentFailed ||
-          result == PaymentState.paymentCancelled ||
-          result == PaymentState.paymentExpired) {
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PaymentFailedScreen(
-              errorMessage: provider.displayErrorMessage,
-              campaignTitle: widget.campaignTitle ?? 'تبرع خيري',
-              amount: _selectedAmount,
-            ),
-          ),
-        );
-      } else {
-        // لو رجع شيء غير متوقع، جرّب استعلام الحالة من الباكند
-        await provider.checkPaymentStatus();
-        if (provider.isPaymentSuccessful) {
+
+        print('PaymentScreen: Received result from PaymentWebView: $result');
+        final parsedResult = _PaymentFlowResult.fromNavigatorResult(result);
+        print('PaymentScreen: Parsed result - state: ${parsedResult.state}, donationId: ${parsedResult.donationId}, sessionId: ${parsedResult.sessionId}, amount: ${parsedResult.amount}, campaignTitle: ${parsedResult.campaignTitle}');
+        final PaymentState? resultState = parsedResult.state;
+
+        // التعامل مع النتيجة
+        if (resultState == PaymentState.paymentSuccess) {
           if (!mounted) return;
+          
+          final finalAmount = parsedResult.amount ?? _selectedAmount;
+          final finalCampaignTitle = parsedResult.campaignTitle ?? widget.campaignTitle ?? 'تبرع خيري';
+          final finalDonationId = parsedResult.donationId;
+          final finalSessionId = parsedResult.sessionId ?? provider.currentSessionId;
+          
+          print('PaymentScreen: Navigating to DonationSuccessScreen with:');
+          print('  - amount: $finalAmount');
+          print('  - campaignTitle: $finalCampaignTitle');
+          print('  - donationId: $finalDonationId');
+          print('  - sessionId: $finalSessionId');
+          
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (_) => DonationSuccessScreen(
-                amount: _selectedAmount,
-                campaignTitle: widget.campaignTitle ?? 'تبرع خيري',
+                amount: finalAmount,
+                campaignTitle: finalCampaignTitle,
                 campaignCategory: widget.campaignCategory ?? 'تبرع عام',
+                donationId: finalDonationId,
+                sessionId: finalSessionId,
               ),
             ),
           );
-        } else if (provider.isPaymentFailed) {
+        } else if (resultState == PaymentState.paymentFailed ||
+            resultState == PaymentState.paymentCancelled ||
+            resultState == PaymentState.paymentExpired) {
           if (!mounted) return;
           Navigator.pushReplacement(
             context,
@@ -210,19 +266,59 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
               ),
             ),
           );
+        } else if (result != null) {
+          // لو رجع شيء غير متوقع، جرّب استعلام الحالة من الباكند
+          await provider.checkPaymentStatus();
+          if (provider.isPaymentSuccessful) {
+            if (!mounted) return;
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => DonationSuccessScreen(
+                  amount: _selectedAmount,
+                  campaignTitle: widget.campaignTitle ?? 'تبرع خيري',
+                  campaignCategory: widget.campaignCategory ?? 'تبرع عام',
+                ),
+              ),
+            );
+          } else if (provider.isPaymentFailed) {
+            if (!mounted) return;
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PaymentFailedScreen(
+                  errorMessage: provider.displayErrorMessage,
+                  campaignTitle: widget.campaignTitle ?? 'تبرع خيري',
+                  amount: _selectedAmount,
+                ),
+              ),
+            );
+          }
+        } else {
+          // المستخدم أغلق الشاشة بدون نتيجة واضحة
+          provider.cancelPayment();
         }
-      }
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => PaymentFailedScreen(
-            errorMessage: provider.displayErrorMessage,
-            campaignTitle: widget.campaignTitle ?? 'تبرع خيري',
-            amount: _selectedAmount,
+      } else {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentFailedScreen(
+              errorMessage: provider.displayErrorMessage,
+              campaignTitle: widget.campaignTitle ?? 'تبرع خيري',
+              amount: _selectedAmount,
+            ),
           ),
-        ),
-      );
+        );
+      }
+    } catch (e) {
+      // معالجة الأخطاء بشكل آمن دون تسريب معلومات حساسة
+      if (!mounted) return;
+      _toast('حدث خطأ أثناء معالجة الدفع. يرجى المحاولة مرة أخرى');
+      
+      // إعادة تعيين حالة الدفع
+      final provider = context.read<PaymentProvider>();
+      provider.resetPaymentState();
     }
   }
 
@@ -378,7 +474,13 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                                 ),
                                 onChanged: (value) {
                                   setState(() {
-                                    _selectedAmount = double.tryParse(value) ?? 0;
+                                    final parsed = double.tryParse(value);
+                                    // التأكد من أن المبلغ إيجابي
+                                    if (parsed != null && parsed >= 0) {
+                                      _selectedAmount = parsed;
+                                    } else if (value.isEmpty) {
+                                      _selectedAmount = 0;
+                                    }
                                   });
                                 },
                               ),
@@ -592,5 +694,80 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
         ),
       ),
     );
+  }
+}
+
+class _PaymentFlowResult {
+  final PaymentState? state;
+  final double? amount;
+  final String? campaignTitle;
+  final String? donationId;
+  final String? sessionId;
+
+  const _PaymentFlowResult({
+    this.state,
+    this.amount,
+    this.campaignTitle,
+    this.donationId,
+    this.sessionId,
+  });
+
+  factory _PaymentFlowResult.fromNavigatorResult(dynamic result) {
+    print('_PaymentFlowResult: Parsing result, type: ${result.runtimeType}');
+    
+    if (result is Map) {
+      final map = Map<String, dynamic>.from(result as Map);
+      print('_PaymentFlowResult: Map keys: ${map.keys.toList()}');
+      print('_PaymentFlowResult: Map values - state: ${map['state']}, donationId: ${map['donationId']}, donation_id: ${map['donation_id']}, sessionId: ${map['sessionId']}, session_id: ${map['session_id']}, amount: ${map['amount']}');
+      
+      final parsed = _PaymentFlowResult(
+        state: _parseState(map['state']),
+        amount: _parseAmount(map['amount']),
+        campaignTitle: _extractString(map['campaignTitle']) ?? _extractString(map['campaign_title']),
+        donationId: _extractString(map['donationId']) ?? _extractString(map['donation_id']),
+        sessionId: _extractString(map['sessionId']) ?? _extractString(map['session_id']),
+      );
+      
+      print('_PaymentFlowResult: Parsed result - state: ${parsed.state}, donationId: ${parsed.donationId}, sessionId: ${parsed.sessionId}, amount: ${parsed.amount}');
+      return parsed;
+    }
+
+    if (result is PaymentState) {
+      print('_PaymentFlowResult: Result is PaymentState: $result');
+      return _PaymentFlowResult(state: result);
+    }
+
+    print('_PaymentFlowResult: Result is null or unknown type, returning empty result');
+    return const _PaymentFlowResult();
+  }
+
+  static PaymentState? _parseState(dynamic value) {
+    if (value is PaymentState) {
+      return value;
+    }
+    if (value is String) {
+      for (final state in PaymentState.values) {
+        if (state.name == value) {
+          return state;
+        }
+      }
+    }
+    return null;
+  }
+
+  static double? _parseAmount(dynamic value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      final normalized = value.replaceAll(RegExp(r'[^0-9\.\-]'), '');
+      return double.tryParse(normalized);
+    }
+    return null;
+  }
+
+  static String? _extractString(dynamic value) {
+    if (value == null) return null;
+    return value.toString();
   }
 }

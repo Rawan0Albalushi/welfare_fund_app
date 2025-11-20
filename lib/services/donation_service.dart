@@ -346,6 +346,99 @@ class DonationService {
     }
   }
 
+  /// استرجاع تفاصيل نجاح الدفع من واجهة الموبايل الجديدة
+  Future<Map<String, dynamic>> fetchMobilePaymentSuccessData({
+    required String successUrl,
+  }) async {
+    try {
+      await _apiClient.initialize();
+      final token = await _apiClient.getAuthToken();
+
+      final headers = <String, String>{
+        'Accept': 'application/json',
+      };
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final uri = Uri.tryParse(successUrl);
+      if (uri == null) {
+        throw Exception('رابط نجاح الدفع غير صالح');
+      }
+
+      print('DonationService: Fetching mobile success data from $uri');
+      final response = await http.get(uri, headers: headers);
+      print('DonationService: Mobile success status: ${response.statusCode}');
+      print('DonationService: Mobile success body: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return _normalizeSuccessResponse(decoded);
+        }
+        throw Exception('استجابة غير متوقعة من خادم الدفع');
+      } else if (response.statusCode == 401) {
+        throw Exception('يرجى تسجيل الدخول لمتابعة عملية الدفع.');
+      } else if (response.statusCode == 404) {
+        throw Exception('تعذر العثور على بيانات الدفع.');
+      } else {
+        throw Exception('فشل في استرجاع بيانات النجاح (${response.statusCode}).');
+      }
+    } catch (e, stackTrace) {
+      print('DonationService: Error fetching mobile success data: $e');
+      print('DonationService: Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  Map<String, dynamic> _normalizeSuccessResponse(Map<String, dynamic> response) {
+    final normalized = Map<String, dynamic>.from(response);
+
+    // Normalize top-level amount
+    if (normalized.containsKey('amount')) {
+      normalized['amount'] = _parseAmount(normalized['amount']);
+    }
+
+    // Normalize data object
+    final data = normalized['data'];
+    if (data is Map<String, dynamic>) {
+      final nested = Map<String, dynamic>.from(data);
+      
+      // Normalize amount in data
+      if (nested.containsKey('amount')) {
+        nested['amount'] = _parseAmount(nested['amount']);
+      }
+      
+      // Normalize donation object if exists
+      final donation = nested['donation'];
+      if (donation is Map<String, dynamic>) {
+        final donationMap = Map<String, dynamic>.from(donation);
+        if (donationMap.containsKey('amount')) {
+          donationMap['amount'] = _parseAmount(donationMap['amount']);
+        }
+        if (donationMap.containsKey('paid_amount')) {
+          donationMap['paid_amount'] = _parseAmount(donationMap['paid_amount']);
+        }
+        nested['donation'] = donationMap;
+      }
+      
+      normalized['data'] = nested;
+    }
+
+    return normalized;
+  }
+
+  double? _parseAmount(dynamic value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      final parsed = double.tryParse(value);
+      return parsed;
+    }
+    return null;
+  }
+
   // ===== ENDPOINT 4: Get recent donations =====
   /// GET /api/v1/donations/recent?limit=5
   /// Get the last 5 donations from the API
@@ -413,9 +506,7 @@ class DonationService {
 
       print('DonationService: Token exists: ${token != null}');
       print('DonationService: API Base: $_apiBase');
-      if (token != null) {
-        print('DonationService: Token preview: ${token.substring(0, 20)}...');
-      }
+      // لا نطبع التوكن لأسباب أمنية
 
       if (token == null || token.isEmpty) {
         print('DonationService: No auth token found, returning empty donations list');

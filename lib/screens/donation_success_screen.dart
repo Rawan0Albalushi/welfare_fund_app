@@ -51,6 +51,11 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
   void initState() {
     super.initState();
     
+    print('DonationSuccessScreen: initState - widget.donationId = ${widget.donationId}');
+    print('DonationSuccessScreen: initState - widget.sessionId = ${widget.sessionId}');
+    print('DonationSuccessScreen: initState - widget.amount = ${widget.amount}');
+    print('DonationSuccessScreen: initState - widget.campaignTitle = ${widget.campaignTitle}');
+    
     // استخراج query parameters من URL
     _extractQueryParameters();
     
@@ -92,25 +97,36 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
 
   void _extractQueryParameters() {
     try {
-      // استخراج query parameters من URL
-      final uri = Uri.base;
-      _donationId = uri.queryParameters['donation_id'];
-      _sessionId = uri.queryParameters['session_id'];
+      // أولاً: استخدم البيانات الممررة من widget parameters (الأولوية)
+      _donationId = widget.donationId;
+      _sessionId = widget.sessionId;
+      _amount = widget.amount;
+      _campaignTitle = widget.campaignTitle;
       
-      // استخراج المبلغ إذا كان متوفراً
-      final amountStr = uri.queryParameters['amount'];
-      if (amountStr != null) {
-        _amount = double.tryParse(amountStr);
-        print('DonationSuccessScreen: Parsed amount from URL: $_amount');
+      print('DonationSuccessScreen: Widget params - donation_id = $_donationId');
+      print('DonationSuccessScreen: Widget params - session_id = $_sessionId');
+      print('DonationSuccessScreen: Widget params - amount = $_amount');
+      print('DonationSuccessScreen: Widget params - campaign_title = $_campaignTitle');
+      
+      // ثانياً: إذا لم تكن متوفرة في widget parameters، حاول استخراجها من URL
+      if (_donationId == null || _sessionId == null || _amount == null) {
+        final uri = Uri.base;
+        _donationId ??= uri.queryParameters['donation_id'];
+        _sessionId ??= uri.queryParameters['session_id'];
+        
+        final amountStr = uri.queryParameters['amount'];
+        if (amountStr != null && _amount == null) {
+          _amount = double.tryParse(amountStr);
+          print('DonationSuccessScreen: Parsed amount from URL: $_amount');
+        }
+        
+        _campaignTitle ??= uri.queryParameters['campaign_title'];
+        
+        print('DonationSuccessScreen: After URL extraction - donation_id = $_donationId');
+        print('DonationSuccessScreen: After URL extraction - session_id = $_sessionId');
+        print('DonationSuccessScreen: After URL extraction - amount = $_amount');
+        print('DonationSuccessScreen: After URL extraction - campaign_title = $_campaignTitle');
       }
-      
-      // استخراج عنوان الحملة إذا كان متوفراً
-      _campaignTitle = uri.queryParameters['campaign_title'];
-      
-      print('DonationSuccessScreen: donation_id = $_donationId');
-      print('DonationSuccessScreen: session_id = $_sessionId');
-      print('DonationSuccessScreen: amount = $_amount');
-      print('DonationSuccessScreen: campaign_title = $_campaignTitle');
       
       // إذا كان لدينا donation_id، احصل على تفاصيل التبرع من API
       if (_donationId != null) {
@@ -118,6 +134,11 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
       }
     } catch (e) {
       print('Error extracting query parameters: $e');
+      // في حالة الخطأ، استخدم widget parameters كبديل
+      _donationId ??= widget.donationId;
+      _sessionId ??= widget.sessionId;
+      _amount ??= widget.amount;
+      _campaignTitle ??= widget.campaignTitle;
     }
   }
 

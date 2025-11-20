@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 
-import '../constants/app_config.dart';
 import '../models/payment_response.dart' hide PaymentStatusResponse;
 import '../models/payment_status_response.dart';
 import '../services/payment_service.dart';
@@ -89,10 +88,10 @@ class PaymentProvider extends ChangeNotifier {
         origin = Uri.base.origin;
         // إذا كان origin غير صالح (مثل file:/// على Android)، استخدم fallback
         if (!origin.startsWith('http://') && !origin.startsWith('https://')) {
-          origin = AppConfig.serverBaseUrl; // Fallback للمنصات المحمولة
+          origin = 'http://localhost:8000'; // Fallback للمنصات المحمولة
         }
       } catch (e) {
-        origin = AppConfig.serverBaseUrl; // Fallback في حالة الخطأ
+        origin = 'http://localhost:8000'; // Fallback في حالة الخطأ
       }
       
       print('PaymentProvider: Using origin: $origin');
@@ -129,9 +128,10 @@ class PaymentProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e, stackTrace) {
-      print('PaymentProvider: Error in initiateDonationWithPayment: $e');
-      print('PaymentProvider: Stack trace: $stackTrace');
-      _errorMessage = 'حدث خطأ في إنشاء التبرع: $e';
+      // طباعة الخطأ للتصحيح فقط (في بيئة التطوير)
+      print('PaymentProvider: Error in initiateDonationWithPayment');
+      // لا نطبع تفاصيل الخطأ في رسالة المستخدم لأسباب أمنية
+      _errorMessage = 'حدث خطأ في إنشاء التبرع. يرجى المحاولة مرة أخرى';
       _state = PaymentState.paymentFailed;
       notifyListeners();
     }
