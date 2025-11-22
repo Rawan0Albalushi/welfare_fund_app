@@ -443,85 +443,62 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
           ),
           body: Column(
             children: [
-              // Compact Header Section with Statistics
+              // Simplified Header Section with Gradient
               Container(
                 width: double.infinity,
-                margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   gradient: AppColors.modernGradient,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.primary.withOpacity(0.1),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Compact Icon
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.volunteer_activism,
-                        size: 24,
-                        color: AppColors.surface,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'إجمالي التبرعات',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.surface.withOpacity(0.9),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_totalAmount.toStringAsFixed(0)} ريال',
+                          style: AppTextStyles.titleLarge.copyWith(
+                            color: AppColors.surface,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    // Main Statistics
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'إجمالي تبرعاتك الناجحة',
-                            style: AppTextStyles.titleMedium.copyWith(
-                              color: AppColors.surface,
-                              fontWeight: FontWeight.w600,
-                            ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'عدد التبرعات',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.surface.withOpacity(0.9),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${_totalAmount.toStringAsFixed(0)} ريال عماني',
-                            style: AppTextStyles.headlineSmall.copyWith(
-                              color: AppColors.surface,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _successfulDonationsCount.toString(),
+                          style: AppTextStyles.titleLarge.copyWith(
+                            color: AppColors.surface,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
-                      ),
-                    ),
-                    // Single Compact Stat
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            _successfulDonationsCount.toString(),
-                            style: AppTextStyles.titleLarge.copyWith(
-                              color: AppColors.surface,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'تبرع ناجح',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.surface.withOpacity(0.8),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -529,54 +506,47 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
 
               // Simplified Filter Section
               Container(
-                margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.surfaceVariant,
-                    width: 1,
-                  ),
-                ),
-                child: SizedBox(
-                  height: 40,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _filters.length,
-                    itemBuilder: (context, index) {
-                      final filter = _filters[index];
-                      final isSelected = _selectedFilter == filter;
-                      
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedFilter = filter;
-                            });
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isSelected ? AppColors.primary : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                height: 36,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _filters.length,
+                  itemBuilder: (context, index) {
+                    final filter = _filters[index];
+                    final isSelected = _selectedFilter == filter;
+                    
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedFilter = filter;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.primary : AppColors.surface,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isSelected ? AppColors.primary : AppColors.surfaceVariant,
+                              width: 1,
                             ),
-                            child: Center(
-                              child: Text(
-                                filter.tr(),
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  color: isSelected ? AppColors.surface : AppColors.textPrimary,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              filter.tr(),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: isSelected ? AppColors.surface : AppColors.textPrimary,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                fontSize: 12,
                               ),
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
               ),
 
@@ -755,7 +725,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       onRefresh: _checkAuthAndLoadDonations,
       color: AppColors.primary,
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         itemCount: _filteredDonations.length,
         itemBuilder: (context, index) {
           final donation = _filteredDonations[index];
@@ -804,8 +774,13 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
     };
   }
 
-  Widget _buildDonationCard(Donation donation) {
-    // Determine category based on program/campaign or message
+  void _showDonationDetails(Donation donation) {
+    final statusInfo = _getDonationStatusInfo(donation);
+    final isGift = donation.message?.contains('هدية') == true || 
+                   donation.message?.contains('إهداء') == true ||
+                   donation.message?.contains('gift') == true;
+    
+    // Determine category
     String category = 'عام';
     if (donation.programId != null) {
       category = 'برنامج';
@@ -813,220 +788,395 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       category = 'حملة';
     }
     
-    final categoryColor = _getCategoryColor(category);
-    final categoryIcon = _getCategoryIcon(category);
-    
-    // Determine if it's a gift donation
-    final isGift = donation.message?.contains('هدية') == true || 
-                   donation.message?.contains('إهداء') == true ||
-                   donation.message?.contains('gift') == true;
-    
-    // Get donation status info
-    final statusInfo = _getDonationStatusInfo(donation);
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12, left: 16, right: 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(
-          color: categoryColor.withOpacity(0.08),
-          width: 1,
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Header Row - Title and Status
-            Row(
-              children: [
-                // Category Icon
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: categoryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    categoryIcon,
-                    size: 18,
-                    color: categoryColor,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Title and Category
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        donation.message ?? 'تبرع خيري',
-                        style: AppTextStyles.titleMedium.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      if (donation.programName != null || donation.campaignName != null)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            donation.programName ?? donation.campaignName ?? '',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                // Status Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusInfo['color'].withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        statusInfo['icon'],
-                        size: 12,
-                        color: statusInfo['color'],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        statusInfo['text'],
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: statusInfo['color'],
-                          fontWeight: FontWeight.w600,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            const SizedBox(height: 12),
-            // Amount and Details Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Amount Section
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${donation.amount.toStringAsFixed(0)} ريال عماني',
-                      style: AppTextStyles.titleLarge.copyWith(
-                        color: AppColors.primary,
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'تفاصيل التبرع',
+                      style: AppTextStyles.headlineSmall.copyWith(
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (donation.paidAmount != null && donation.paidAmount != donation.amount)
-                      Text(
-                        'مدفوع: ${donation.paidAmount!.toStringAsFixed(0)} ريال',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                  ],
-                ),
-                // Right side - Date and Badges
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // Content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Date
+                    // Amount Card
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant,
-                        borderRadius: BorderRadius.circular(6),
+                        gradient: AppColors.modernGradient,
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Text(
-                        _formatDate(donation.date),
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 11,
-                        ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'مبلغ التبرع',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.surface.withOpacity(0.9),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${donation.amount.toStringAsFixed(0)} ريال عماني',
+                            style: AppTextStyles.headlineMedium.copyWith(
+                              color: AppColors.surface,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (donation.paidAmount != null && donation.paidAmount != donation.amount) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'المبلغ المدفوع: ${donation.paidAmount!.toStringAsFixed(0)} ريال',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.surface.withOpacity(0.8),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    // Gift Badge (if applicable)
-                    if (isGift) ...[
-                      const SizedBox(height: 4),
+                    const SizedBox(height: 20),
+                    // Status
+                    _buildDetailRow(
+                      icon: statusInfo['icon'],
+                      iconColor: statusInfo['color'],
+                      label: 'الحالة',
+                      value: statusInfo['text'],
+                      valueColor: statusInfo['color'],
+                    ),
+                    const SizedBox(height: 16),
+                    // Date
+                    _buildDetailRow(
+                      icon: Icons.calendar_today,
+                      iconColor: AppColors.textSecondary,
+                      label: 'تاريخ التبرع',
+                      value: '${donation.date.day}/${donation.date.month}/${donation.date.year}',
+                    ),
+                    const SizedBox(height: 16),
+                    // Category
+                    if (category != 'عام')
+                      _buildDetailRow(
+                        icon: category == 'برنامج' ? Icons.school : Icons.campaign,
+                        iconColor: AppColors.primary,
+                        label: 'النوع',
+                        value: category,
+                      ),
+                    if (category != 'عام') const SizedBox(height: 16),
+                    // Program/Campaign Name
+                    if (donation.programName != null || donation.campaignName != null)
+                      _buildDetailRow(
+                        icon: Icons.info_outline,
+                        iconColor: AppColors.primary,
+                        label: donation.programName != null ? 'البرنامج' : 'الحملة',
+                        value: donation.programName ?? donation.campaignName ?? '',
+                      ),
+                    if (donation.programName != null || donation.campaignName != null) const SizedBox(height: 16),
+                    // Message
+                    if (donation.message != null && donation.message!.isNotEmpty)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.message_outlined,
+                                size: 20,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'الرسالة',
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceVariant.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              donation.message!,
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (donation.message != null && donation.message!.isNotEmpty) const SizedBox(height: 16),
+                    // Gift Badge
+                    if (isGift)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.card_giftcard_rounded,
-                              size: 10,
+                              Icons.card_giftcard,
                               color: AppColors.primary,
+                              size: 20,
                             ),
-                            const SizedBox(width: 2),
+                            const SizedBox(width: 8),
                             Text(
-                              'مهداة',
-                              style: AppTextStyles.bodySmall.copyWith(
+                              'تبرع مهدى',
+                              style: AppTextStyles.bodyMedium.copyWith(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w600,
-                                fontSize: 10,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
+                    if (isGift) const SizedBox(height: 16),
+                    // Donor Name
+                    if (donation.donorName != null && !donation.isAnonymous)
+                      _buildDetailRow(
+                        icon: Icons.person_outline,
+                        iconColor: AppColors.textSecondary,
+                        label: 'اسم المتبرع',
+                        value: donation.donorName!,
+                      ),
+                    if (donation.donorName != null && !donation.isAnonymous) const SizedBox(height: 16),
+                    // Anonymous
+                    if (donation.isAnonymous)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.visibility_off,
+                              color: AppColors.textSecondary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'تبرع مجهول',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (donation.isAnonymous) const SizedBox(height: 16),
+                    // Donation ID
+                    _buildDetailRow(
+                      icon: Icons.tag,
+                      iconColor: AppColors.textSecondary,
+                      label: 'رقم التبرع',
+                      value: donation.id,
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
-            // Category Badge (if not general)
-            if (category != 'عام') ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: categoryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+    Color? valueColor,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: iconColor),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
                 ),
-                child: Text(
-                  category,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: categoryColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 10,
-                  ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: valueColor ?? AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
-          ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDonationCard(Donation donation) {
+    // Get donation status info
+    final statusInfo = _getDonationStatusInfo(donation);
+    
+    return InkWell(
+      onTap: () => _showDonationDetails(donation),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.surfaceVariant.withOpacity(0.5),
+            width: 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              // Amount Section - Prominent
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${donation.amount.toStringAsFixed(0)}',
+                      style: AppTextStyles.titleLarge.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    Text(
+                      'ريال',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Main Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title/Message
+                    Text(
+                      donation.message ?? donation.programName ?? donation.campaignName ?? 'تبرع خيري',
+                      style: AppTextStyles.bodyLarge.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    // Date and Status in one line
+                    Row(
+                      children: [
+                        Text(
+                          _formatDate(donation.date),
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.textSecondary.withOpacity(0.5),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          statusInfo['text'],
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: statusInfo['color'],
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Status Icon
+              Icon(
+                statusInfo['icon'],
+                size: 20,
+                color: statusInfo['color'],
+              ),
+            ],
+          ),
         ),
       ),
     );
