@@ -292,17 +292,19 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
             slivers: [
               // App bar مع صورة الحملة
               SliverAppBar(
-                expandedHeight: 300,
+                expandedHeight: 350,
                 floating: false,
                 pinned: true,
-                backgroundColor: AppColors.primary,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                surfaceTintColor: Colors.transparent,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Stack(
                     children: [
                       _buildCampaignImage(),
                       Container(
                         width: double.infinity,
-                        height: 300,
+                        height: 350,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
@@ -312,7 +314,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                         ),
                       ),
                       Positioned(
-                        bottom: 0,
+                        bottom: 16,
                         left: 0,
                         right: 0,
                         child: Container(
@@ -417,42 +419,6 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                                   ),
                                 ],
                               ),
-                              // Completed Badge
-                              if (widget.campaign.isCompleted) ...[
-                                const SizedBox(height: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.success.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: AppColors.success.withOpacity(0.5),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.celebration,
-                                        color: AppColors.success,
-                                        size: 18,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'campaign_completed'.tr(),
-                                        style: AppTextStyles.bodySmall.copyWith(
-                                          color: AppColors.success,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
                             ],
                           ),
                         ),
@@ -852,7 +818,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
       return Image.network(
         imageUrl,
         width: double.infinity,
-        height: 300,
+        height: 350,
         fit: BoxFit.cover,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) {
@@ -861,7 +827,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
           print('CampaignDonationScreen: Loading image from: $imageUrl');
           return Container(
             width: double.infinity,
-            height: 300,
+            height: 350,
             color: Colors.grey[300],
             child: const Center(child: CircularProgressIndicator()),
           );
@@ -870,7 +836,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
           print('CampaignDonationScreen: ERROR loading image from: $imageUrl -> $error');
           return Container(
             width: double.infinity,
-            height: 300,
+            height: 350,
             color: Colors.grey[300],
             child: const Icon(
               Icons.broken_image,
@@ -885,7 +851,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
     // Fallback if no image URL
     return Container(
       width: double.infinity,
-      height: 300,
+      height: 350,
       color: Colors.grey[300],
       child: const Icon(
         Icons.image_not_supported,
