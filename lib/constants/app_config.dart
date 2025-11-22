@@ -4,8 +4,8 @@ class AppConfig {
   // مثال: flutter build apk --dart-define=APP_URL=https://api.example.com
   static const String serverBaseUrl = String.fromEnvironment(
     'APP_URL',
-    /*defaultValue: 'http://localhost:8000',*/
-    defaultValue: 'http://192.168.1.15:8000', // ⚠️ للاختبار المحلي فقط
+    defaultValue: 'http://localhost:8000',
+    /*defaultValue: 'http://192.168.1.15:8000', // ⚠️ للاختبار المحلي فقط*/
   );
 
   static const String apiBaseUrlV1 = '$serverBaseUrl/api/v1';

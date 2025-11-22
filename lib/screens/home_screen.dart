@@ -8,11 +8,13 @@ import '../constants/app_constants.dart';
 import '../widgets/common/campaign_card.dart';
 import '../models/campaign.dart';
 import '../models/app_banner.dart';
-import '../services/student_registration_service.dart';
+import '../models/donation.dart';
+import '../models/student_registration_card.dart';
+import '../services/banner_service.dart';
 import '../services/campaign_service.dart';
 import '../services/donation_service.dart';
-import '../services/banner_service.dart';
-import '../models/donation.dart';
+import '../services/student_registration_card_service.dart';
+import '../services/student_registration_service.dart';
 import '../providers/auth_provider.dart';
 import 'quick_donate_amount_screen.dart';
 import 'gift_donation_screen.dart';
@@ -39,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final DonationService _donationService = DonationService();
   final BannerService _bannerService = BannerService();
   final PageController _bannerPageController = PageController(viewportFraction: 0.92);
+  final StudentRegistrationCardService _registrationCardService = StudentRegistrationCardService();
   List<Campaign> _campaigns = [];
   List<Campaign> _allCampaigns = []; // جميع الحملات الأصلية
   List<Donation> _recentDonations = []; // التبرعات الأخيرة
@@ -56,6 +59,10 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingRecentDonations = false;
   bool _isLoadingBanners = false;
   int _activeHeroIndex = 0;
+  static const String _defaultRegistrationCardImage =
+      'https://images.pexels.com/photos/5905708/pexels-photo-5905708.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1';
+  StudentRegistrationCardData? _registrationCardData;
+  bool _isLoadingRegistrationCard = false;
 
   @override
   void initState() {
@@ -65,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadRecentDonations(); // Load recent donations from API
     _loadBanners();
     _checkApplicationStatus();
+    _loadRegistrationCard();
     
     // Listen to auth changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -86,6 +94,57 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadRecentDonations();
     _loadBanners();
     _checkApplicationStatus();
+    _loadRegistrationCard();
+  }
+
+  String _getRegistrationCardText({
+    required BuildContext context,
+    required String fallbackKey,
+    required String? arabicValue,
+    required String? englishValue,
+  }) {
+    final localeCode = context.locale.languageCode.toLowerCase();
+    final String? localizedValue;
+    if (localeCode == 'ar') {
+      localizedValue = arabicValue ?? englishValue;
+    } else {
+      localizedValue = englishValue ?? arabicValue;
+    }
+
+    if (localizedValue != null && localizedValue.trim().isNotEmpty) {
+      return localizedValue.trim();
+    }
+
+    return fallbackKey.tr();
+  }
+
+  List<Color> _getRegistrationCardOverlayColors(StudentRegistrationCardData? cardData) {
+    final background = cardData?.background;
+    final List<Color> overlayColors = [];
+
+    if (background != null) {
+      if (background.colorFrom != null) {
+        overlayColors.add(background.colorFrom!.withOpacity(0.7));
+      }
+      if (background.colorTo != null) {
+        overlayColors.add(background.colorTo!.withOpacity(0.65));
+      }
+      if (overlayColors.isEmpty && background.colorFrom != null) {
+        overlayColors.add(background.colorFrom!.withOpacity(0.65));
+      }
+    }
+
+    if (overlayColors.isEmpty) {
+      overlayColors.addAll([
+        AppColors.primary.withOpacity(0.7),
+        AppColors.secondary.withOpacity(0.6),
+      ]);
+    } else if (overlayColors.length == 1) {
+      overlayColors.add(overlayColors.first);
+    }
+
+    overlayColors.add(Colors.black.withOpacity(0.35));
+    return overlayColors;
   }
 
   Future<void> _loadCategories() async {
@@ -286,6 +345,28 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       setState(() {
         _isLoadingBanners = false;
+      });
+    }
+  }
+
+  Future<void> _loadRegistrationCard() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingRegistrationCard = true;
+    });
+
+    try {
+      final cardData = await _registrationCardService.fetchCardData();
+      if (!mounted) return;
+      setState(() {
+        _registrationCardData = cardData;
+      });
+    } catch (error) {
+      print('HomeScreen: Error loading registration card data: $error');
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingRegistrationCard = false;
       });
     }
   }
@@ -1571,6 +1652,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStudentRegistrationCard() {
+    final cardData = _registrationCardData;
+    final String imageUrl = (cardData?.backgroundImageUrl?.isNotEmpty ?? false)
+        ? cardData!.backgroundImageUrl!
+        : _defaultRegistrationCardImage;
+
+    final String headlineText = _getRegistrationCardText(
+      context: context,
+      fallbackKey: 'start_journey',
+      arabicValue: cardData?.headlineAr,
+      englishValue: cardData?.headlineEn,
+    );
+
+    final String subtitleText = _getRegistrationCardText(
+      context: context,
+      fallbackKey: 'enable_education',
+      arabicValue: cardData?.subtitleAr,
+      englishValue: cardData?.subtitleEn,
+    );
+
+    final List<Color> overlayColors = _getRegistrationCardOverlayColors(cardData);
+
     return Container(
       height: 200,
       decoration: BoxDecoration(
@@ -1590,11 +1692,9 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               width: double.infinity,
               height: double.infinity,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: NetworkImage(
-                    'https://images.pexels.com/photos/5905708/pexels-photo-5905708.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                  ),
+                  image: NetworkImage(imageUrl),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -1606,11 +1706,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primary.withOpacity(0.7),
-                    AppColors.secondary.withOpacity(0.6),
-                    Colors.black.withOpacity(0.4),
-                  ],
+                  colors: overlayColors,
                 ),
               ),
             ),
@@ -1622,7 +1718,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
-                    'start_journey'.tr(),
+                    headlineText,
                     style: AppTextStyles.titleLarge.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -1639,7 +1735,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'enable_education'.tr(),
+                    subtitleText,
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: Colors.white.withOpacity(0.95),
                       shadows: [
