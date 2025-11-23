@@ -59,6 +59,9 @@ dependencies:
   
   # HTML rendering
   flutter_html: ^3.0.0-beta.2
+  
+  # Icons
+  font_awesome_flutter: ^9.2.0
 
 dev_dependencies:
   flutter_test:

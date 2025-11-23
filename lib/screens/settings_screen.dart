@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
@@ -657,10 +659,12 @@ class _SettingsScreenState extends State<SettingsScreen>
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         'follow_us'.tr(),
@@ -679,35 +683,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                     ],
                   ),
                 ),
-                Row(
-                  children: [
-                    _buildSimpleSocialButton(
-                      icon: Icons.camera_alt_outlined,
-                      color: const Color(0xFFE4405F),
-                      onTap: () {
-                        // TODO: Add Instagram link
-                        HapticFeedback.lightImpact();
-                      },
-                    ),
-                    const SizedBox(width: 12),
-                    _buildSimpleSocialButton(
-                      icon: Icons.play_circle_outline,
-                      color: const Color(0xFFFF0000),
-                      onTap: () {
-                        // TODO: Add YouTube link
-                        HapticFeedback.lightImpact();
-                      },
-                    ),
-                    const SizedBox(width: 12),
-                    _buildSimpleSocialButton(
-                      icon: Icons.flutter_dash,
-                      color: const Color(0xFF1DA1F2),
-                      onTap: () {
-                        // TODO: Add Twitter link
-                        HapticFeedback.lightImpact();
-                      },
-                    ),
-                  ],
+                _buildSimpleSocialButton(
+                  icon: FontAwesomeIcons.instagram,
+                  isFontAwesome: true,
+                  color: const Color(0xFFE4405F),
+                  onTap: () {
+                    _openInstagramLink();
+                  },
                 ),
               ],
             ),
@@ -718,15 +700,17 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Widget _buildSimpleSocialButton({
-    required IconData icon,
+    required dynamic icon,
     required Color color,
     required VoidCallback onTap,
+    bool isFontAwesome = false,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 44,
         height: 44,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
@@ -735,11 +719,17 @@ class _SettingsScreenState extends State<SettingsScreen>
             width: 1,
           ),
         ),
-        child: Icon(
-          icon,
-          color: color,
-          size: 22,
-        ),
+        child: isFontAwesome
+            ? FaIcon(
+                icon,
+                color: color,
+                size: 22,
+              )
+            : Icon(
+                icon,
+                color: color,
+                size: 22,
+              ),
       ),
     );
   }
@@ -1233,5 +1223,54 @@ class _SettingsScreenState extends State<SettingsScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _openInstagramLink() async {
+    const instagramUrl = 'https://www.instagram.com/welfarefund4stu?igsh=M212OGhhejB5azFs';
+    
+    try {
+      HapticFeedback.lightImpact();
+      
+      if (await canLaunchUrlString(instagramUrl)) {
+        await launchUrlString(
+          instagramUrl,
+          mode: LaunchMode.externalApplication,
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'cannot_open_link'.tr(),
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.surface,
+              ),
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'error_opening_link'.tr(),
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.surface,
+            ),
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      );
+    }
   }
 }
