@@ -38,7 +38,6 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
   @override
   void initState() {
     super.initState();
-    _customAmountController.text = _selectedAmount.toString();
     _loadInitialData();
   }
 
@@ -141,7 +140,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
     setState(() {
       _selectedAmount = amount;
       _isCustomAmount = false;
-      _customAmountController.text = amount.toString();
+      _customAmountController.clear();
     });
   }
 
@@ -416,67 +415,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Section
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppConstants.largePadding),
-              decoration: BoxDecoration(
-                gradient: AppColors.modernGradient,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.2),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(
-                      Icons.favorite,
-                      color: AppColors.surface,
-                      size: 32,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'choose_donation_amount'.tr(),
-                    style: AppTextStyles.headlineMedium.copyWith(
-                      color: AppColors.surface,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'every_riyal_helps'.tr(),
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.surface.withOpacity(0.9),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: AppConstants.extraLargePadding),
-
             // Campaign Section
-            Text(
-              'campaign'.tr(),
-              style: AppTextStyles.headlineSmall.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: AppConstants.defaultPadding),
             _buildSelectedCampaignSection(),
 
             const SizedBox(height: AppConstants.extraLargePadding),
@@ -608,7 +547,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                   ),
                   border: InputBorder.none,
                   contentPadding:
-                      const EdgeInsets.all(AppConstants.largePadding),
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
             ),
@@ -619,7 +558,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
             if (_selectedAmount > 0) ...[
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(AppConstants.largePadding),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -641,7 +580,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
                       '${_selectedAmount.toStringAsFixed(0)} ${'riyal'.tr()}',
                       style: AppTextStyles.displaySmall.copyWith(
@@ -654,67 +593,10 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
               ),
               const SizedBox(height: AppConstants.extraLargePadding),
             ],
-            // Note about automatic allocation
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.primary.withOpacity(0.15),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Icon(
-                      Icons.info_outline,
-                      color: AppColors.primary,
-                      size: 16,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'important_note'.tr(),
-                          style: AppTextStyles.titleSmall.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'donation_redirect_note'.tr(),
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                            height: 1.3,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: AppConstants.extraLargePadding),
 
             // Continue Button
             SizedBox(
               width: double.infinity,
-              height: 56,
               child: ElevatedButton(
                 onPressed: (_selectedAmount > 0 &&
                         _selectedCampaign != null &&
@@ -729,6 +611,8 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                       : AppColors.textSecondary.withOpacity(0.3),
                   foregroundColor: AppColors.surface,
                   elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  minimumSize: const Size(double.infinity, 56),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -1043,8 +927,6 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
                         height: 1.4,
                         fontSize: 12,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 12),
                     
