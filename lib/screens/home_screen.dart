@@ -1479,6 +1479,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: TextField(
                         controller: _searchController,
                         style: AppTextStyles.bodyMedium,
+                        onChanged: (value) {
+                          _applyFilters();
+                        },
                         decoration: InputDecoration(
                           hintText: 'search'.tr(),
                           hintStyle: AppTextStyles.bodyMedium.copyWith(
@@ -1498,19 +1501,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               size: 16,
                             ),
                           ),
-                          suffixIcon: Container(
-                            margin: const EdgeInsets.all(6),
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: AppColors.secondary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.filter_list,
-                              color: AppColors.secondary,
-                              size: 16,
-                            ),
-                          ),
+                          suffixIcon: _buildSearchSuffixIcon(),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppConstants.smallPadding,
@@ -2309,14 +2300,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _applyCategoryFilter(String categoryKey) {
     final normalizedKey = categoryKey.isEmpty ? 'all' : categoryKey;
+    _selectedCategoryId = normalizedKey;
+    _applyFilters();
+  }
+
+  void _applyFilters() {
     List<Campaign> filteredCampaigns;
 
-    if (normalizedKey == 'all') {
+    // Apply category filter
+    if (_selectedCategoryId == 'all') {
       filteredCampaigns = List.from(_allCampaigns);
     } else {
-      final matcherValues = _categoryMatchers[normalizedKey] ??
+      final matcherValues = _categoryMatchers[_selectedCategoryId] ??
           _categoryMatchers.values.firstWhere(
-            (names) => names.contains(normalizedKey.toLowerCase()),
+            (names) => names.contains(_selectedCategoryId.toLowerCase()),
             orElse: () => <String>[],
           );
 
@@ -2330,12 +2327,50 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
+    // Apply search filter
+    final searchQuery = _searchController.text.trim().toLowerCase();
+    if (searchQuery.isNotEmpty) {
+      filteredCampaigns = filteredCampaigns.where((campaign) {
+        final title = campaign.title.toLowerCase();
+        final titleAr = campaign.titleAr.toLowerCase();
+        final titleEn = campaign.titleEn.toLowerCase();
+        final description = campaign.description.toLowerCase();
+        final descriptionAr = campaign.descriptionAr.toLowerCase();
+        final descriptionEn = campaign.descriptionEn.toLowerCase();
+        final category = campaign.category.toLowerCase();
+        
+        return title.contains(searchQuery) ||
+            titleAr.contains(searchQuery) ||
+            titleEn.contains(searchQuery) ||
+            description.contains(searchQuery) ||
+            descriptionAr.contains(searchQuery) ||
+            descriptionEn.contains(searchQuery) ||
+            category.contains(searchQuery);
+      }).toList();
+    }
+
     if (!mounted) return;
 
     setState(() {
-      _selectedCategoryId = normalizedKey;
       _campaigns = filteredCampaigns;
     });
+  }
+
+  Widget? _buildSearchSuffixIcon() {
+    if (_searchController.text.isNotEmpty) {
+      return IconButton(
+        icon: const Icon(
+          Icons.clear,
+          color: AppColors.textSecondary,
+          size: 16,
+        ),
+        onPressed: () {
+          _searchController.clear();
+          _applyFilters();
+        },
+      );
+    }
+    return null;
   }
 
   Widget _buildFilterChip({required String id, required String label}) {
