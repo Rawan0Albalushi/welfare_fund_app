@@ -128,8 +128,15 @@ class _AllCampaignsScreenState extends State<AllCampaignsScreen> {
                 child: SizedBox(height: AppConstants.largePadding),
               ),
               SliverToBoxAdapter(
-                child: _buildSearchAndFilterCard(),
+                child: _buildModernSearchField(),
               ),
+              if (_categories.length > 1)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: _buildModernCategoryFilters(),
+                  ),
+                ),
               SliverToBoxAdapter(
                 child: SizedBox(height: AppConstants.largePadding),
               ),
@@ -361,17 +368,28 @@ class _AllCampaignsScreenState extends State<AllCampaignsScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 14),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: LinearProgressIndicator(
-                        value: campaign.progressPercentage.clamp(0.0, 1.0),
-                        minHeight: 8,
-                        backgroundColor:
-                            AppColors.textSecondary.withOpacity(0.12),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          campaign.isCompleted
-                              ? AppColors.success
-                              : AppColors.secondary,
+                    Container(
+                      width: double.infinity,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: AppColors.textSecondary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: campaign.progressPercentage.clamp(0.0, 1.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: campaign.isCompleted
+                                ? LinearGradient(
+                                    colors: [
+                                      AppColors.success,
+                                      AppColors.success.withOpacity(0.8),
+                                    ],
+                                  )
+                                : AppColors.modernGradient,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
@@ -569,142 +587,158 @@ class _AllCampaignsScreenState extends State<AllCampaignsScreen> {
     );
   }
 
-  Widget _buildSearchAndFilterCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.textPrimary.withOpacity(0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 12),
-          ),
-        ],
-        border: Border.all(
-          color: AppColors.textPrimary.withOpacity(0.05),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSearchField(),
-          if (_categories.length > 1) ...[
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Icon(
-                  Icons.tune_rounded,
-                  size: 18,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'filter_by_category'.tr(),
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildCategoryFilters(),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchField() {
+  Widget _buildModernSearchField() {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.textSecondary.withOpacity(0.08),
-        ),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: TextField(
         controller: _searchController,
-        onChanged: (value) => _onSearchChanged(value),
+        onChanged: (value) {
+          setState(() {});
+          _onSearchChanged(value);
+        },
+        style: AppTextStyles.bodyMedium.copyWith(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w500,
+        ),
         decoration: InputDecoration(
           hintText: 'search_campaigns_placeholder'.tr(),
           hintStyle: AppTextStyles.bodyMedium.copyWith(
             color: AppColors.textSecondary.withOpacity(0.6),
+            fontWeight: FontWeight.w400,
           ),
-          prefixIcon: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.search,
-                color: AppColors.primary,
-              ),
+          filled: true,
+          fillColor: AppColors.surface,
+          prefixIcon: Container(
+            margin: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: AppColors.modernGradient,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.search_rounded,
+              color: AppColors.surface,
+              size: 20,
             ),
           ),
           suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(
-                    Icons.clear_rounded,
-                    color: AppColors.textSecondary,
+              ? Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        _searchController.clear();
+                        setState(() {});
+                        _onSearchChanged('');
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.textSecondary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          color: AppColors.textSecondary,
+                          size: 20,
+                        ),
+                      ),
+                    ),
                   ),
-                  onPressed: () {
-                    _searchController.clear();
-                    _onSearchChanged('');
-                  },
                 )
               : null,
-          border: InputBorder.none,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide(
+              color: AppColors.primary.withOpacity(0.2),
+              width: 1.5,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide(
+              color: AppColors.primary.withOpacity(0.2),
+              width: 1.5,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide(
+              color: AppColors.primary,
+              width: 2,
+            ),
+          ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 18,
-            vertical: 16,
+            vertical: 14,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildCategoryFilters() {
+  Widget _buildModernCategoryFilters() {
     return SizedBox(
-      height: 44,
+      height: 46,
       child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final category = _categories[index];
-          final bool isSelected = _selectedCategory == category;
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: _categories.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final category = _categories[index];
+              final bool isSelected = _selectedCategory == category;
 
-          return ChoiceChip(
-            label: Text(
-              category == _allCategoryKey ? 'all'.tr() : category,
-              style: AppTextStyles.bodySmall.copyWith(
-                color: isSelected ? AppColors.surface : AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            selected: isSelected,
-            onSelected: (_) => _onCategorySelected(category),
-            selectedColor: AppColors.primary,
-            backgroundColor: AppColors.background,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.textSecondary.withOpacity(0.2),
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          );
-        },
-      ),
-    );
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _onCategorySelected(category),
+                    borderRadius: BorderRadius.circular(20),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: isSelected
+                            ? AppColors.modernGradient
+                            : null,
+                        color: isSelected
+                            ? null
+                            : AppColors.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.transparent
+                              : AppColors.textSecondary.withOpacity(0.15),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Text(
+                        category == _allCategoryKey ? 'all'.tr() : category,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: isSelected
+                              ? AppColors.surface
+                              : AppColors.textSecondary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
   }
 
   void _onSearchChanged(String query) {
