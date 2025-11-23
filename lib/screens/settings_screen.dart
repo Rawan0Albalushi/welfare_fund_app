@@ -10,6 +10,7 @@ import '../widgets/language_switcher.dart';
 import 'login_screen.dart' as login;
 import 'edit_profile_screen.dart';
 import 'my_donations_screen.dart';
+import 'settings/setting_page_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -476,7 +477,14 @@ class _SettingsScreenState extends State<SettingsScreen>
             title: 'security_privacy'.tr(),
             subtitle: 'security_privacy'.tr(),
             onTap: () {
-              // Navigate to security settings
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingPageScreen(
+                    pageKey: 'security',
+                  ),
+                ),
+              );
             },
           ),
           _buildDivider(),
@@ -520,7 +528,14 @@ class _SettingsScreenState extends State<SettingsScreen>
             title: 'contact_us'.tr(),
             subtitle: 'message_support_team'.tr(),
             onTap: () {
-              // Navigate to contact us
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingPageScreen(
+                    pageKey: 'contact_us',
+                  ),
+                ),
+              );
             },
           ),
           _buildDivider(),
@@ -529,7 +544,14 @@ class _SettingsScreenState extends State<SettingsScreen>
             title: 'about_app'.tr(),
             subtitle: 'app_info_version'.tr(),
             onTap: () {
-              // Navigate to about
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingPageScreen(
+                    pageKey: 'about_app',
+                  ),
+                ),
+              );
             },
           ),
           _buildDivider(),
@@ -538,7 +560,14 @@ class _SettingsScreenState extends State<SettingsScreen>
             title: 'privacy_policy'.tr(),
             subtitle: 'read_privacy_policy'.tr(),
             onTap: () {
-              // Navigate to privacy policy
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingPageScreen(
+                    pageKey: 'privacy_policy',
+                  ),
+                ),
+              );
             },
           ),
         ],

@@ -15,6 +15,7 @@ import 'services/auth_service.dart';
 import 'services/api_client.dart';
 import 'providers/auth_provider.dart';
 import 'providers/payment_provider.dart';
+import 'providers/setting_page_provider.dart';
 
 
 void main() async {
@@ -104,6 +105,7 @@ class StudentWelfareFundApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => PaymentProvider()),
+        ChangeNotifierProvider(create: (_) => SettingPageProvider()),
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, child) {

@@ -458,5 +458,7 @@
   "previous_support": "الدعم السابق",
   "registration_not_found": "لم يتم العثور على التسجيل",
   "error_loading_image": "خطأ في تحميل الصورة",
-  "image_not_available": "الصورة غير متاحة"
+  "image_not_available": "الصورة غير متاحة",
+  "no_content": "لا يوجد محتوى",
+  "content_not_available": "المحتوى غير متاح حالياً"
 }

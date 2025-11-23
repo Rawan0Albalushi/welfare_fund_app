@@ -56,6 +56,9 @@ dependencies:
   
   # Image Caching
   cached_network_image: ^3.3.0
+  
+  # HTML rendering
+  flutter_html: ^3.0.0-beta.2
 
 dev_dependencies:
   flutter_test:

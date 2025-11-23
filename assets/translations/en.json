@@ -494,5 +494,7 @@
   "previous_support": "Previous Support",
   "registration_not_found": "Registration not found",
   "error_loading_image": "Error loading image",
-  "image_not_available": "Image not available"
+  "image_not_available": "Image not available",
+  "no_content": "No Content",
+  "content_not_available": "Content is not available at the moment"
 }
