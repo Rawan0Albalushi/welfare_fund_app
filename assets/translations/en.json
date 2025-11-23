@@ -481,5 +481,18 @@
   "campaign_goal_achieved": "Goal Achieved",
   "campaign_completed_no_donations": "This campaign is completed and cannot accept new donations",
   "campaign_completed_message": "This campaign has been successfully completed! Thank you to all donors who contributed to achieving the goal.",
-  "goal_achieved": "Goal Achieved"
+  "goal_achieved": "Goal Achieved",
+  
+  "application_details": "Application Details",
+  "registration_date": "Registration Date",
+  "marital_status": "Marital Status",
+  "additional_information": "Additional Information",
+  "address": "Address",
+  "emergency_contact": "Emergency Contact",
+  "emergency_phone": "Emergency Phone",
+  "financial_need": "Financial Need",
+  "previous_support": "Previous Support",
+  "registration_not_found": "Registration not found",
+  "error_loading_image": "Error loading image",
+  "image_not_available": "Image not available"
 }

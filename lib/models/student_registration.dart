@@ -110,7 +110,7 @@ class StudentRegistration {
       emergencyPhone: json['emergency_phone'],
       financialNeed: json['financial_need'],
       previousSupport: json['previous_support'],
-      idCardImagePath: json['id_card_image_path'],
+      idCardImagePath: json['id_card_image_path'] ?? json['id_card_image'] ?? json['id_card_image_url'],
       transcriptPath: json['transcript_path'],
       incomeCertificatePath: json['income_certificate_path'],
       familyCardPath: json['family_card_path'],

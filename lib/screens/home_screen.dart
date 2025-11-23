@@ -74,6 +74,15 @@ class _HomeScreenState extends State<HomeScreen> {
     _checkApplicationStatus();
     _loadRegistrationCard();
     
+    // Check application status again after a delay to ensure fresh data
+    // This is important after returning from registration screen
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        print('HomeScreen: Re-checking application status after delay...');
+        _checkApplicationStatus();
+      }
+    });
+    
     // Listen to auth changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -751,65 +760,152 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _checkApplicationStatus() async {
+    print('═══════════════════════════════════════════════════════════');
+    print('🔄 [_checkApplicationStatus] Called');
+    print('═══════════════════════════════════════════════════════════');
+    
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final isAuthenticated = authProvider.isAuthenticated;
-      print('HomeScreen: Checking application status, isAuthenticated: $isAuthenticated');
+      print('🔐 [_checkApplicationStatus] isAuthenticated: $isAuthenticated');
+      
       if (!isAuthenticated) {
-        print('HomeScreen: User not authenticated, clearing application data');
+        print('❌ [_checkApplicationStatus] User not authenticated, clearing application data');
         setState(() {
           _applicationData = null;
           _isCheckingApplication = false;
         });
+        print('📝 [_checkApplicationStatus] _applicationData set to null');
         return;
       }
       
+      print('⏳ [_checkApplicationStatus] Setting _isCheckingApplication = true');
       setState(() {
         _isCheckingApplication = true;
       });
       
-      print('HomeScreen: Fetching latest application data from server...');
+      print('🌐 [_checkApplicationStatus] Fetching latest application data from server...');
+      print('📍 [_checkApplicationStatus] Using endpoint: GET /api/v1/students/registration/my-registration');
+      
+      // Add a small delay to ensure backend has processed the registration
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      print('📡 [_checkApplicationStatus] Calling getCurrentUserRegistration()...');
       final application = await _studentService.getCurrentUserRegistration();
       
       // Debug: Print application data
-      print('=== Application Status Debug ===');
-      print('Application data: $application');
+      print('═══════════════════════════════════════════════════════════');
+      print('📦 [_checkApplicationStatus] API Response Received');
+      print('═══════════════════════════════════════════════════════════');
+      print('📋 [_checkApplicationStatus] Raw application data: $application');
+      print('📋 [_checkApplicationStatus] Application is null: ${application == null}');
+      
+      Map<String, dynamic>? normalizedApplication;
+      
       if (application != null) {
-        print('Status: ${application['status']}');
-        print('Status type: ${application['status'].runtimeType}');
-        print('Rejection reason: ${application['rejection_reason']}');
-        print('Rejection reason type: ${application['rejection_reason']?.runtimeType}');
+        print('✅ [_checkApplicationStatus] Application data is NOT null');
+        // Create a copy to avoid modifying the original
+        normalizedApplication = Map<String, dynamic>.from(application);
         
-        // Validate status format
-        String status = application['status']?.toString().toLowerCase() ?? 'pending';
-        print('Normalized status: $status');
+        print('📊 [_checkApplicationStatus] Application keys: ${normalizedApplication.keys.toList()}');
+        print('📊 [_checkApplicationStatus] Status before normalization: ${normalizedApplication['status']}');
+        print('📊 [_checkApplicationStatus] Status type: ${normalizedApplication['status'].runtimeType}');
+        print('📊 [_checkApplicationStatus] Full application data:');
+        normalizedApplication.forEach((key, value) {
+          print('   - $key: $value (${value.runtimeType})');
+        });
         
-        // Ensure status is one of the expected values
-        switch (status) {
+        // Normalize status format - ensure it matches expected values
+        String rawStatus = normalizedApplication['status']?.toString() ?? 'pending';
+        String normalizedStatus = rawStatus.toLowerCase().trim();
+        
+        print('🔄 [_checkApplicationStatus] Normalizing status...');
+        print('   - Raw status: "$rawStatus"');
+        print('   - Normalized status: "$normalizedStatus"');
+        
+        // Normalize status values to match backend response
+        String finalStatus;
+        switch (normalizedStatus) {
           case 'pending':
+          case 'في الانتظار':
+            finalStatus = 'pending';
+            print('   ✅ Matched: pending');
+            break;
           case 'under_review':
+          case 'قيد المراجعة':
+          case 'قيد الدراسة':
+            finalStatus = 'under_review';
+            print('   ✅ Matched: under_review');
+            break;
           case 'approved':
+          case 'accepted':
+          case 'مقبول':
+          case 'تم القبول':
+            finalStatus = 'approved';
+            print('   ✅ Matched: approved');
+            break;
           case 'rejected':
-            print('Status is valid: $status');
+          case 'مرفوض':
+          case 'تم الرفض':
+            finalStatus = 'rejected';
+            print('   ✅ Matched: rejected');
             break;
           default:
-            print('Warning: Unknown status: $status, defaulting to pending');
-            application['status'] = 'pending';
+            print('   ⚠️ Warning: Unknown status: "$rawStatus", defaulting to pending');
+            finalStatus = 'pending';
         }
+        
+        // Ensure the normalized status is set in the application data
+        normalizedApplication['status'] = finalStatus;
+        
+        print('✅ [_checkApplicationStatus] Normalized status: "$finalStatus"');
+        print('✅ [_checkApplicationStatus] Status after normalization: ${normalizedApplication['status']}');
+      } else {
+        print('❌ [_checkApplicationStatus] Application data is NULL');
+        print('❌ [_checkApplicationStatus] This means user may not have registered yet OR API returned null');
       }
-      print('===============================');
+      
+      print('═══════════════════════════════════════════════════════════');
+      
+      if (!mounted) {
+        print('⚠️ [_checkApplicationStatus] Widget not mounted, skipping setState');
+        return;
+      }
+      
+      print('🔄 [_checkApplicationStatus] Updating state...');
+      print('   - Old _applicationData: $_applicationData');
+      print('   - New _applicationData: $normalizedApplication');
       
       setState(() {
-        _applicationData = application;
+        _applicationData = normalizedApplication;
         _isCheckingApplication = false;
       });
       
-      print('HomeScreen: Application status updated successfully');
+      print('✅ [_checkApplicationStatus] State updated successfully');
+      print('📋 [_checkApplicationStatus] Current _applicationData: $_applicationData');
+      if (normalizedApplication != null) {
+        print('📋 [_checkApplicationStatus] Status in _applicationData: ${normalizedApplication['status']}');
+      } else {
+        print('📋 [_checkApplicationStatus] _applicationData is NULL (will show "سجل الآن")');
+      }
+      print('═══════════════════════════════════════════════════════════');
     } catch (error) {
-      print('Error checking application status: $error');
+      print('❌ [_checkApplicationStatus] Error occurred: $error');
+      print('❌ [_checkApplicationStatus] Error type: ${error.runtimeType}');
+      print('❌ [_checkApplicationStatus] This error will be caught - _applicationData will remain null');
+      print('═══════════════════════════════════════════════════════════');
+      
+      // Even if there's an error, set _isCheckingApplication to false
+      if (!mounted) return;
       setState(() {
         _isCheckingApplication = false;
+        // Keep _applicationData as null on error
+        // This means button will show "سجل الآن"
       });
+      
+      // Log the full error for debugging
+      print('Full error details:');
+      print(error.toString());
     }
   }
 
@@ -841,7 +937,11 @@ class _HomeScreenState extends State<HomeScreen> {
               isReadOnly: false, // Allow editing for re-submission
             ),
           ),
-        );
+        ).then((_) {
+          // Refresh application status when returning from registration screen
+          print('HomeScreen: Returned from registration screen, refreshing application status...');
+          _checkApplicationStatus();
+        });
       } else {
         // No registration, navigate to registration screen
         Navigator.push(
@@ -849,7 +949,11 @@ class _HomeScreenState extends State<HomeScreen> {
           MaterialPageRoute(
             builder: (context) => const StudentRegistrationScreen(),
           ),
-        );
+        ).then((_) {
+          // Refresh application status when returning from registration screen
+          print('HomeScreen: Returned from registration screen, refreshing application status...');
+          _checkApplicationStatus();
+        });
       }
     } catch (error) {
       print('Error checking authentication: $error');
@@ -1143,49 +1247,72 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _getButtonText() {
+    print('═══════════════════════════════════════════════════════════');
+    print('🔘 [_getButtonText] Called');
+    print('═══════════════════════════════════════════════════════════');
+    print('📋 [_getButtonText] _isCheckingApplication: $_isCheckingApplication');
+    print('📋 [_getButtonText] _applicationData: $_applicationData');
+    print('📋 [_getButtonText] _applicationData is null: ${_applicationData == null}');
+    
     if (_isCheckingApplication) {
+      print('⏳ [_getButtonText] Currently checking, returning: checking');
+      print('═══════════════════════════════════════════════════════════');
       return 'checking'.tr();
     }
     
     if (_applicationData == null) {
+      print('❌ [_getButtonText] _applicationData is NULL, returning: register_now');
+      print('❌ [_getButtonText] This is why you see "سجل الآن" button');
+      print('═══════════════════════════════════════════════════════════');
       return 'register_now'.tr();
     }
     
+    print('✅ [_getButtonText] _applicationData is NOT null');
+    print('📋 [_getButtonText] _applicationData keys: ${_applicationData!.keys.toList()}');
+    
     final status = _applicationData!['status'] ?? 'unknown';
     
-    // Debug: Print button text decision
-    print('=== Button Text Debug ===');
-    print('Status: $status');
-    print('Status lowercase: ${status.toLowerCase()}');
+    print('📊 [_getButtonText] Status from _applicationData: "$status"');
+    print('📊 [_getButtonText] Status type: ${status.runtimeType}');
     
     // Normalize status
-    String normalizedStatus = status.toLowerCase();
+    String normalizedStatus = status.toString().toLowerCase().trim();
+    print('📊 [_getButtonText] Normalized status: "$normalizedStatus"');
     
+    String buttonText;
     switch (normalizedStatus) {
       case 'pending':
       case 'في الانتظار':
-        print('Button text: pending');
-        return 'pending'.tr();
+        buttonText = 'pending'.tr();
+        print('✅ [_getButtonText] Matched: pending');
+        break;
       case 'under_review':
       case 'قيد المراجعة':
       case 'قيد الدراسة':
-        print('Button text: under_review');
-        return 'under_review'.tr();
+        buttonText = 'under_review'.tr();
+        print('✅ [_getButtonText] Matched: under_review');
+        break;
       case 'approved':
       case 'accepted':
       case 'مقبول':
       case 'تم القبول':
-        print('Button text: approved');
-        return 'approved'.tr();
+        buttonText = 'approved'.tr();
+        print('✅ [_getButtonText] Matched: approved');
+        break;
       case 'rejected':
       case 'مرفوض':
       case 'تم الرفض':
-        print('Button text: resubmit_application');
-        return 'resubmit_application'.tr();
+        buttonText = 'resubmit_application'.tr();
+        print('✅ [_getButtonText] Matched: rejected');
+        break;
       default:
-        print('Button text: view_application (default)');
-        return 'view_application'.tr();
+        buttonText = 'view_application'.tr();
+        print('⚠️ [_getButtonText] Unknown status, using default: view_application');
     }
+    
+    print('✅ [_getButtonText] Returning button text: "$buttonText"');
+    print('═══════════════════════════════════════════════════════════');
+    return buttonText;
   }
 
   Color _getButtonColor() {
@@ -1652,6 +1779,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStudentRegistrationCard() {
+    print('═══════════════════════════════════════════════════════════');
+    print('🎨 [_buildStudentRegistrationCard] Building registration card');
+    print('═══════════════════════════════════════════════════════════');
+    print('📋 [_buildStudentRegistrationCard] _applicationData: $_applicationData');
+    print('📋 [_buildStudentRegistrationCard] _applicationData is null: ${_applicationData == null}');
+    print('📋 [_buildStudentRegistrationCard] _isCheckingApplication: $_isCheckingApplication');
+    
+    if (_applicationData != null) {
+      print('📋 [_buildStudentRegistrationCard] _applicationData keys: ${_applicationData!.keys.toList()}');
+      print('📋 [_buildStudentRegistrationCard] _applicationData status: ${_applicationData!['status']}');
+    }
+    
     final cardData = _registrationCardData;
     final String imageUrl = (cardData?.backgroundImageUrl?.isNotEmpty ?? false)
         ? cardData!.backgroundImageUrl!
@@ -1781,20 +1920,30 @@ class _HomeScreenState extends State<HomeScreen> {
                                   size: 20,
                                 ),
                                 const SizedBox(width: 8),
-                                Text(
-                                  _getButtonText(),
-                                  style: AppTextStyles.buttonMedium.copyWith(
-                                    color: _getButtonColor(),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black.withOpacity(0.08),
-                                        blurRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                 Builder(
+                                   builder: (context) {
+                                     final buttonText = _getButtonText();
+                                     final buttonColor = _getButtonColor();
+                                     print('🎨 [_buildStudentRegistrationCard] Rendering button');
+                                     print('   - Button text: "$buttonText"');
+                                     print('   - Button color: $buttonColor');
+                                     print('   - _applicationData: $_applicationData');
+                                     return Text(
+                                       buttonText,
+                                       style: AppTextStyles.buttonMedium.copyWith(
+                                         color: buttonColor,
+                                         fontWeight: FontWeight.w600,
+                                         fontSize: 15,
+                                         shadows: [
+                                           Shadow(
+                                             color: Colors.black.withOpacity(0.08),
+                                             blurRadius: 2,
+                                           ),
+                                         ],
+                                       ),
+                                     );
+                                   },
+                                 ),
                               ],
                             ),
                           ),

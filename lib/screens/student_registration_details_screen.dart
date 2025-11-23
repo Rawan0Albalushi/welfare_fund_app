@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
+import '../constants/app_config.dart';
 import '../models/student_registration.dart';
 import '../services/student_registration_service.dart';
 
@@ -58,23 +60,23 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
     switch (normalizedStatus) {
       case 'pending':
       case 'في الانتظار':
-        return 'في الانتظار';
+        return 'pending'.tr();
       case 'under_review':
       case 'قيد المراجعة':
       case 'قيد الدراسة':
-        return 'قيد المراجعة';
+        return 'under_review'.tr();
       case 'approved':
       case 'accepted':
       case 'مقبول':
       case 'تم القبول':
-        return 'تم القبول';
+        return 'application_approved'.tr();
       case 'rejected':
       case 'مرفوض':
       case 'تم الرفض':
-        return 'تم الرفض';
+        return 'application_rejected'.tr();
       default:
-        print('Warning: Unknown status in _getStatusText: $status, defaulting to في الانتظار');
-        return 'في الانتظار';
+        print('Warning: Unknown status in _getStatusText: $status, defaulting to pending');
+        return 'pending'.tr();
     }
   }
 
@@ -135,9 +137,10 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
-          'تفاصيل التسجيل',
+          'application_details'.tr(),
           style: AppTextStyles.headlineSmall.copyWith(
             color: AppColors.surface,
             fontWeight: FontWeight.w600,
@@ -165,25 +168,30 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'حدث خطأ',
+                        'error'.tr(),
                         style: AppTextStyles.headlineSmall.copyWith(
                           color: AppColors.error,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        _error!,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Text(
+                          _error!,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       ElevatedButton(
                         onPressed: _loadRegistrationDetails,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: AppColors.surface,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -205,7 +213,7 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'لم يتم العثور على التسجيل',
+                            'registration_not_found'.tr(),
                             style: AppTextStyles.headlineSmall.copyWith(
                               color: AppColors.textSecondary,
                             ),
@@ -214,7 +222,7 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
                       ),
                     )
                   : SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -224,9 +232,9 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               color: _getStatusColor(_registration!.status).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: _getStatusColor(_registration!.status).withOpacity(0.3),
+                                color: _getStatusColor(_registration!.status).withOpacity(0.2),
                               ),
                             ),
                             child: Column(
@@ -234,7 +242,7 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
                                 Icon(
                                   _getStatusIcon(_registration!.status),
                                   color: _getStatusColor(_registration!.status),
-                                  size: 48,
+                                  size: 40,
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
@@ -247,7 +255,7 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
                                 if (_registration!.createdAt != null) ...[
                                   const SizedBox(height: 8),
                                   Text(
-                                    'تاريخ التسجيل: ${_registration!.createdAt!.toString().split(' ')[0]}',
+                                    '${'registration_date'.tr()}: ${_registration!.createdAt!.toString().split(' ')[0]}',
                                     style: AppTextStyles.bodyMedium.copyWith(
                                       color: AppColors.textSecondary,
                                     ),
@@ -260,120 +268,153 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
 
                           // Personal Information
                           _buildSection(
-                            title: 'المعلومات الشخصية',
-                            icon: Icons.person,
+                            title: 'personal_information'.tr(),
+                            icon: Icons.person_outline,
+                            color: AppColors.primary,
                             children: [
-                              _buildInfoRow('الاسم الكامل', _registration!.fullName),
-                              _buildInfoRow('رقم الطالب', _registration!.studentId),
-                              _buildInfoRow('رقم الهاتف', _registration!.phone),
+                              _buildInfoRow('full_name'.tr(), _registration!.fullName),
+                              _buildInfoRow('student_id'.tr(), _registration!.studentId),
+                              _buildInfoRow('phone_number'.tr(), _registration!.phone),
                               if (_registration!.email != null)
-                                _buildInfoRow('البريد الإلكتروني', _registration!.email!),
-                              _buildInfoRow('الجنس', _registration!.gender),
-                              _buildInfoRow('الحالة الاجتماعية', _registration!.maritalStatus),
+                                _buildInfoRow('email'.tr(), _registration!.email!),
+                              _buildInfoRow('gender'.tr(), _registration!.gender),
+                              _buildInfoRow('marital_status'.tr(), _registration!.maritalStatus),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
 
                           // Academic Information
                           _buildSection(
-                            title: 'المعلومات الأكاديمية',
-                            icon: Icons.school,
+                            title: 'academic_information'.tr(),
+                            icon: Icons.school_outlined,
+                            color: AppColors.secondary,
                             children: [
-                              _buildInfoRow('الجامعة', _registration!.university),
-                              _buildInfoRow('الكلية', _registration!.college),
-                              _buildInfoRow('التخصص', _registration!.major),
-                              _buildInfoRow('السنة الدراسية', _registration!.academicYear),
-                              _buildInfoRow('المعدل التراكمي', _registration!.gpa.toString()),
+                              _buildInfoRow('university'.tr(), _registration!.university),
+                              _buildInfoRow('college'.tr(), _registration!.college),
+                              _buildInfoRow('major'.tr(), _registration!.major),
+                              _buildInfoRow('academic_year'.tr(), _registration!.academicYear),
+                              _buildInfoRow('gpa'.tr(), _registration!.gpa.toString()),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
 
                           // Financial Information
                           _buildSection(
-                            title: 'المعلومات المالية',
-                            icon: Icons.account_balance_wallet,
+                            title: 'financial_information'.tr(),
+                            icon: Icons.account_balance_wallet_outlined,
+                            color: AppColors.accent,
                             children: [
-                              _buildInfoRow('مستوى الدخل', _registration!.incomeLevel),
-                              _buildInfoRow('حجم الأسرة', _registration!.familySize),
+                              _buildInfoRow('income_level'.tr(), _registration!.incomeLevel),
+                              _buildInfoRow('family_size'.tr(), _registration!.familySize),
                               if (_registration!.financialNeed != null)
-                                _buildInfoRow('الاحتياج المالي', _registration!.financialNeed!),
+                                _buildInfoRow('financial_need'.tr(), _registration!.financialNeed!),
                               if (_registration!.previousSupport != null)
-                                _buildInfoRow('الدعم السابق', _registration!.previousSupport!),
+                                _buildInfoRow('previous_support'.tr(), _registration!.previousSupport!),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
+
+                          // ID Card Image Section
+                          if (_registration!.idCardImagePath != null) ...[
+                            _buildSection(
+                              title: 'id_photo'.tr(),
+                              icon: Icons.credit_card,
+                              color: AppColors.info,
+                              children: [
+                                _buildIdCardImage(_registration!.idCardImagePath!),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                          ],
 
                           // Additional Information
                           if (_registration!.address != null ||
                               _registration!.emergencyContact != null ||
-                              _registration!.emergencyPhone != null)
+                              _registration!.emergencyPhone != null) ...[
                             _buildSection(
-                              title: 'معلومات إضافية',
-                              icon: Icons.info,
+                              title: 'additional_information'.tr(),
+                              icon: Icons.info_outlined,
+                              color: AppColors.info,
                               children: [
                                 if (_registration!.address != null)
-                                  _buildInfoRow('العنوان', _registration!.address!),
+                                  _buildInfoRow('address'.tr(), _registration!.address!),
                                 if (_registration!.emergencyContact != null)
-                                  _buildInfoRow('جهة اتصال للطوارئ', _registration!.emergencyContact!),
+                                  _buildInfoRow('emergency_contact'.tr(), _registration!.emergencyContact!),
                                 if (_registration!.emergencyPhone != null)
-                                  _buildInfoRow('هاتف الطوارئ', _registration!.emergencyPhone!),
+                                  _buildInfoRow('emergency_phone'.tr(), _registration!.emergencyPhone!),
                               ],
                             ),
+                            const SizedBox(height: 20),
+                          ],
 
+                          const SizedBox(height: 16),
+
+                          // Action Buttons (only show if status allows editing)
+                          if (_registration!.status == 'pending' || _registration!.status == 'rejected') ...[
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      // TODO: Implement edit functionality
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('feature_coming_soon'.tr()),
+                                          backgroundColor: AppColors.info,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.edit, size: 18),
+                                    label: Text('edit'.tr()),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.info,
+                                      foregroundColor: AppColors.surface,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      // TODO: Implement documents upload
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('feature_coming_soon'.tr()),
+                                          backgroundColor: AppColors.info,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.upload_file, size: 18),
+                                    label: Text('upload_documents'.tr()),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: AppColors.surface,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                          
                           const SizedBox(height: 24),
-
-                          // Action Buttons
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    // TODO: Implement edit functionality
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('feature_coming_soon'.tr()),
-                                        backgroundColor: AppColors.info,
-                                      ),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.edit),
-                                  label: Text('edit'.tr()),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.info,
-                                    foregroundColor: AppColors.surface,
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    // TODO: Implement documents upload
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('feature_coming_soon'.tr()),
-                                        backgroundColor: AppColors.info,
-                                      ),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.upload_file),
-                                  label: Text('upload_documents'.tr()),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    foregroundColor: AppColors.surface,
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
                       ),
                     ),
@@ -384,33 +425,31 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
     required String title,
     required IconData icon,
     required List<Widget> children,
+    Color? color,
   }) {
+    final sectionColor = color ?? AppColors.primary;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.textTertiary.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: AppColors.primary, size: 24),
+              Icon(icon, color: sectionColor, size: 20),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: AppTextStyles.titleMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTextStyles.titleLarge.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: sectionColor,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -424,32 +463,176 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
+          Text(
+            label,
+            style: AppTextStyles.labelMedium.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 3,
-            child: Text(
-              value,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: AppTextStyles.bodyLarge.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  String _getImageUrl(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) {
+      return '';
+    }
+    
+    // If it's already a full URL, return it
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    
+    // Otherwise, construct the full URL
+    String baseUrl = AppConfig.serverBaseUrl;
+    String cleanPath = imagePath.startsWith('/') ? imagePath : '/$imagePath';
+    return '$baseUrl$cleanPath';
+  }
+
+  Widget _buildIdCardImage(String imagePath) {
+    final imageUrl = _getImageUrl(imagePath);
+    
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(
+        maxHeight: 300,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.textTertiary.withOpacity(0.2),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: imageUrl.isNotEmpty
+            ? GestureDetector(
+                onTap: () {
+                  // Show full screen image
+                  showDialog(
+                    context: context,
+                    builder: (context) => Dialog(
+                      backgroundColor: Colors.transparent,
+                      insetPadding: const EdgeInsets.all(16),
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: CachedNetworkImage(
+                              imageUrl: imageUrl,
+                              fit: BoxFit.contain,
+                              placeholder: (context, url) => Container(
+                                color: Colors.black87,
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                color: Colors.black87,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.error_outline,
+                                    color: AppColors.error,
+                                    size: 48,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.black54,
+                                shape: const CircleBorder(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.contain,
+                  placeholder: (context, url) => Container(
+                    height: 200,
+                    color: AppColors.surfaceVariant,
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      ),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    height: 200,
+                    color: AppColors.surfaceVariant,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: AppColors.error,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'error_loading_image'.tr(),
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            : Container(
+                height: 200,
+                color: AppColors.surfaceVariant,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.image_not_supported,
+                      color: AppColors.textSecondary,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'image_not_available'.tr(),
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
       ),
     );
   }

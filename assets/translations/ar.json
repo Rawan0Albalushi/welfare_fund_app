@@ -367,6 +367,8 @@
   "please_choose_income_level": "يرجى اختيار مستوى الدخل",
   "please_choose_family_size": "يرجى اختيار حجم الأسرة",
   "please_choose_program": "يرجى اختيار البرنامج",
+  "income_level": "مستوى الدخل",
+  "family_size": "حجم الأسرة",
   "required_documents": "المستندات المطلوبة",
   "id_photo": "صورة الهوية الشخصية",
   "please_upload_documents": "يرجى رفع صورة الهوية الشخصية",
@@ -443,5 +445,18 @@
   "campaign_goal_achieved": "تم تحقيق الهدف",
   "campaign_completed_no_donations": "هذه الحملة مكتملة ولا يمكن قبول تبرعات جديدة",
   "campaign_completed_message": "تم إكمال هذه الحملة بنجاح! شكراً لجميع المتبرعين الذين ساهموا في تحقيق الهدف.",
-  "goal_achieved": "تم تحقيق الهدف"
+  "goal_achieved": "تم تحقيق الهدف",
+  
+  "application_details": "تفاصيل التسجيل",
+  "registration_date": "تاريخ التسجيل",
+  "marital_status": "الحالة الاجتماعية",
+  "additional_information": "معلومات إضافية",
+  "address": "العنوان",
+  "emergency_contact": "جهة اتصال للطوارئ",
+  "emergency_phone": "هاتف الطوارئ",
+  "financial_need": "الاحتياج المالي",
+  "previous_support": "الدعم السابق",
+  "registration_not_found": "لم يتم العثور على التسجيل",
+  "error_loading_image": "خطأ في تحميل الصورة",
+  "image_not_available": "الصورة غير متاحة"
 }

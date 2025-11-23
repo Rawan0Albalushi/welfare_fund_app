@@ -1212,13 +1212,21 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.of(context).pop(); // Close success dialog
+                    
+                    // Add delay to ensure backend has saved the registration
+                    await Future.delayed(const Duration(milliseconds: 800));
+                    
                     // Navigate back to home screen and clear navigation stack
                     Navigator.of(context).pushNamedAndRemoveUntil(
                       AppConstants.homeRoute,
                       (route) => false,
-                    );
+                    ).then((_) {
+                      // Force refresh after navigation completes
+                      // This will be handled by initState, but we add extra delay
+                      print('StudentRegistrationScreen: Navigation to home completed');
+                    });
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
@@ -1375,7 +1383,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
               // Form Content
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(AppConstants.largePadding),
+                  padding: const EdgeInsets.symmetric(horizontal: AppConstants.largePadding, vertical: AppConstants.defaultPadding),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -1384,7 +1392,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                         // Application Status Indicator (if data exists)
                         if (widget.existingData != null) ...[
                           _buildStatusIndicator(),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 32),
                         ],
                         // Personal Information Section
                         _buildSectionHeader(
@@ -1392,24 +1400,30 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                           icon: Icons.person_outline,
                           color: AppColors.primary,
                         ),
-                        const SizedBox(height: 16),
-                        _buildTextField(
-                          controller: _fullNameController,
-                          label: 'full_name'.tr(),
-                          hint: 'please_enter_full_name'.tr(),
-                          icon: Icons.person,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'please_enter_full_name'.tr();
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextField(
+                        const SizedBox(height: 20),
+                        // Personal Information Card
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              _buildTextField(
+                                controller: _fullNameController,
+                                label: 'full_name'.tr(),
+                                hint: 'please_enter_full_name'.tr(),
+                                icon: Icons.person,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'please_enter_full_name'.tr();
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              _buildTextField(
                                 controller: _studentIdController,
                                 label: 'student_id'.tr(),
                                 hint: 'please_enter_student_id'.tr(),
@@ -1422,23 +1436,18 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                   return null;
                                 },
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildDropdownField(
+                              const SizedBox(height: 16),
+                              _buildDropdownField(
                                 label: 'gender'.tr(),
                                 value: _selectedGender,
                                 items: ['male', 'female'],
-                                                                      onChanged: (value) {
-                                        setState(() {
-                                          _selectedGender = value!;
-                                        });
-                                      },
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedGender = value!;
+                                  });
+                                },
                               ),
-                            ),
-                          ],
-                        ),
-                                                      const SizedBox(height: 16),
+                              const SizedBox(height: 16),
                               _buildTextField(
                                 controller: _emailController,
                                 label: 'email'.tr(),
@@ -1471,7 +1480,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                   return null;
                                 },
                               ),
-                        
+                            ],
+                          ),
+                        ),
                         
                         const SizedBox(height: 32),
                         
@@ -1481,24 +1492,30 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                           icon: Icons.school_outlined,
                           color: AppColors.secondary,
                         ),
-                        const SizedBox(height: 16),
-                        _buildTextField(
-                          controller: _universityController,
-                          label: 'university'.tr(),
-                          hint: 'please_enter_university'.tr(),
-                          icon: Icons.account_balance,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'please_enter_university'.tr();
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextField(
+                        const SizedBox(height: 20),
+                        // Academic Information Card
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              _buildTextField(
+                                controller: _universityController,
+                                label: 'university'.tr(),
+                                hint: 'please_enter_university'.tr(),
+                                icon: Icons.account_balance,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'please_enter_university'.tr();
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              _buildTextField(
                                 controller: _collegeController,
                                 label: 'college'.tr(),
                                 hint: 'please_enter_college'.tr(),
@@ -1510,10 +1527,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                   return null;
                                 },
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildTextField(
+                              const SizedBox(height: 16),
+                              _buildTextField(
                                 controller: _majorController,
                                 label: 'major'.tr(),
                                 hint: 'please_enter_major'.tr(),
@@ -1525,52 +1540,54 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                                   return null;
                                 },
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _buildProgramDropdown(),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildDropdownField(
-                                label: 'academic_year'.tr(),
-                                value: _academicYearController.text.isEmpty 
-                                    ? null 
-                                    : _academicYearController.text,
-                                items: _academicYears,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _academicYearController.text = value ?? '';
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildTextField(
-                                controller: _gpaController,
-                                label: 'gpa'.tr(),
-                                hint: 'please_enter_gpa'.tr(),
-                                icon: Icons.grade,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                              const SizedBox(height: 16),
+                              _buildProgramDropdown(),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    flex: 1,
+                                    child: _buildDropdownField(
+                                      label: 'academic_year'.tr(),
+                                      value: _academicYearController.text.isEmpty 
+                                          ? null 
+                                          : _academicYearController.text,
+                                      items: _academicYears,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _academicYearController.text = value ?? '';
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    flex: 1,
+                                    child: _buildTextField(
+                                      controller: _gpaController,
+                                      label: 'gpa'.tr(),
+                                      hint: 'please_enter_gpa'.tr(),
+                                      icon: Icons.grade,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                                      ],
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'please_enter_gpa'.tr();
+                                        }
+                                        final gpa = double.tryParse(value);
+                                        if (gpa == null || gpa < 0 || gpa > 5) {
+                                          return 'please_enter_valid_gpa'.tr();
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
                                 ],
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'please_enter_gpa'.tr();
-                                  }
-                                  final gpa = double.tryParse(value);
-                                  if (gpa == null || gpa < 0 || gpa > 5) {
-                                    return 'please_enter_valid_gpa'.tr();
-                                  }
-                                  return null;
-                                },
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         
                         const SizedBox(height: 32),
@@ -1581,46 +1598,56 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                           icon: Icons.account_balance_wallet_outlined,
                           color: AppColors.accent,
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildDropdownField(
-                                label: 'income_level'.tr(),
-                                value: _selectedIncomeLevel,
-                                items: _incomeLevels,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedIncomeLevel = value!;
-                                  });
-                                },
+                        const SizedBox(height: 20),
+                        // Financial Information Card
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 1,
+                                child: _buildDropdownField(
+                                  label: 'income_level'.tr(),
+                                  value: _selectedIncomeLevel,
+                                  items: _incomeLevels,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedIncomeLevel = value!;
+                                    });
+                                  },
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildDropdownField(
-                                label: 'family_size'.tr(),
-                                value: _selectedFamilySize,
-                                items: _familySizes,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedFamilySize = value!;
-                                  });
-                                },
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 1,
+                                child: _buildDropdownField(
+                                  label: 'family_size'.tr(),
+                                  value: _selectedFamilySize,
+                                  items: _familySizes,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedFamilySize = value!;
+                                    });
+                                  },
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         
                         const SizedBox(height: 32),
                         
-                                                // Required Documents Section
+                        // Required Documents Section
                         _buildSectionHeader(
                           title: 'required_documents'.tr(),
                           icon: Icons.upload_file_outlined,
                           color: AppColors.info,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
                         _buildDocumentUploadTile(
                           title: 'id_photo'.tr(),
                           subtitle: 'please_upload_documents'.tr(),
@@ -1635,50 +1662,40 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                         const SizedBox(height: 40),
                         
                         // Submit Button
-                        Container(
+                        SizedBox(
                           width: double.infinity,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppColors.primary, AppColors.primaryLight],
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withOpacity(0.3),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: _isReadOnly ? null : _submitRegistration,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _isReadOnly ? AppColors.surfaceVariant : AppColors.primary,
+                              foregroundColor: AppColors.surface,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            ],
-                                                  ),
-                        child: ElevatedButton(
-                          onPressed: _isReadOnly ? null : _submitRegistration,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            foregroundColor: AppColors.surface,
-                            elevation: 0,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
                             ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                _isReadOnly ? Icons.lock_outline : (_isRejected ? Icons.refresh : Icons.send),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _isReadOnly ? 'cannot_edit'.tr() : (_isRejected ? 'resubmit_application'.tr() : 'register'.tr()),
-                                style: AppTextStyles.buttonLarge.copyWith(
-                                  fontWeight: FontWeight.bold,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  _isReadOnly 
+                                      ? Icons.lock_outline 
+                                      : (_isRejected ? Icons.refresh : Icons.send),
+                                  size: 20,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 8),
+                                Text(
+                                  _isReadOnly 
+                                      ? 'cannot_edit'.tr() 
+                                      : (_isRejected ? 'resubmit_application'.tr() : 'register'.tr()),
+                                  style: AppTextStyles.buttonLarge.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
                         ),
                         
                         const SizedBox(height: 24),
@@ -1689,10 +1706,6 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                           decoration: BoxDecoration(
                             color: AppColors.info.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.info.withOpacity(0.3),
-                              width: 1,
-                            ),
                           ),
                           child: Row(
                             children: [
@@ -1732,29 +1745,28 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     required IconData icon,
     required Color color,
   }) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(
             icon,
             color: color,
             size: 20,
           ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          title,
-          style: AppTextStyles.titleLarge.copyWith(
-            fontWeight: FontWeight.bold,
-            color: color,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              style: AppTextStyles.titleLarge.copyWith(
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1772,16 +1784,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   }) {
     final bool effectiveReadOnly = readOnlyOverride ?? _isReadOnly;
     final bool effectiveEnabled = enabledOverride ?? !effectiveReadOnly;
-    return Container(
-      decoration: BoxDecoration(
-        color: effectiveReadOnly ? AppColors.surfaceVariant : AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: effectiveReadOnly ? AppColors.textTertiary.withOpacity(0.3) : AppColors.textTertiary.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: TextFormField(
+    return TextFormField(
         controller: controller,
         keyboardType: keyboardType,
         maxLines: maxLines,
@@ -1800,9 +1803,35 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
             color: effectiveReadOnly ? AppColors.textSecondary : AppColors.primary,
             size: 20,
           ),
-          border: InputBorder.none,
+          filled: true,
+          fillColor: effectiveReadOnly ? AppColors.surfaceVariant : AppColors.surface,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: AppColors.textTertiary.withOpacity(0.2),
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: AppColors.textTertiary.withOpacity(0.2),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: AppColors.primary,
+              width: 2,
+            ),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: AppColors.error,
+            ),
+          ),
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
+            horizontal: 12,
             vertical: 16,
           ),
           labelStyle: AppTextStyles.labelMedium.copyWith(
@@ -1811,14 +1840,15 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
           hintStyle: AppTextStyles.bodyMedium.copyWith(
             color: AppColors.textTertiary,
           ),
-          suffixIcon: effectiveReadOnly ? const Icon(
-            Icons.lock_outline,
-            color: AppColors.textSecondary,
-            size: 16,
-          ) : null,
+          suffixIcon: effectiveReadOnly 
+              ? const Icon(
+                  Icons.lock_outline,
+                  color: AppColors.textSecondary,
+                  size: 18,
+                )
+              : null,
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildDropdownField({
@@ -1827,26 +1857,18 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     required List<String> items,
     required void Function(String?) onChanged,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _isReadOnly ? AppColors.surfaceVariant : AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: _isReadOnly ? AppColors.textTertiary.withOpacity(0.3) : AppColors.textTertiary.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: _isReadOnly 
+    return _isReadOnly 
         ? Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.textTertiary.withOpacity(0.2),
+              ),
+            ),
             child: Row(
               children: [
-                Icon(
-                  Icons.person_outline,
-                  color: AppColors.textSecondary,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1870,7 +1892,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                 const Icon(
                   Icons.lock_outline,
                   color: AppColors.textSecondary,
-                  size: 16,
+                  size: 18,
                 ),
               ],
             ),
@@ -1889,9 +1911,29 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
             onChanged: onChanged,
             decoration: InputDecoration(
               labelText: label,
-              border: InputBorder.none,
+              filled: true,
+              fillColor: AppColors.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: AppColors.textTertiary.withOpacity(0.2),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: AppColors.textTertiary.withOpacity(0.2),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 2,
+                ),
+              ),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
+                horizontal: 12,
                 vertical: 16,
               ),
               labelStyle: AppTextStyles.labelMedium.copyWith(
@@ -1902,9 +1944,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
             icon: const Icon(
               Icons.keyboard_arrow_down,
               color: AppColors.primary,
+              size: 20,
             ),
-          ),
-    );
+            isExpanded: true,
+          );
   }
 
   Widget _buildProgramDropdown() {
@@ -2276,97 +2319,83 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.textTertiary.withOpacity(0.2),
-          width: 1,
         ),
       ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.info.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            color: AppColors.info,
-            size: 20,
-          ),
-        ),
-        title: Text(
-          title,
-          style: AppTextStyles.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        trailing: _selectedImagePath != null
-            ? Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppColors.success,
-                    width: 2,
-                  ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _isReadOnly ? null : onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: AppColors.info,
+                  size: 22,
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                                  child: _selectedImageBytes != null
-                    ? Image.memory(
-                        _selectedImageBytes!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.success.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Icon(
-                              Icons.check_circle,
-                              color: AppColors.success,
-                              size: 20,
-                            ),
-                          );
-                        },
-                      )
-                    : Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Icon(
-                          Icons.check_circle,
-                          color: AppColors.success,
-                          size: 20,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              )
-            : Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.upload,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-              ),
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 8,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+                _selectedImagePath != null
+                    ? Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.success,
+                            width: 2,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: _selectedImageBytes != null
+                              ? Image.memory(
+                                  _selectedImageBytes!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(
+                                      Icons.check_circle,
+                                      color: AppColors.success,
+                                      size: 20,
+                                    );
+                                  },
+                                )
+                              : const Icon(
+                                  Icons.check_circle,
+                                  color: AppColors.success,
+                                  size: 20,
+                                ),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.upload,
+                        color: AppColors.primary,
+                        size: 22,
+                      ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -207,55 +207,87 @@ class StudentRegistrationService {
   }
 
   // Get current user's student registration
+  // Endpoint: GET /api/v1/students/registration/my-registration
   Future<Map<String, dynamic>?> getCurrentUserRegistration() async {
+    print('═══════════════════════════════════════════════════════════');
+    print('🌐 [getCurrentUserRegistration] Starting...');
+    print('═══════════════════════════════════════════════════════════');
+    
     try {
-      _log('Calling API: /students/registration/my-registration');
+      _log('Calling API: GET /api/v1/students/registration/my-registration');
+      print('📡 [getCurrentUserRegistration] Making API call to: /students/registration/my-registration');
+      
       final response = await _apiClient.dio.get('/students/registration/my-registration');
+      
+      print('✅ [getCurrentUserRegistration] API call successful');
+      print('📊 [getCurrentUserRegistration] Response status code: ${response.statusCode}');
+      print('📊 [getCurrentUserRegistration] Response data type: ${response.data.runtimeType}');
+      print('📊 [getCurrentUserRegistration] Raw response data: ${response.data}');
+      
       _log('API Response: ${response.data}');
       
       // Extract data from response
       _log('Response data type: ${response.data.runtimeType}');
-      _log('Response data keys: ${response.data.keys}');
+      if (response.data is Map) {
+        _log('Response data keys: ${(response.data as Map).keys}');
+        print('📋 [getCurrentUserRegistration] Response keys: ${(response.data as Map).keys.toList()}');
+      }
       
       Map<String, dynamic> registrationData;
       
-      if (response.data['data'] != null) {
+      if (response.data is Map && response.data['data'] != null) {
         _log('Returning data from response.data[\'data\']');
+        print('✅ [getCurrentUserRegistration] Found data in response.data[\'data\']');
         registrationData = Map<String, dynamic>.from(response.data['data']);
+        print('📦 [getCurrentUserRegistration] Extracted data: $registrationData');
       } else {
         _log('Returning full response.data');
+        print('✅ [getCurrentUserRegistration] Using full response.data');
         registrationData = Map<String, dynamic>.from(response.data);
+        print('📦 [getCurrentUserRegistration] Full data: $registrationData');
       }
+      
+      print('📋 [getCurrentUserRegistration] Processing registration data...');
+      print('📋 [getCurrentUserRegistration] Registration data keys: ${registrationData.keys.toList()}');
       
       // Ensure status is properly formatted
       if (registrationData.containsKey('status')) {
         String status = registrationData['status']?.toString().toLowerCase() ?? 'pending';
+        print('📊 [getCurrentUserRegistration] Original status: "${registrationData['status']}"');
+        print('📊 [getCurrentUserRegistration] Normalized status: "$status"');
+        
         // Normalize status values
         switch (status) {
           case 'pending':
           case 'في الانتظار':
             registrationData['status'] = 'pending';
+            print('   ✅ Status normalized to: pending');
             break;
           case 'under_review':
           case 'قيد المراجعة':
           case 'قيد الدراسة':
             registrationData['status'] = 'under_review';
+            print('   ✅ Status normalized to: under_review');
             break;
           case 'approved':
           case 'accepted':
           case 'مقبول':
           case 'تم القبول':
             registrationData['status'] = 'approved';
+            print('   ✅ Status normalized to: approved');
             break;
           case 'rejected':
           case 'مرفوض':
           case 'تم الرفض':
             registrationData['status'] = 'rejected';
+            print('   ✅ Status normalized to: rejected');
             break;
           default:
+            print('   ⚠️ Unknown status, defaulting to: pending');
             registrationData['status'] = 'pending';
         }
       } else {
+        print('   ⚠️ Status key not found, setting default: pending');
         registrationData['status'] = 'pending';
       }
       
@@ -275,16 +307,55 @@ class StudentRegistrationService {
       _log("Final status: ${registrationData['status']}");
       _log("Final rejection reason: ${registrationData['rejection_reason']}");
       
+      print('✅ [getCurrentUserRegistration] Processing complete');
+      print('📋 [getCurrentUserRegistration] Final registration data:');
+      registrationData.forEach((key, value) {
+        print('   - $key: $value');
+      });
+      print('📋 [getCurrentUserRegistration] Final status: ${registrationData['status']}');
+      print('═══════════════════════════════════════════════════════════');
+      
       return registrationData;
     } on DioException catch (e) {
+      print('❌ [getCurrentUserRegistration] DioException occurred');
+      print('❌ [getCurrentUserRegistration] Error message: ${e.message}');
+      print('❌ [getCurrentUserRegistration] Response status: ${e.response?.statusCode}');
+      print('❌ [getCurrentUserRegistration] Response data: ${e.response?.data}');
+      print('❌ [getCurrentUserRegistration] Request path: ${e.requestOptions.path}');
+      
       _log('DioException in getCurrentUserRegistration: ${e.message}');
       _log('Response status: ${e.response?.statusCode}');
       _log('Response data: ${e.response?.data}');
+      
+      // Handle 404 - user may not have registered yet
       if (e.response?.statusCode == 404) {
-        _log('No registration found (404)');
+        print('⚠️ [getCurrentUserRegistration] 404 - No registration found for current user');
+        print('⚠️ [getCurrentUserRegistration] Returning null');
+        _log('No registration found for current user (404)');
+        print('═══════════════════════════════════════════════════════════');
         return null; // No registration found
       }
+      
+      // Handle 500 - Server error (backend issue)
+      if (e.response?.statusCode == 500) {
+        print('⚠️ [getCurrentUserRegistration] 500 - Server error');
+        print('⚠️ [getCurrentUserRegistration] This is a backend issue that needs to be fixed');
+        print('⚠️ [getCurrentUserRegistration] Returning null to prevent app crash');
+        _log('Server error (500) in getCurrentUserRegistration - returning null');
+        print('═══════════════════════════════════════════════════════════');
+        // Return null instead of throwing to prevent app from crashing
+        // The backend needs to be fixed, but we don't want to crash the app
+        return null;
+      }
+      
+      print('❌ [getCurrentUserRegistration] Throwing error...');
+      print('═══════════════════════════════════════════════════════════');
       throw _handleDioError(e);
+    } catch (e) {
+      print('❌ [getCurrentUserRegistration] Unexpected error: $e');
+      print('═══════════════════════════════════════════════════════════');
+      // If it's not a DioException, return null instead of crashing
+      return null;
     }
   }
 
