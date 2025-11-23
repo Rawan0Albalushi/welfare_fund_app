@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:io' show Platform;
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../providers/auth_provider.dart';
+import '../services/api_client.dart';
 import 'home_screen.dart';
 import 'donation_success_screen.dart';
 import 'payment_failed_screen.dart';
@@ -74,7 +78,81 @@ class _SplashScreenState extends State<SplashScreen>
       curve: Curves.elasticOut,
     ));
     
+    _initializeFirebaseMessaging();
     _startAnimations();
+  }
+
+  Future<void> _initializeFirebaseMessaging() async {
+    try {
+      final messaging = FirebaseMessaging.instance;
+
+      // request permission for notifications
+      await messaging.requestPermission();
+
+      // get device token
+      final token = await messaging.getToken();
+      print('📱 FCM TOKEN: $token');
+
+      // listen for notifications while app is open
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print('📩 Foreground notification: ${message.notification?.title}');
+      });
+
+      // Send FCM token to API if user is authenticated
+      if (token != null) {
+        await _sendFcmTokenToApi(token);
+      }
+    } catch (e) {
+      print('Error initializing Firebase Messaging: $e');
+    }
+  }
+
+  Future<void> _sendFcmTokenToApi(String fcmToken) async {
+    try {
+      // Check if user is authenticated
+      final apiClient = ApiClient();
+      final isAuthenticated = await apiClient.isAuthenticated();
+      
+      if (!isAuthenticated) {
+        print('⚠️ User not authenticated, skipping FCM token registration');
+        return;
+      }
+
+      // Get device ID
+      final deviceInfo = DeviceInfoPlugin();
+      String deviceId;
+      String platform;
+      
+      if (kIsWeb) {
+        // Web platform
+        final webInfo = await deviceInfo.webBrowserInfo;
+        deviceId = webInfo.vendor ?? 'unknown';
+        platform = 'web';
+      } else if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        deviceId = androidInfo.id;
+        platform = 'android';
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        deviceId = iosInfo.identifierForVendor ?? 'unknown';
+        platform = 'ios';
+      } else {
+        deviceId = 'unknown';
+        platform = 'unknown';
+      }
+
+      // Send to API
+      await apiClient.sendFcmToken(
+        deviceId: deviceId,
+        fcmToken: fcmToken,
+        platform: platform,
+      );
+      
+      print('✅ FCM token sent to API successfully');
+    } catch (e) {
+      print('❌ Error sending FCM token to API: $e');
+      // Don't throw - FCM token registration failure shouldn't break the app
+    }
   }
 
   Future<void> _startAnimations() async {

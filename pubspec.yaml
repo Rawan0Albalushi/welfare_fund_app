@@ -62,6 +62,13 @@ dependencies:
   
   # Icons
   font_awesome_flutter: ^9.2.0
+  
+  # Firebase
+  firebase_core: ^3.3.0
+  firebase_messaging: ^15.0.0
+  
+  # Device Info
+  device_info_plus: ^10.1.0
 
 dev_dependencies:
   flutter_test:

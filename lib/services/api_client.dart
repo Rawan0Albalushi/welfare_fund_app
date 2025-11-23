@@ -101,4 +101,28 @@ class ApiClient {
     final token = await getAuthToken();
     return token != null;
   }
+
+  // Send FCM token to server
+  Future<void> sendFcmToken({
+    required String deviceId,
+    required String fcmToken,
+    required String platform,
+  }) async {
+    try {
+      await dio.post('/fcm-token', data: {
+        'device_id': deviceId,
+        'fcm_token': fcmToken,
+        'platform': platform,
+      });
+      if (!kReleaseMode) {
+        debugPrint('[API] FCM token sent successfully');
+      }
+    } on DioException catch (e) {
+      if (!kReleaseMode) {
+        debugPrint('[API] Error sending FCM token: ${e.message}');
+      }
+      // Don't throw error - FCM token registration failure shouldn't break the app
+      rethrow;
+    }
+  }
 }

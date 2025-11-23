@@ -16,7 +16,7 @@ class AppConfig {
     // ⚠️ للاختبار المحلي فقط - يجب تعيين APP_URL في الإنتاج!
     // في الإنتاج: flutter build apk --dart-define=APP_URL=https://your-api-domain.com
     // ✅ قيمة آمنة كـ fallback (يجب تغييرها إلى URL الإنتاج الفعلي!)
-    defaultValue: 'http://192.168.100.66:8000',
+    defaultValue: 'http://192.168.1.102:8000',
     //defaultValue: 'https://api.example.com', // ⚠️ يجب تغييرها إلى URL الإنتاج الفعلي
   );
   
