@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/payment_response.dart' hide PaymentStatusResponse;
 import '../models/payment_status_response.dart';
 import '../services/payment_service.dart';
 import '../services/donation_service.dart';
+import '../constants/app_config.dart';
 
 enum PaymentState {
   initial,
@@ -25,14 +28,18 @@ class PaymentProvider extends ChangeNotifier {
   PaymentResponse? _paymentResponse;
   PaymentStatusResponse? _statusResponse;
   String? _currentSessionId;
+  String? _currentDonationId; // ✅ إضافة: حفظ donation_id للتحقق من الحالة
   String? _errorMessage;
   double _currentAmount = 0.0;
+  Timer? _pollingTimer;
+  bool _isPolling = false;
 
   // Getters
   PaymentState get state => _state;
   PaymentResponse? get paymentResponse => _paymentResponse;
   PaymentStatusResponse? get statusResponse => _statusResponse;
   String? get currentSessionId => _currentSessionId;
+  String? get currentDonationId => _currentDonationId; // ✅ إضافة: getter للـ donation_id
   String? get errorMessage => _errorMessage;
   double get currentAmount => _currentAmount;
   bool get isLoading => _state == PaymentState.loading;
@@ -80,21 +87,35 @@ class PaymentProvider extends ChangeNotifier {
         finalItemType = 'campaign';
       }
 
-      print('PaymentProvider: Creating donation with payment for $finalItemType: $finalItemId, amount: $amount');
+      // ⚠️ لا نطبع معلومات حساسة في الإنتاج
+      if (kDebugMode) {
+        debugPrint('PaymentProvider: Initiating donation payment');
+      }
 
       // الحصول على origin للمنصة الويب
+      // ✅ إصلاح: استخدام AppConfig.serverBaseUrl بدلاً من Uri.base.origin
+      // Uri.base.origin يعيد file:/// على الموبايل وليس URL صالح
       String origin;
-      try {
-        origin = Uri.base.origin;
-        // إذا كان origin غير صالح (مثل file:/// على Android)، استخدم fallback
-        if (!origin.startsWith('http://') && !origin.startsWith('https://')) {
-          origin = 'http://localhost:8000'; // Fallback للمنصات المحمولة
+      if (kIsWeb) {
+        // على الويب، يمكن استخدام Uri.base.origin
+        try {
+          origin = Uri.base.origin;
+          if (!origin.startsWith('http://') && !origin.startsWith('https://')) {
+            origin = AppConfig.serverBaseUrl;
+          }
+        } catch (e) {
+          origin = AppConfig.serverBaseUrl;
         }
-      } catch (e) {
-        origin = 'http://localhost:8000'; // Fallback في حالة الخطأ
+      } else {
+        // على الموبايل، استخدم serverBaseUrl مباشرة
+        // ⚠️ تأكد من أن serverBaseUrl في القائمة البيضاء في الباكند
+        origin = AppConfig.serverBaseUrl;
       }
       
-      print('PaymentProvider: Using origin: $origin');
+      // ⚠️ لا نطبع origin في الإنتاج لأسباب أمنية
+      if (kDebugMode) {
+        debugPrint('PaymentProvider: Origin configured');
+      }
       
       final result = await _donationService.createDonationWithPayment(
         itemId: finalItemId,
@@ -110,6 +131,9 @@ class PaymentProvider extends ChangeNotifier {
 
       if (result['ok'] == true && result['payment_url'] != null) {
         _currentSessionId = result['payment_session_id']?.toString();
+        // ✅ إضافة: حفظ donation_id من الاستجابة
+        _currentDonationId = result['donation_id']?.toString() ?? 
+                            result['data']?['donation']?['donation_id']?.toString();
         _currentAmount = amount;
         _state = PaymentState.sessionCreated;
         
@@ -127,10 +151,12 @@ class PaymentProvider extends ChangeNotifier {
         _state = PaymentState.paymentFailed;
         notifyListeners();
       }
-    } catch (e, stackTrace) {
-      // طباعة الخطأ للتصحيح فقط (في بيئة التطوير)
-      print('PaymentProvider: Error in initiateDonationWithPayment');
-      // لا نطبع تفاصيل الخطأ في رسالة المستخدم لأسباب أمنية
+    } catch (e) {
+      // ⚠️ لا نطبع تفاصيل الخطأ في الإنتاج لأسباب أمنية
+      if (kDebugMode) {
+        debugPrint('PaymentProvider: Error in initiateDonationWithPayment');
+      }
+      // رسالة خطأ عامة لا تكشف تفاصيل داخلية
       _errorMessage = 'حدث خطأ في إنشاء التبرع. يرجى المحاولة مرة أخرى';
       _state = PaymentState.paymentFailed;
       notifyListeners();
@@ -179,6 +205,9 @@ class PaymentProvider extends ChangeNotifier {
       if (response.success && response.sessionId != null && response.paymentUrl != null) {
         _paymentResponse = response;
         _currentSessionId = response.sessionId;
+        // ✅ إضافة: استخراج donation_id من raw response
+        _currentDonationId = response.raw?['data']?['donation']?['donation_id']?.toString() ??
+                           response.raw?['donation_id']?.toString();
         _currentAmount = amount;
         _state = PaymentState.sessionCreated;
         notifyListeners();
@@ -188,7 +217,11 @@ class PaymentProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      _errorMessage = 'حدث خطأ غير متوقع: $e';
+      // ⚠️ لا نعرض تفاصيل الخطأ للمستخدم لأسباب أمنية
+      if (kDebugMode) {
+        debugPrint('PaymentProvider: Error in initiatePayment: $e');
+      }
+      _errorMessage = 'حدث خطأ في إنشاء جلسة الدفع. يرجى المحاولة مرة أخرى';
       _state = PaymentState.paymentFailed;
       notifyListeners();
     }
@@ -243,62 +276,158 @@ class PaymentProvider extends ChangeNotifier {
     }
   }
 
+  /// إيقاف الـ polling
+  void _stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+    _isPolling = false;
+  }
+
+  /// بدء الـ polling عند حالة pending
+  void _startPolling() {
+    if (_isPolling || _currentSessionId == null) return;
+    
+    _isPolling = true;
+    _pollingTimer?.cancel();
+    
+    // إعادة الفحص كل 3 ثواني
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      if (_state != PaymentState.paymentInProgress) {
+        _stopPolling();
+        return;
+      }
+      await checkPaymentStatus();
+    });
+  }
+
   /// التحقق من حالة الدفع من الباكند
+  /// ✅ محسّن: يستخدم mobileSuccess إذا كان donationId متوفراً (أكثر دقة)
   Future<void> checkPaymentStatus() async {
-    if (_currentSessionId == null) {
-      _errorMessage = 'لا يوجد معرف جلسة صالح';
+    if (_currentSessionId == null && _currentDonationId == null) {
+      _errorMessage = 'لا يوجد معرف جلسة أو تبرع صالح';
       _state = PaymentState.paymentFailed;
+      _stopPolling();
       notifyListeners();
       return;
     }
 
     try {
-      _state = (_state == PaymentState.paymentInProgress) ? PaymentState.paymentInProgress : PaymentState.loading;
-      notifyListeners();
+      // لا نغير الحالة إذا كانت paymentInProgress (لنعرض حالة الانتظار)
+      if (_state != PaymentState.paymentInProgress) {
+        _state = PaymentState.loading;
+        notifyListeners();
+      }
 
-      final response = await _paymentService.checkPaymentStatus(_currentSessionId!);
+      // ✅ إضافة: استخدام mobileSuccess إذا كان donationId متوفراً (أفضل دقة)
+      PaymentStatusResponse? response;
+      if (_currentDonationId != null) {
+        try {
+          final mobileResult = await _paymentService.mobileSuccess(
+            donationId: _currentDonationId!,
+            sessionId: _currentSessionId,
+          );
+          
+          // تحويل mobileSuccess response إلى PaymentStatusResponse
+          final donationStatus = mobileResult['donation_status']?.toString() ?? 
+                                mobileResult['status']?.toString();
+          final paymentStatusFromThawani = mobileResult['payment_status_from_thawani']?.toString();
+          
+          // إنشاء PaymentStatusResponse من mobileSuccess response
+          response = PaymentStatusResponse(
+            success: mobileResult['status'] == 'success' || donationStatus == 'paid',
+            status: _mapStatusFromString(donationStatus ?? paymentStatusFromThawani ?? 'pending'),
+            sessionId: mobileResult['session_id']?.toString() ?? _currentSessionId,
+            message: mobileResult['message']?.toString(),
+            raw: mobileResult,
+          );
+          
+          if (kDebugMode) {
+            debugPrint('PaymentProvider: Used mobileSuccess endpoint for status check');
+          }
+        } catch (e) {
+          // إذا فشل mobileSuccess، نستخدم checkPaymentStatus كـ fallback
+          if (kDebugMode) {
+            debugPrint('PaymentProvider: mobileSuccess failed, falling back to checkPaymentStatus: $e');
+          }
+        }
+      }
+      
+      // Fallback: استخدام checkPaymentStatus إذا لم يكن donationId متوفراً أو فشل mobileSuccess
+      if (response == null && _currentSessionId != null) {
+        response = await _paymentService.checkPaymentStatus(_currentSessionId!);
+      }
+      
+      if (response == null) {
+        throw Exception('فشل في التحقق من حالة الدفع');
+      }
+      
       _statusResponse = response;
 
-      if (response.success) {
+      // استخدام message من الاستجابة إذا كانت موجودة
+      final String? responseMessage = response.message;
+
+      if (response.success && response.status == PaymentStatus.completed) {
+        // فقط عند completed نعتبره نجاح
+        _state = PaymentState.paymentSuccess;
+        _errorMessage = null;
+        _stopPolling();
+      } else {
         switch (response.status) {
           case PaymentStatus.completed:
+            // لا يجب أن نصل هنا لأن success && completed تم التعامل معه أعلاه
             _state = PaymentState.paymentSuccess;
             _errorMessage = null;
+            _stopPolling();
             break;
           case PaymentStatus.failed:
             _state = PaymentState.paymentFailed;
-            _errorMessage = response.error ?? 'فشل في عملية الدفع';
+            // استخدام message إذا كانت موجودة، وإلا error
+            _errorMessage = responseMessage ?? response.error ?? 'فشل في عملية الدفع';
+            _stopPolling();
             break;
           case PaymentStatus.cancelled:
             _state = PaymentState.paymentCancelled;
-            _errorMessage = 'تم إلغاء عملية الدفع';
+            _errorMessage = responseMessage ?? 'تم إلغاء عملية الدفع';
+            _stopPolling();
             break;
           case PaymentStatus.expired:
             _state = PaymentState.paymentExpired;
-            _errorMessage = 'انتهت صلاحية جلسة الدفع';
+            _errorMessage = responseMessage ?? 'انتهت صلاحية جلسة الدفع';
+            _stopPolling();
             break;
           case PaymentStatus.pending:
+            // حالة الانتظار - نعرض رسالة الانتظار ونبدأ polling
             _state = PaymentState.paymentInProgress;
+            _errorMessage = null; // لا نعرض خطأ عند pending
+            // استخدام message إذا كانت موجودة لعرض حالة الانتظار
+            if (responseMessage != null && responseMessage.isNotEmpty) {
+              // يمكن حفظ الرسالة في متغير منفصل للعرض
+            }
+            _startPolling();
             break;
           default:
             _state = PaymentState.paymentFailed;
-            _errorMessage = 'حالة دفع غير معروفة';
+            _errorMessage = responseMessage ?? response.error ?? 'حالة دفع غير معروفة';
+            _stopPolling();
         }
-      } else {
-        _state = PaymentState.paymentFailed;
-        _errorMessage = response.error ?? 'حدث خطأ في التحقق من حالة الدفع';
       }
 
       notifyListeners();
     } catch (e) {
-      _errorMessage = 'حدث خطأ في التحقق من حالة الدفع: $e';
+      // ⚠️ لا نعرض تفاصيل الخطأ للمستخدم لأسباب أمنية
+      if (kDebugMode) {
+        debugPrint('PaymentProvider: Error checking payment status: $e');
+      }
+      _errorMessage = 'حدث خطأ في التحقق من حالة الدفع. يرجى المحاولة مرة أخرى';
       _state = PaymentState.paymentFailed;
+      _stopPolling();
       notifyListeners();
     }
   }
 
   /// إلغاء الدفع يدويًا (لو أغلق المستخدم الـ WebView مثلاً)
   void cancelPayment() {
+    _stopPolling();
     _state = PaymentState.paymentCancelled;
     _errorMessage = 'تم إلغاء عملية الدفع';
     notifyListeners();
@@ -306,13 +435,43 @@ class PaymentProvider extends ChangeNotifier {
 
   /// إعادة ضبط الحالة
   void resetPaymentState() {
+    _stopPolling();
     _state = PaymentState.initial;
     _paymentResponse = null;
     _statusResponse = null;
     _currentSessionId = null;
+    _currentDonationId = null; // ✅ إضافة: إعادة ضبط donation_id
     _errorMessage = null;
     _currentAmount = 0.0;
     notifyListeners();
+  }
+  
+  /// ✅ إضافة: دالة مساعدة لتحويل حالة الدفع من string إلى PaymentStatus
+  PaymentStatus _mapStatusFromString(String? statusStr) {
+    if (statusStr == null) return PaymentStatus.unknown;
+    
+    final status = statusStr.toLowerCase().trim();
+    switch (status) {
+      case 'paid':
+      case 'success':
+      case 'completed':
+        return PaymentStatus.completed;
+      case 'pending':
+      case 'unpaid':
+      case 'awaiting_payment':
+        return PaymentStatus.pending;
+      case 'cancelled':
+      case 'canceled':
+        return PaymentStatus.cancelled;
+      case 'failed':
+      case 'error':
+      case 'declined':
+        return PaymentStatus.failed;
+      case 'expired':
+        return PaymentStatus.expired;
+      default:
+        return PaymentStatus.unknown;
+    }
   }
 
   /// إعادة المحاولة بنفس المبلغ
@@ -355,12 +514,35 @@ class PaymentProvider extends ChangeNotifier {
 
   /// رسالة نجاح افتراضية
   String get successMessage {
+    // استخدام message من الاستجابة إذا كانت موجودة
+    if (_statusResponse?.message != null && _statusResponse!.message!.isNotEmpty) {
+      return _statusResponse!.message!;
+    }
     if (_statusResponse?.isCompleted == true) {
       return 'تم إتمام عملية الدفع بنجاح! شكراً لك على تبرعك.';
     }
     return 'تم إتمام العملية بنجاح';
+  }
+
+  /// رسالة حالة الانتظار
+  String get pendingMessage {
+    // استخدام message من الاستجابة إذا كانت موجودة
+    if (_statusResponse?.message != null && _statusResponse!.message!.isNotEmpty) {
+      return _statusResponse!.message!;
     }
+    return 'جاري التحقق من حالة الدفع...';
+  }
+
+  /// هل الحالة pending؟
+  bool get isPending => _state == PaymentState.paymentInProgress && 
+                       (_statusResponse?.isPending ?? false);
 
   /// رسالة الخطأ للعرض
   String get displayErrorMessage => _errorMessage ?? 'حدث خطأ غير متوقع';
+
+  @override
+  void dispose() {
+    _stopPolling();
+    super.dispose();
+  }
 }

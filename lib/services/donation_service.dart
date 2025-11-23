@@ -1,5 +1,6 @@
 // donation_service.dart
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../constants/app_config.dart';
@@ -64,9 +65,15 @@ class DonationService {
       // إضافة token فقط إذا كان موجوداً (للمستخدمين المسجلين)
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
-        print('DonationService: Using authenticated request with token');
+        // ⚠️ لا نطبع معلومات المصادقة في الإنتاج
+        if (kDebugMode) {
+          debugPrint('DonationService: Using authenticated request');
+        }
       } else {
-        print('DonationService: Using anonymous donation request');
+        // ⚠️ لا نطبع معلومات الدفع في الإنتاج
+        if (kDebugMode) {
+          debugPrint('DonationService: Using anonymous donation request');
+        }
       }
 
       final idInt = int.tryParse(itemId);
@@ -88,17 +95,17 @@ class DonationService {
       };
 
       final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}/donations/with-payment');
-      // Debug:
-      print('DonationService: Creating donation with payment...');
-      print('DonationService: Request URL: $uri');
-      print('DonationService: Request headers: $headers');
-      print('DonationService: Request payload: $payload');
+      // ⚠️ لا نطبع معلومات حساسة في الإنتاج (URLs, headers, payloads)
+      if (kDebugMode) {
+        debugPrint('DonationService: Creating donation with payment');
+      }
       
       final response = await http.post(uri, headers: headers, body: jsonEncode(payload));
       
-      print('DonationService: Response status: ${response.statusCode}');
-      print('DonationService: Response headers: ${response.headers}');
-      print('DonationService: Response body: ${response.body}');
+      // ⚠️ لا نطبع تفاصيل الاستجابة في الإنتاج
+      if (kDebugMode) {
+        debugPrint('DonationService: Response status: ${response.statusCode}');
+      }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body) as Map<String, dynamic>;
@@ -133,8 +140,11 @@ class DonationService {
         throw Exception('حدث خطأ في إنشاء التبرع. يرجى المحاولة مرة أخرى.');
       }
     } catch (e, stackTrace) {
-      print('DonationService: Error creating donation with payment: $e');
-      print('DonationService: Stack trace: $stackTrace');
+      // ⚠️ لا نطبع تفاصيل الخطأ في الإنتاج لأسباب أمنية
+      if (kDebugMode) {
+        debugPrint('DonationService: Error creating donation with payment');
+        debugPrint('DonationService: Stack trace: $stackTrace');
+      }
       rethrow;
     }
   }
@@ -154,7 +164,10 @@ class DonationService {
   }) async {
     try {
       // للتبرعات المجهولة، لا نحتاج token على الإطلاق
-      print('DonationService: Creating anonymous donation with payment...');
+      // ⚠️ لا نطبع معلومات حساسة في الإنتاج
+      if (kDebugMode) {
+        debugPrint('DonationService: Creating anonymous donation with payment');
+      }
 
       final headers = <String, String>{
         'Content-Type': 'application/json',
@@ -182,11 +195,10 @@ class DonationService {
       final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}/donations/anonymous-with-payment');
       final response = await http.post(uri, headers: headers, body: jsonEncode(payload));
 
-      // Debug:
-      print('DonationService: Anonymous donation request URL: $uri');
-      print('DonationService: Anonymous donation payload: $payload');
-      print('DonationService: Anonymous donation response status: ${response.statusCode}');
-      print('DonationService: Anonymous donation response body: ${response.body}');
+      // ⚠️ لا نطبع معلومات حساسة في الإنتاج (URLs, payloads, response bodies)
+      if (kDebugMode) {
+        debugPrint('DonationService: Anonymous donation response status: ${response.statusCode}');
+      }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body) as Map<String, dynamic>;
@@ -219,7 +231,10 @@ class DonationService {
         throw Exception('حدث خطأ في إنشاء التبرع المجهول. يرجى المحاولة مرة أخرى.');
       }
     } catch (e) {
-      print('DonationService: Error creating anonymous donation: $e');
+      // ⚠️ لا نطبع تفاصيل الخطأ في الإنتاج
+      if (kDebugMode) {
+        debugPrint('DonationService: Error creating anonymous donation');
+      }
       rethrow;
     }
   }
@@ -250,9 +265,15 @@ class DonationService {
       // إضافة token فقط إذا كان موجوداً (للمستخدمين المسجلين)
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
-        print('DonationService: Using authenticated payment request with token');
+        // ⚠️ لا نطبع معلومات المصادقة في الإنتاج
+        if (kDebugMode) {
+          debugPrint('DonationService: Using authenticated payment request');
+        }
       } else {
-        print('DonationService: Using anonymous payment request');
+        // ⚠️ لا نطبع معلومات الدفع في الإنتاج
+        if (kDebugMode) {
+          debugPrint('DonationService: Using anonymous payment request');
+        }
       }
 
       final req = PaymentRequest(
@@ -366,10 +387,14 @@ class DonationService {
         throw Exception('رابط نجاح الدفع غير صالح');
       }
 
-      print('DonationService: Fetching mobile success data from $uri');
+      // ⚠️ لا نطبع URLs أو response bodies في الإنتاج
+      if (kDebugMode) {
+        debugPrint('DonationService: Fetching mobile success data');
+      }
       final response = await http.get(uri, headers: headers);
-      print('DonationService: Mobile success status: ${response.statusCode}');
-      print('DonationService: Mobile success body: ${response.body}');
+      if (kDebugMode) {
+        debugPrint('DonationService: Mobile success status: ${response.statusCode}');
+      }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final decoded = jsonDecode(response.body);
@@ -385,8 +410,11 @@ class DonationService {
         throw Exception('فشل في استرجاع بيانات النجاح (${response.statusCode}).');
       }
     } catch (e, stackTrace) {
-      print('DonationService: Error fetching mobile success data: $e');
-      print('DonationService: Stack trace: $stackTrace');
+      // ⚠️ لا نطبع تفاصيل الخطأ في الإنتاج
+      if (kDebugMode) {
+        debugPrint('DonationService: Error fetching mobile success data');
+        debugPrint('DonationService: Stack trace: $stackTrace');
+      }
       rethrow;
     }
   }
@@ -447,8 +475,10 @@ class DonationService {
       await _apiClient.initialize();
       final token = await _apiClient.getAuthToken();
 
-      print('DonationService: Getting recent donations with limit: $limit');
-      print('DonationService: Token exists: ${token != null}');
+      // ⚠️ لا نطبع معلومات المصادقة في الإنتاج
+      if (kDebugMode) {
+        debugPrint('DonationService: Getting recent donations with limit: $limit');
+      }
 
       final headers = <String, String>{
         'Content-Type': 'application/json',
@@ -463,29 +493,42 @@ class DonationService {
       
       final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}/donations/recent')
           .replace(queryParameters: queryParams);
-      print('DonationService: Fetching recent donations from: $uri');
+      // ⚠️ لا نطبع URLs أو response bodies في الإنتاج
+      if (kDebugMode) {
+        debugPrint('DonationService: Fetching recent donations');
+      }
       
       final response = await http.get(uri, headers: headers);
-      print('DonationService: Response status: ${response.statusCode}');
-      print('DonationService: Response body: ${response.body}');
+      if (kDebugMode) {
+        debugPrint('DonationService: Response status: ${response.statusCode}');
+      }
       
       if (response.statusCode == 200) {
         final donations = _parseDonationsResponse(response.body);
-        print('DonationService: Successfully parsed ${donations.length} recent donations');
+        if (kDebugMode) {
+          debugPrint('DonationService: Successfully parsed ${donations.length} recent donations');
+        }
         return donations;
       } else if (response.statusCode == 401) {
-        print('DonationService: Unauthorized - user not authenticated');
+        if (kDebugMode) {
+          debugPrint('DonationService: Unauthorized - user not authenticated');
+        }
         return []; // Return empty list for unauthenticated users
       } else if (response.statusCode == 404) {
-        print('DonationService: Recent donations endpoint not found');
+        if (kDebugMode) {
+          debugPrint('DonationService: Recent donations endpoint not found');
+        }
         return []; // Return empty list if endpoint doesn't exist
       } else {
-        print('DonationService: Error fetching recent donations: HTTP ${response.statusCode}');
-        print('DonationService: Error response: ${response.body}');
+        if (kDebugMode) {
+          debugPrint('DonationService: Error fetching recent donations: HTTP ${response.statusCode}');
+        }
         return []; // Return empty list on error
       }
     } catch (e) {
-      print('DonationService: Error fetching recent donations: $e');
+      if (kDebugMode) {
+        debugPrint('DonationService: Error fetching recent donations');
+      }
       return []; // Return empty list on error
     }
   }
@@ -504,12 +547,15 @@ class DonationService {
       await _apiClient.initialize();
       final token = await _apiClient.getAuthToken();
 
-      print('DonationService: Token exists: ${token != null}');
-      print('DonationService: API Base: $_apiBase');
-      // لا نطبع التوكن لأسباب أمنية
+      // ⚠️ لا نطبع معلومات المصادقة أو URLs في الإنتاج
+      if (kDebugMode) {
+        debugPrint('DonationService: Checking authentication');
+      }
 
       if (token == null || token.isEmpty) {
-        print('DonationService: No auth token found, returning empty donations list');
+        if (kDebugMode) {
+          debugPrint('DonationService: No auth token found, returning empty donations list');
+        }
         return []; // إرجاع قائمة فارغة بدلاً من خطأ
       }
 
@@ -540,27 +586,38 @@ class DonationService {
           
           final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}$endpoint')
               .replace(queryParameters: queryParams);
-          print('DonationService: Trying endpoint: $uri');
+          // ⚠️ لا نطبع URLs أو response bodies في الإنتاج
+          if (kDebugMode) {
+            debugPrint('DonationService: Trying endpoint: $endpoint');
+          }
           
           final response = await http.get(uri, headers: headers);
-          print('DonationService: Response status: ${response.statusCode}');
-          print('DonationService: Response body: ${response.body}');
+          if (kDebugMode) {
+            debugPrint('DonationService: Response status: ${response.statusCode}');
+          }
           
           if (response.statusCode == 200) {
             final donations = _parseDonationsResponse(response.body);
-            print('DonationService: Successfully parsed ${donations.length} donations from $endpoint');
+            if (kDebugMode) {
+              debugPrint('DonationService: Successfully parsed ${donations.length} donations from $endpoint');
+            }
             return donations;
           } else if (response.statusCode == 404) {
-            print('DonationService: Endpoint $endpoint not found, trying next...');
+            if (kDebugMode) {
+              debugPrint('DonationService: Endpoint $endpoint not found, trying next...');
+            }
             continue;
           } else {
             // For other errors, throw the error
-            print('DonationService: Error with endpoint $endpoint: HTTP ${response.statusCode}');
-            print('DonationService: Error response: ${response.body}');
-            throw Exception('HTTP ${response.statusCode}: ${response.body}');
+            if (kDebugMode) {
+              debugPrint('DonationService: Error with endpoint $endpoint: HTTP ${response.statusCode}');
+            }
+            throw Exception('HTTP ${response.statusCode}');
           }
         } catch (e) {
-          print('DonationService: Error with endpoint $endpoint: $e');
+          if (kDebugMode) {
+            debugPrint('DonationService: Error with endpoint $endpoint');
+          }
           if (endpoint == endpoints.last) {
             rethrow; // If this is the last endpoint, rethrow the error
           }
@@ -570,7 +627,9 @@ class DonationService {
       
       throw Exception('جميع endpoints التبرعات غير متاحة');
     } catch (e) {
-      print('DonationService: Error fetching user donations: $e');
+      if (kDebugMode) {
+        debugPrint('DonationService: Error fetching user donations');
+      }
       rethrow;
     }
   }

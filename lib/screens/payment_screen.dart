@@ -229,6 +229,31 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
         if (resultState == PaymentState.paymentSuccess) {
           if (!mounted) return;
           
+          // التحقق الإضافي من الحالة قبل عرض صفحة النجاح
+          final sessionId = parsedResult.sessionId ?? provider.currentSessionId;
+          if (sessionId != null) {
+            try {
+              await provider.checkPaymentStatus();
+              
+              // إذا كانت الحالة pending، لا نعرض صفحة النجاح
+              if (provider.isPending) {
+                print('PaymentScreen: Payment is still pending, not showing success screen');
+                // نعرض رسالة الانتظار بدلاً من ذلك
+                _toast('جاري التحقق من حالة الدفع...', color: AppColors.info);
+                return;
+              }
+              
+              // إذا لم تكن الحالة success، لا نعرض صفحة النجاح
+              if (!provider.isPaymentSuccessful) {
+                print('PaymentScreen: Payment is not successful, not showing success screen');
+                return;
+              }
+            } catch (e) {
+              print('PaymentScreen: Error verifying payment status: $e');
+              // في حالة الخطأ، نعرض صفحة النجاح بناءً على النتيجة الأصلية
+            }
+          }
+          
           final finalAmount = parsedResult.amount ?? _selectedAmount;
           final finalCampaignTitle = parsedResult.campaignTitle ?? widget.campaignTitle ?? 'تبرع خيري';
           final finalDonationId = parsedResult.donationId;

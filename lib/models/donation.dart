@@ -38,8 +38,11 @@ class Donation {
   /// اسم البرنامج (إذا كان التبرع لبرنامج)
   final String? programName;
 
-  /// اسم الحملة (إذا كان التبرع لحملة)
+  /// اسم الحملة (إذا كان التبرع لحملة) - بالعربي
   final String? campaignName;
+  
+  /// اسم الحملة بالإنجليزية (إذا كان التبرع لحملة)
+  final String? campaignNameEn;
 
   Donation({
     required this.id,
@@ -56,6 +59,7 @@ class Donation {
     this.paymentUrl,
     this.programName,
     this.campaignName,
+    this.campaignNameEn,
   });
 
   /// تحويل ديناميكي إلى double بأمان
@@ -94,7 +98,8 @@ class Donation {
       isAnonymous: (json['is_anonymous'] ?? json['isAnonymous']) as bool? ?? false,
       paymentUrl: json['payment_url'] as String?,
       programName: (json['program_name'] ?? json['programName'] ?? json['program']?['name'] ?? json['program']?['title']) as String?,
-      campaignName: (json['campaign_name'] ?? json['campaignName'] ?? json['campaign']?['name'] ?? json['campaign']?['title']) as String?,
+      campaignName: (json['campaign_name'] ?? json['campaignName'] ?? json['campaign']?['title_ar'] ?? json['campaign']?['name'] ?? json['campaign']?['title']) as String?,
+      campaignNameEn: (json['campaign_name_en'] ?? json['campaignNameEn'] ?? json['campaign']?['title_en']) as String?,
     );
   }
 
@@ -114,6 +119,7 @@ class Donation {
       if (paymentUrl != null) 'payment_url': paymentUrl,
       if (programName != null) 'program_name': programName,
       if (campaignName != null) 'campaign_name': campaignName,
+      if (campaignNameEn != null) 'campaign_name_en': campaignNameEn,
     };
   }
 
@@ -142,6 +148,7 @@ class Donation {
     String? paymentUrl,
     String? programName,
     String? campaignName,
+    String? campaignNameEn,
   }) {
     return Donation(
       id: id ?? this.id,
@@ -158,6 +165,17 @@ class Donation {
       paymentUrl: paymentUrl ?? this.paymentUrl,
       programName: programName ?? this.programName,
       campaignName: campaignName ?? this.campaignName,
+      campaignNameEn: campaignNameEn ?? this.campaignNameEn,
     );
+  }
+
+  /// الحصول على اسم الحملة حسب اللغة المختارة
+  /// Returns campaign name based on language code ('ar' or 'en')
+  String? getLocalizedCampaignName(String languageCode) {
+    if (languageCode == 'ar') {
+      return campaignName;
+    } else {
+      return campaignNameEn ?? campaignName; // Fallback to Arabic if English not available
+    }
   }
 }

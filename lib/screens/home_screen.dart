@@ -62,7 +62,6 @@ class _HomeScreenState extends State<HomeScreen> {
   static const String _defaultRegistrationCardImage =
       'https://images.pexels.com/photos/5905708/pexels-photo-5905708.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1';
   StudentRegistrationCardData? _registrationCardData;
-  bool _isLoadingRegistrationCard = false;
 
   @override
   void initState() {
@@ -360,9 +359,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadRegistrationCard() async {
     if (!mounted) return;
-    setState(() {
-      _isLoadingRegistrationCard = true;
-    });
 
     try {
       final cardData = await _registrationCardService.fetchCardData();
@@ -372,11 +368,6 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } catch (error) {
       print('HomeScreen: Error loading registration card data: $error');
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _isLoadingRegistrationCard = false;
-      });
     }
   }
 
@@ -2712,7 +2703,7 @@ class _HomeScreenState extends State<HomeScreen> {
         itemCount: _recentDonations.length,
         itemBuilder: (context, index) {
           final donation = _recentDonations[index];
-          final String? campaignName = donation.campaignName?.trim();
+          final String? campaignName = donation.getLocalizedCampaignName(context.locale.languageCode)?.trim();
           final String? programName = donation.programName?.trim();
           final String? campaignTitle =
               (campaignName != null && campaignName.isNotEmpty) ? campaignName : (programName != null && programName.isNotEmpty) ? programName : null;

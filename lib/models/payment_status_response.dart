@@ -35,18 +35,38 @@ class PaymentStatusResponse {
   });
 
   factory PaymentStatusResponse.fromJson(Map<String, dynamic> json) {
-    // الباكند عندك يرجّع payment_status، وأحياناً قد يأتي status من مصادر أخرى
-    final String? statusStr =
-        _str(json['payment_status']) ??
-        _str(json['status']) ??
-        _str((json['raw_response'] is Map) ? (json['raw_response'] as Map)['payment_status'] : null);
-
-    final PaymentStatus mapped = _mapStatus(statusStr);
-
-    // sessionId من أعلى الرد أو من raw_response إن وُجد
+    // قراءة الحقول المختلفة لتحديد الحالة
+    // الأولوية: donation_status > payment_status_fromThawani > payment_status > status
+    final String? donationStatus = _str(json['donation_status']);
+    final String? paymentStatusFromThawani = _str(json['payment_status_fromThawani']);
+    final String? paymentStatus = _str(json['payment_status']);
+    final String? statusStr = _str(json['status']);
+    
+    // قراءة من raw_response أيضاً
     final Map<String, dynamic>? raw =
         (json['raw_response'] is Map) ? Map<String, dynamic>.from(json['raw_response'] as Map) : null;
+    final String? rawDonationStatus = raw != null ? _str(raw['donation_status']) : null;
+    final String? rawPaymentStatusFromThawani = raw != null ? _str(raw['payment_status_fromThawani']) : null;
+    final String? rawPaymentStatus = raw != null ? _str(raw['payment_status']) : null;
+    final String? rawStatus = raw != null ? _str(raw['status']) : null;
 
+    // تحديد الحالة النهائية حسب الأولوية (من raw_response أيضاً)
+    // إذا كان payment_status_fromThawani = "unpaid"، فالتبرع قيد الانتظار
+    String? finalStatusStr = donationStatus ?? 
+                            rawDonationStatus ??
+                            paymentStatusFromThawani ?? 
+                            rawPaymentStatusFromThawani ??
+                            paymentStatus ?? 
+                            statusStr ?? 
+                            rawPaymentStatus ?? 
+                            rawStatus;
+
+    final PaymentStatus mapped = _mapStatus(finalStatusStr);
+    
+    // إذا كان payment_status_fromThawani = "unpaid"، تأكد من أن الحالة pending
+    // (سيتم التعامل معها لاحقاً في finalStatus)
+
+    // sessionId من أعلى الرد أو من raw_response إن وُجد
     final String? sessionId =
         _str(json['session_id']) ??
         _str(raw?['session_id']);
@@ -84,13 +104,39 @@ class PaymentStatusResponse {
       error = json['errors'].toString();
     }
 
+    // تحديد success بناءً على الحالة النهائية
+    // لا نعتبر pending كنجاح حتى لو كان success = true
     final bool success = (json['success'] is bool)
-        ? (json['success'] as bool)
+        ? (json['success'] as bool && mapped == PaymentStatus.completed)
         : (mapped == PaymentStatus.completed);
+
+    // إعادة تعيين الحالة إذا كان payment_status_fromThawani = "unpaid" (من أي مصدر)
+    final String? finalPaymentStatusFromThawani = paymentStatusFromThawani ?? rawPaymentStatusFromThawani;
+    final PaymentStatus finalStatus = (finalPaymentStatusFromThawani?.toLowerCase().trim() == 'unpaid')
+        ? PaymentStatus.pending
+        : mapped;
+
+    // حفظ raw response كاملاً (يشمل donation_status و payment_status_fromThawani)
+    final Map<String, dynamic>? fullRaw = raw != null 
+        ? {
+            ...raw,
+            if (donationStatus != null) 'donation_status': donationStatus,
+            if (paymentStatusFromThawani != null) 'payment_status_fromThawani': paymentStatusFromThawani,
+            if (paymentStatus != null) 'payment_status': paymentStatus,
+            if (statusStr != null) 'status': statusStr,
+          }
+        : (donationStatus != null || paymentStatusFromThawani != null || paymentStatus != null || statusStr != null)
+            ? {
+                if (donationStatus != null) 'donation_status': donationStatus,
+                if (paymentStatusFromThawani != null) 'payment_status_fromThawani': paymentStatusFromThawani,
+                if (paymentStatus != null) 'payment_status': paymentStatus,
+                if (statusStr != null) 'status': statusStr,
+              }
+            : null;
 
     return PaymentStatusResponse(
       success: success,
-      status: mapped,
+      status: finalStatus,
       sessionId: sessionId,
       amount: amountOmr,
       currency: currency,
@@ -98,7 +144,7 @@ class PaymentStatusResponse {
       completedAt: completedAt,
       message: message,
       error: error,
-      raw: raw,
+      raw: fullRaw,
     );
   }
 

@@ -9,7 +9,6 @@ import '../services/donation_service.dart';
 import '../providers/auth_provider.dart';
 import 'settings_screen.dart';
 import 'home_screen.dart';
-import 'login_screen.dart' as login;
 
 class MyDonationsScreen extends StatefulWidget {
   final bool forceRefresh;
@@ -22,7 +21,7 @@ class MyDonationsScreen extends StatefulWidget {
 
 class _MyDonationsScreenState extends State<MyDonationsScreen> {
   String _selectedFilter = 'all';
-  final List<String> _filters = ['all', 'this_month', 'this_year', 'gift', 'completed', 'pending', 'cancelled', 'failed'];
+  final List<String> _filters = ['all', 'this_month', 'this_year', 'completed', 'pending', 'cancelled', 'failed'];
   
   final DonationService _donationService = DonationService();
   List<Donation> _donations = [];
@@ -85,16 +84,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
         _isLoading = false;
       });
       
-      // Show success message if donations were loaded successfully
-      if (donations.isNotEmpty && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${'all_donations_loaded'.tr()} (${donations.length} ${'donation'.tr()})'),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      } else if (donations.isEmpty && mounted) {
+      if (donations.isEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('no_donations_found'.tr()),
@@ -266,14 +256,6 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
         donation.date.isAfter(startOfYear)
       ).toList();
       print('MyDonationsScreen: This year donations: ${filtered.length}');
-      return filtered;
-    } else if (_selectedFilter == 'مهداة') {
-      final filtered = _donations.where((donation) => 
-        donation.message?.contains('هدية') == true || 
-        donation.message?.contains('إهداء') == true ||
-        donation.message?.contains('gift') == true
-      ).toList();
-      print('MyDonationsScreen: Gift donations: ${filtered.length}');
       return filtered;
     } else if (_selectedFilter == 'مكتمل') {
       final filtered = _donations.where((donation) => 
@@ -906,54 +888,14 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                       ),
                     if (category != 'عام') const SizedBox(height: 16),
                     // Program/Campaign Name
-                    if (donation.programName != null || donation.campaignName != null)
+                    if (donation.programName != null || donation.campaignName != null || donation.campaignNameEn != null)
                       _buildDetailRow(
                         icon: Icons.info_outline,
                         iconColor: AppColors.primary,
                         label: donation.programName != null ? 'البرنامج' : 'الحملة',
-                        value: donation.programName ?? donation.campaignName ?? '',
+                        value: donation.programName ?? donation.getLocalizedCampaignName(context.locale.languageCode) ?? '',
                       ),
-                    if (donation.programName != null || donation.campaignName != null) const SizedBox(height: 16),
-                    // Message
-                    if (donation.message != null && donation.message!.isNotEmpty)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.message_outlined,
-                                size: 20,
-                                color: AppColors.textSecondary,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'الرسالة',
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceVariant.withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              donation.message!,
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    if (donation.message != null && donation.message!.isNotEmpty) const SizedBox(height: 16),
+                    if (donation.programName != null || donation.campaignName != null || donation.campaignNameEn != null) const SizedBox(height: 16),
                     // Gift Badge
                     if (isGift)
                       Container(
@@ -1125,9 +1067,9 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title/Message
+                    // Title - Campaign name first
                     Text(
-                      donation.message ?? donation.programName ?? donation.campaignName ?? 'تبرع خيري',
+                      donation.getLocalizedCampaignName(context.locale.languageCode) ?? donation.programName ?? 'تبرع خيري',
                       style: AppTextStyles.bodyLarge.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w600,
