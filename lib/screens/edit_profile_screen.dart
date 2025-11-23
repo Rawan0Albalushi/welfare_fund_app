@@ -270,13 +270,15 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                 ),
                                 const SizedBox(height: 20),
 
-                                // Phone Field
+                                // Phone Field (Read-only)
                                 _buildTextField(
                                   controller: _phoneController,
                                   label: 'رقم الهاتف *',
                                   hint: 'أدخل رقم هاتفك',
                                   icon: Icons.phone_outlined,
                                   keyboardType: TextInputType.phone,
+                                  readOnly: true,
+                                  enabled: false,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
                                       return 'يرجى إدخال رقم الهاتف';
@@ -335,6 +337,8 @@ class _EditProfileScreenState extends State<EditProfileScreen>
     required IconData icon,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    bool readOnly = false,
+    bool enabled = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,6 +352,8 @@ class _EditProfileScreenState extends State<EditProfileScreen>
           controller: controller,
           keyboardType: keyboardType,
           validator: validator,
+          readOnly: readOnly,
+          enabled: enabled,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: AppTextStyles.bodyMedium.copyWith(

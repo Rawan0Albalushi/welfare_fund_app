@@ -482,10 +482,15 @@ class _SettingsScreenState extends State<SettingsScreen>
           _buildDivider(),
           _buildSettingsTile(
             icon: Icons.history,
-            title: 'donation_history'.tr(),
-            subtitle: 'donation_history'.tr(),
+            title: 'my_donations'.tr(),
+            subtitle: 'my_donations'.tr(),
             onTap: () {
-              // Navigate to donation history
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MyDonationsScreen(),
+                ),
+              );
             },
           ),
         ],
@@ -510,15 +515,6 @@ class _SettingsScreenState extends State<SettingsScreen>
       ),
       child: Column(
         children: [
-          _buildSettingsTile(
-            icon: Icons.help_outline,
-            title: 'help_center'.tr(),
-            subtitle: 'faq_support'.tr(),
-            onTap: () {
-              // Navigate to help center
-            },
-          ),
-          _buildDivider(),
           _buildSettingsTile(
             icon: Icons.contact_support_outlined,
             title: 'contact_us'.tr(),
