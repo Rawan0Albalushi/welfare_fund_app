@@ -53,6 +53,7 @@ class PaymentProvider extends ChangeNotifier {
     _paymentResponse = null;
     _statusResponse = null;
     _currentSessionId = null;
+    _currentDonationId = null; // ✅ إصلاح: إعادة ضبط donation_id عند التهيئة
     notifyListeners();
   }
 

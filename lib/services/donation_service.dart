@@ -122,12 +122,19 @@ class DonationService {
         final String? sessionId =
             (ps?['session_id'] ?? responseData['session_id'] ?? data?['session_id'])?.toString();
 
+        // ✅ إضافة: استخراج donation_id من الاستجابة
+        final Map<String, dynamic>? donation =
+            (data?['donation'] is Map) ? data!['donation'] as Map<String, dynamic> : null;
+        final String? donationId =
+            (donation?['donation_id'] ?? donation?['id'] ?? data?['donation_id'] ?? responseData['donation_id'])?.toString();
+
         // نعيد جسم موحّد يفيد الـ UI
         final result = <String, dynamic>{
           'ok': true,
           'data': data ?? responseData,
           if (paymentUrl != null) 'payment_url': paymentUrl,
           if (sessionId != null) 'payment_session_id': sessionId,
+          if (donationId != null) 'donation_id': donationId, // ✅ إضافة: donation_id للتحقق من الحالة
         };
         return result;
       } else if (response.statusCode == 401) {

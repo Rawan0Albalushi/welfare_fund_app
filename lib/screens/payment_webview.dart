@@ -37,9 +37,18 @@ class _PaymentWebViewState extends State<PaymentWebView> {
 
   /// التحقق من URL النجاح بشكل آمن
   /// ⚠️ مهم: نستخدم whitelist دقيق لمنع URL manipulation
+  /// ✅ إصلاح: منع deep link URLs على الموبايل (مثل sfund.app://) لأن PaymentWebView يتعامل مع النتيجة مباشرة
   bool _isSuccessUrl(String url) {
     try {
       final uri = Uri.parse(url);
+      
+      // ✅ إصلاح: منع deep link URLs (custom schemes) على الموبايل
+      // هذه URLs تفتح التطبيق من جديد وتسبب فتح صفحة مكررة
+      if (!kIsWeb && uri.scheme != 'http' && uri.scheme != 'https') {
+        print('PaymentWebView: Blocking deep link URL (custom scheme): $url');
+        return false;
+      }
+      
       final host = uri.host.toLowerCase();
       final path = uri.path.toLowerCase();
       
@@ -51,8 +60,10 @@ class _PaymentWebViewState extends State<PaymentWebView> {
         'localhost',
       ];
       
-      // التحقق من أن الـ host مسموح
-      final isAllowedHost = allowedHosts.any((allowed) => host.contains(allowed) || host.endsWith(allowed));
+      // ✅ إصلاح: السماح بـ IP addresses المحلية (للاختبار)
+      // التحقق من أن الـ host مسموح أو IP address محلي
+      final isLocalIp = RegExp(r'^192\.168\.\d+\.\d+|^10\.\d+\.\d+\.\d+|^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|^127\.0\.0\.1').hasMatch(host);
+      final isAllowedHost = isLocalIp || allowedHosts.any((allowed) => host.contains(allowed) || host.endsWith(allowed));
       if (!isAllowedHost) {
         return false;
       }
@@ -85,9 +96,18 @@ class _PaymentWebViewState extends State<PaymentWebView> {
   
   /// التحقق من URL الإلغاء بشكل آمن
   /// ⚠️ مهم: نستخدم whitelist دقيق لمنع URL manipulation
+  /// ✅ إصلاح: منع deep link URLs على الموبايل (مثل sfund.app://) لأن PaymentWebView يتعامل مع النتيجة مباشرة
   bool _isCancelUrl(String url) {
     try {
       final uri = Uri.parse(url);
+      
+      // ✅ إصلاح: منع deep link URLs (custom schemes) على الموبايل
+      // هذه URLs تفتح التطبيق من جديد وتسبب فتح صفحة مكررة
+      if (!kIsWeb && uri.scheme != 'http' && uri.scheme != 'https') {
+        print('PaymentWebView: Blocking deep link URL (custom scheme): $url');
+        return false;
+      }
+      
       final host = uri.host.toLowerCase();
       final path = uri.path.toLowerCase();
       
@@ -99,8 +119,10 @@ class _PaymentWebViewState extends State<PaymentWebView> {
         'localhost',
       ];
       
-      // التحقق من أن الـ host مسموح
-      final isAllowedHost = allowedHosts.any((allowed) => host.contains(allowed) || host.endsWith(allowed));
+      // ✅ إصلاح: السماح بـ IP addresses المحلية (للاختبار)
+      // التحقق من أن الـ host مسموح أو IP address محلي
+      final isLocalIp = RegExp(r'^192\.168\.\d+\.\d+|^10\.\d+\.\d+\.\d+|^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|^127\.0\.0\.1').hasMatch(host);
+      final isAllowedHost = isLocalIp || allowedHosts.any((allowed) => host.contains(allowed) || host.endsWith(allowed));
       if (!isAllowedHost) {
         return false;
       }
@@ -138,11 +160,18 @@ class _PaymentWebViewState extends State<PaymentWebView> {
     _hasPopped = true;
     _cancelScheduledStatusCheck();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        Navigator.pop(context, payload);
-      }
-    });
+    // ✅ إصلاح: إغلاق WebView فوراً دون انتظار postFrameCallback
+    // هذا يمنع التطبيق من البقاء معلق على صفحة الدفع
+    if (mounted) {
+      Navigator.pop(context, payload);
+    } else {
+      // إذا لم يكن mounted، نستخدم postFrameCallback كـ fallback
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.pop(context, payload);
+        }
+      });
+    }
   }
 
   Future<void> _handleSuccessNavigation(String url) async {
@@ -340,6 +369,53 @@ class _PaymentWebViewState extends State<PaymentWebView> {
     return null;
   }
 
+  /// التحقق من حالة الدفع عند اكتشاف success URL مباشرة (دون التحقق من _pollingDisabled)
+  Future<void> _checkPaymentStatusImmediately() async {
+    if (!mounted || _hasPopped || _isHandlingSuccess) {
+      return;
+    }
+
+    try {
+      final status = await _donationService.checkPaymentStatus(widget.sessionId);
+      
+      if (!mounted || _hasPopped || _isHandlingSuccess) {
+        return;
+      }
+
+      print('PaymentWebView: Immediate payment status check result: ${status.status}');
+      print('PaymentWebView: Is completed: ${status.isCompleted}');
+      print('PaymentWebView: Is pending: ${status.isPending}');
+
+      if (status.isCompleted && !status.isPending) {
+        _hasCheckedStatus = true;
+        await _safePop({
+          'state': PaymentState.paymentSuccess.name,
+          'sessionId': status.sessionId ?? widget.sessionId,
+          if (status.amount != null) 'amount': status.amount,
+          if (status.raw != null) 'rawResponse': status.raw,
+        });
+      } else if (status.isCancelled) {
+        await _safePop({'state': PaymentState.paymentCancelled.name});
+      } else if (status.isExpired) {
+        await _safePop({'state': PaymentState.paymentExpired.name});
+      } else if (status.isFailed) {
+        await _safePop({
+          'state': PaymentState.paymentFailed.name,
+          if (status.error != null) 'error': status.error,
+        });
+      } else {
+        // إذا كانت pending، نستمر في polling
+        _pollingDisabled = false;
+        await _checkPaymentStatusAndComplete();
+      }
+    } catch (e) {
+      print('PaymentWebView: Error in immediate status check: $e');
+      // في حالة الخطأ، نستمر في polling
+      _pollingDisabled = false;
+      await _checkPaymentStatusAndComplete();
+    }
+  }
+
   Future<void> _checkPaymentStatusAndComplete() async {
     // حماية من race conditions: التحقق من الحالة قبل وبعد الاستدعاء
     if (!mounted || _hasPopped || _pollingDisabled || _isHandlingSuccess) {
@@ -487,10 +563,60 @@ class _PaymentWebViewState extends State<PaymentWebView> {
       
       _controller.setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (_) => setState(() => _isLoading = true),
+          onPageStarted: (url) {
+            setState(() => _isLoading = true);
+            // ✅ إصلاح: التحقق من HTTP URLs عند بدء التحميل لمنع أخطاء cleartext
+            if (!kIsWeb) {
+              try {
+                final uri = Uri.parse(url);
+                if (uri.scheme == 'http') {
+                  if (_isSuccessUrl(url) || url.contains('success') || url.contains('payment/success') || url.contains('/payments/mobile/success')) {
+                    print('PaymentWebView: Detected HTTP success URL at page start, checking status directly...');
+                    // ✅ إصلاح: إغلاق WebView فوراً والتحقق من الحالة في الخلفية
+                    _hasCheckedStatus = true;
+                    _pollingDisabled = true;
+                    Future.microtask(() async {
+                      await _checkPaymentStatusImmediately();
+                    });
+                    return;
+                  } else if (_isCancelUrl(url) || url.contains('cancel') || url.contains('payment/cancel')) {
+                    print('PaymentWebView: Detected HTTP cancel URL at page start, returning cancelled...');
+                    Future.microtask(() => _safePop({'state': PaymentState.paymentCancelled.name}));
+                    return;
+                  }
+                }
+              } catch (e) {
+                print('PaymentWebView: Error parsing URL in onPageStarted: $e');
+              }
+            }
+          },
           onPageFinished: (url) async {
             setState(() => _isLoading = false);
             print('PaymentWebView: Page finished loading: $url');
+            
+            // ✅ إصلاح: التحقق من HTTP URLs قبل محاولة التعامل معها
+            // إذا كان HTTP URL، نتعامل معه مباشرة دون انتظار تحميل الصفحة
+            if (!kIsWeb) {
+              try {
+                final uri = Uri.parse(url);
+                if (uri.scheme == 'http') {
+                  if (_isSuccessUrl(url) || url.contains('success') || url.contains('payment/success') || url.contains('/payments/mobile/success')) {
+                    print('PaymentWebView: Detected HTTP success URL, checking payment status directly...');
+                    // ✅ إصلاح: إغلاق WebView فوراً والتحقق من الحالة في الخلفية
+                    _hasCheckedStatus = true;
+                    _pollingDisabled = true;
+                    await _checkPaymentStatusImmediately();
+                    return;
+                  } else if (_isCancelUrl(url) || url.contains('cancel') || url.contains('payment/cancel')) {
+                    print('PaymentWebView: Detected HTTP cancel URL, returning cancelled...');
+                    _safePop({'state': PaymentState.paymentCancelled.name});
+                    return;
+                  }
+                }
+              } catch (e) {
+                print('PaymentWebView: Error parsing URL in onPageFinished: $e');
+              }
+            }
             
             if (_isSuccessUrl(url)) {
               print('PaymentWebView: Detected success URL, checking payment status...');
@@ -503,9 +629,76 @@ class _PaymentWebViewState extends State<PaymentWebView> {
           onNavigationRequest: (request) {
             print('PaymentWebView: Navigation request to: ${request.url}');
             
+            // ✅ إصلاح: منع deep link URLs (custom schemes) على الموبايل
+            // هذه URLs تفتح التطبيق من جديد وتسبب فتح صفحة مكررة
+            if (!kIsWeb) {
+              try {
+                final uri = Uri.parse(request.url);
+                
+                // ✅ إصلاح: منع HTTP URLs على الموبايل (cleartext not permitted)
+                // Android يمنع تحميل HTTP URLs في WebView، لذلك نتعامل معها مباشرة
+                if (uri.scheme == 'http') {
+                  print('PaymentWebView: Blocking HTTP URL (cleartext not permitted): ${request.url}');
+                  // إذا كان HTTP URL لصفحة success/cancel، نتعامل معها مباشرة
+                  if (_isSuccessUrl(request.url) || request.url.contains('success') || request.url.contains('payment/success') || request.url.contains('/payments/mobile/success')) {
+                    print('PaymentWebView: Handling success HTTP URL directly, checking status...');
+                    // استخراج donation_id أو session_id من URL
+                    final donationId = uri.queryParameters['donation_id'];
+                    final sessionId = uri.queryParameters['session_id'] ?? widget.sessionId;
+                    print('PaymentWebView: Success URL params - donationId: $donationId, sessionId: $sessionId');
+                    // ✅ إصلاح: إغلاق WebView فوراً والتحقق من الحالة في الخلفية
+                    // هذا يمنع التطبيق من البقاء معلق على صفحة الدفع
+                    _hasCheckedStatus = true;
+                    _pollingDisabled = true;
+                    // إغلاق WebView فوراً والتحقق من الحالة بشكل async
+                    Future.microtask(() async {
+                      await _checkPaymentStatusImmediately();
+                    });
+                    return NavigationDecision.prevent;
+                  } else if (_isCancelUrl(request.url) || request.url.contains('cancel') || request.url.contains('payment/cancel')) {
+                    print('PaymentWebView: Handling cancel HTTP URL directly');
+                    _safePop({'state': PaymentState.paymentCancelled.name});
+                    return NavigationDecision.prevent;
+                  }
+                  // منع تحميل أي HTTP URL آخر في WebView
+                  return NavigationDecision.prevent;
+                }
+                
+                if (uri.scheme != 'http' && uri.scheme != 'https') {
+                  print('PaymentWebView: Blocking deep link navigation (custom scheme): ${request.url}');
+                  // إذا كان deep link لصفحة success/cancel، نتعامل معها مباشرة دون فتح التطبيق
+                  if (request.url.contains('success') || request.url.contains('payment/success')) {
+                    // استخراج session_id أو donation_id من URL إذا كان موجوداً
+                    final sessionId = uri.queryParameters['session_id'] ?? widget.sessionId;
+                    print('PaymentWebView: Handling success via deep link, checking status with sessionId: $sessionId');
+                    // ✅ إصلاح: إغلاق WebView فوراً والتحقق من الحالة في الخلفية
+                    _hasCheckedStatus = true;
+                    _pollingDisabled = true;
+                    Future.microtask(() async {
+                      await _checkPaymentStatusImmediately();
+                    });
+                    return NavigationDecision.prevent;
+                  } else if (request.url.contains('cancel') || request.url.contains('payment/cancel')) {
+                    print('PaymentWebView: Handling cancel via deep link');
+                    _safePop({'state': PaymentState.paymentCancelled.name});
+                    return NavigationDecision.prevent;
+                  }
+                  // منع فتح أي deep link آخر
+                  return NavigationDecision.prevent;
+                }
+              } catch (e) {
+                print('PaymentWebView: Error parsing URL in navigation request: $e');
+              }
+            }
+            
             if (_isSuccessUrl(request.url)) {
               print('PaymentWebView: Intercepting success URL');
-              _handleSuccessNavigation(request.url);
+              // ✅ إصلاح: إغلاق WebView فوراً والتحقق من الحالة في الخلفية
+              _hasCheckedStatus = true;
+              _pollingDisabled = true;
+              Future.microtask(() async {
+                await _checkPaymentStatusImmediately();
+              });
               return NavigationDecision.prevent;
             } else if (_isCancelUrl(request.url)) {
               print('PaymentWebView: Intercepting cancel URL');
