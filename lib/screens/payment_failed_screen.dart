@@ -226,37 +226,6 @@ class _PaymentFailedScreenState extends State<PaymentFailedScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Error Message (optional)
-              if ((_errorMessage ?? widget.errorMessage) != null && 
-                  (_errorMessage ?? widget.errorMessage)!.trim().isNotEmpty) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppColors.error.withOpacity(0.25),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.info_outline, color: AppColors.error, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _errorMessage ?? widget.errorMessage ?? '',
-                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
-
               // Info
               Text(
                 'payment_failed_info'.tr(),

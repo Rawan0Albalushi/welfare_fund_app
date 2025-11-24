@@ -137,6 +137,10 @@ class CampaignService {
                 print('═══════════════════════════════════════════════════════════');
               }
               
+              final categoryName = program['category']?['name'] ?? program['category_name'] ?? '';
+              final categoryNameAr = program['category']?['name_ar'] ?? program['category_name_ar'] ?? categoryName;
+              final categoryNameEn = program['category']?['name_en'] ?? program['category_name_en'] ?? categoryName;
+              
               return Campaign(
                 id: program['id']?.toString() ?? '',
                 title: program['title'] ?? program['title_ar'] ?? program['title_en'] ?? program['name'] ?? '',
@@ -151,7 +155,9 @@ class CampaignService {
                 startDate: DateTime.parse(program['created_at'] ?? DateTime.now().toIso8601String()),
                 endDate: DateTime.parse(program['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
                 isActive: program['status'] == 'active' || program['is_active'] == true,
-                category: program['category']?['name'] ?? program['category_name'] ?? '',
+                category: categoryName,
+                categoryAr: categoryNameAr,
+                categoryEn: categoryNameEn,
                 donorCount: program['donor_count'] ?? program['donors_count'] ?? 0,
                 type: 'student_program', // Mark as student program
               );
@@ -212,6 +218,10 @@ class CampaignService {
                         program['imageUrl'] ?? 
                         '';
         
+        final categoryName = program['category']?['name'] ?? program['category_name'] ?? '';
+        final categoryNameAr = program['category']?['name_ar'] ?? program['category_name_ar'] ?? categoryName;
+        final categoryNameEn = program['category']?['name_en'] ?? program['category_name_en'] ?? categoryName;
+        
         return Campaign(
           id: program['id']?.toString() ?? '',
           title: program['title'] ?? program['title_ar'] ?? program['title_en'] ?? program['name'] ?? '',
@@ -226,7 +236,9 @@ class CampaignService {
           startDate: DateTime.parse(program['created_at'] ?? DateTime.now().toIso8601String()),
           endDate: DateTime.parse(program['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
           isActive: program['status'] == 'active' || program['is_active'] == true,
-          category: program['category']?['name'] ?? program['category_name'] ?? '',
+          category: categoryName,
+          categoryAr: categoryNameAr,
+          categoryEn: categoryNameEn,
           donorCount: program['donor_count'] ?? program['donors_count'] ?? 0,
           type: 'student_program', // Mark as student program
         );
@@ -320,6 +332,10 @@ class CampaignService {
                                    campaign['imageUrl'] ?? 
                                    '';
                    
+                   final categoryName = campaign['category']?['name'] ?? campaign['category_name'] ?? '';
+                   final categoryNameAr = campaign['category']?['name_ar'] ?? campaign['category_name_ar'] ?? categoryName;
+                   final categoryNameEn = campaign['category']?['name_en'] ?? campaign['category_name_en'] ?? categoryName;
+                   
                    return Campaign(
                      id: campaign['id']?.toString() ?? '',
                      title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
@@ -334,7 +350,9 @@ class CampaignService {
                      startDate: DateTime.parse(campaign['created_at'] ?? DateTime.now().toIso8601String()),
                      endDate: DateTime.parse(campaign['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
                      isActive: campaign['status'] == 'active' || campaign['is_active'] == true,
-                     category: campaign['category']?['name'] ?? campaign['category_name'] ?? '',
+                     category: categoryName,
+                     categoryAr: categoryNameAr,
+                     categoryEn: categoryNameEn,
                      impactDescription: campaign['impact_description'] as String?,
                      impactDescriptionAr: campaign['impact_description_ar'] as String?,
                      impactDescriptionEn: campaign['impact_description_en'] as String?,
@@ -409,6 +427,10 @@ class CampaignService {
                                    campaign['imageUrl'] ?? 
                                    '';
                    
+                   final categoryName = campaign['category']?['name'] ?? campaign['category_name'] ?? '';
+                   final categoryNameAr = campaign['category']?['name_ar'] ?? campaign['category_name_ar'] ?? categoryName;
+                   final categoryNameEn = campaign['category']?['name_en'] ?? campaign['category_name_en'] ?? categoryName;
+                   
                    return Campaign(
                      id: campaign['id']?.toString() ?? '',
                      title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
@@ -423,7 +445,9 @@ class CampaignService {
                      startDate: DateTime.parse(campaign['created_at'] ?? DateTime.now().toIso8601String()),
                      endDate: DateTime.parse(campaign['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
                      isActive: campaign['status'] == 'active' || campaign['is_active'] == true,
-                     category: campaign['category']?['name'] ?? campaign['category_name'] ?? '',
+                     category: categoryName,
+                     categoryAr: categoryNameAr,
+                     categoryEn: categoryNameEn,
                      impactDescription: campaign['impact_description'] as String?,
                      impactDescriptionAr: campaign['impact_description_ar'] as String?,
                      impactDescriptionEn: campaign['impact_description_en'] as String?,
@@ -481,6 +505,10 @@ class CampaignService {
                           campaign['imageUrl'] ?? 
                           '';
           
+          final categoryName = campaign['category']?['name'] ?? campaign['category_name'] ?? '';
+          final categoryNameAr = campaign['category']?['name_ar'] ?? campaign['category_name_ar'] ?? categoryName;
+          final categoryNameEn = campaign['category']?['name_en'] ?? campaign['category_name_en'] ?? categoryName;
+          
           return Campaign(
             id: campaign['id']?.toString() ?? '',
             title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
@@ -495,7 +523,9 @@ class CampaignService {
             startDate: DateTime.parse(campaign['created_at'] ?? DateTime.now().toIso8601String()),
             endDate: DateTime.parse(campaign['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
             isActive: campaign['status'] == 'active' || campaign['is_active'] == true,
-            category: campaign['category']?['name'] ?? campaign['category_name'] ?? '',
+            category: categoryName,
+            categoryAr: categoryNameAr,
+            categoryEn: categoryNameEn,
             impactDescription: campaign['impact_description'] as String?,
             impactDescriptionAr: campaign['impact_description_ar'] as String?,
             impactDescriptionEn: campaign['impact_description_en'] as String?,
@@ -539,6 +569,10 @@ class CampaignService {
                           campaign['imageUrl'] ?? 
                           '';
           
+          final categoryName = campaign['category']?['name'] ?? campaign['category_name'] ?? '';
+          final categoryNameAr = campaign['category']?['name_ar'] ?? campaign['category_name_ar'] ?? categoryName;
+          final categoryNameEn = campaign['category']?['name_en'] ?? campaign['category_name_en'] ?? categoryName;
+          
           return Campaign(
             id: campaign['id']?.toString() ?? '',
             title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
@@ -553,7 +587,9 @@ class CampaignService {
             startDate: DateTime.parse(campaign['created_at'] ?? DateTime.now().toIso8601String()),
             endDate: DateTime.parse(campaign['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
             isActive: campaign['status'] == 'active' || campaign['is_active'] == true,
-            category: campaign['category']?['name'] ?? campaign['category_name'] ?? '',
+            category: categoryName,
+            categoryAr: categoryNameAr,
+            categoryEn: categoryNameEn,
             impactDescription: campaign['impact_description'] as String?,
             impactDescriptionAr: campaign['impact_description_ar'] as String?,
             impactDescriptionEn: campaign['impact_description_en'] as String?,
@@ -605,6 +641,10 @@ class CampaignService {
                         campaign['imageUrl'] ?? 
                         '';
         
+        final categoryName = campaign['category']?['name'] ?? campaign['category_name'] ?? '';
+        final categoryNameAr = campaign['category']?['name_ar'] ?? campaign['category_name_ar'] ?? categoryName;
+        final categoryNameEn = campaign['category']?['name_en'] ?? campaign['category_name_en'] ?? categoryName;
+        
         return Campaign(
           id: campaign['id']?.toString() ?? '',
           title: campaign['title'] ?? campaign['title_ar'] ?? campaign['title_en'] ?? campaign['name'] ?? '',
@@ -619,7 +659,9 @@ class CampaignService {
           startDate: DateTime.parse(campaign['created_at'] ?? DateTime.now().toIso8601String()),
           endDate: DateTime.parse(campaign['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
           isActive: campaign['status'] == 'active' || campaign['is_active'] == true,
-          category: campaign['category']?['name'] ?? campaign['category_name'] ?? '',
+          category: categoryName,
+          categoryAr: categoryNameAr,
+          categoryEn: categoryNameEn,
           impactDescription: campaign['impact_description'] as String?,
           impactDescriptionAr: campaign['impact_description_ar'] as String?,
           impactDescriptionEn: campaign['impact_description_en'] as String?,

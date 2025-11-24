@@ -344,17 +344,23 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'donation_amount'.tr(),
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
+                        Flexible(
+                          child: Text(
+                            'donation_amount'.tr(),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ),
-                        Text(
-                          '${(_amount ?? widget.amount ?? 0.0).toStringAsFixed(2)} ريال عماني',
-                          style: AppTextStyles.titleLarge.copyWith(
-                            color: AppColors.success,
-                            fontWeight: FontWeight.bold,
+                        Flexible(
+                          child: Text(
+                            '${(_amount ?? widget.amount ?? 0.0).toStringAsFixed(2)} ريال عماني',
+                            style: AppTextStyles.titleLarge.copyWith(
+                              color: AppColors.success,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.end,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -391,17 +397,23 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'تاريخ التبرع',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
+                        Flexible(
+                          child: Text(
+                            'donation_date'.tr(),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ),
-                        Text(
-                          DateTime.now().toString().substring(0, 10),
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
+                        Flexible(
+                          child: Text(
+                            DateTime.now().toString().substring(0, 10),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.end,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -574,7 +586,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'شكراً لك على ثقتك بنا',
+                      'thank_you_for_trust'.tr(),
                       style: AppTextStyles.titleMedium.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w600,
@@ -583,7 +595,7 @@ class _DonationSuccessScreenState extends State<DonationSuccessScreen>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'سنواصل العمل لمساعدة الطلاب المحتاجين',
+                      'we_will_continue_helping'.tr(),
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textSecondary,
                         height: 1.4,

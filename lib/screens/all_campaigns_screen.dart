@@ -167,9 +167,10 @@ class _AllCampaignsScreenState extends State<AllCampaignsScreen> {
   }
 
   void _updateCategories(List<Campaign> campaigns) {
+    final locale = context.locale.languageCode;
     final categorySet = <String>{};
     for (final campaign in campaigns) {
-      final category = campaign.category.trim();
+      final category = campaign.getLocalizedCategory(locale).trim();
       if (category.isNotEmpty) {
         categorySet.add(category);
       }
@@ -267,8 +268,8 @@ class _AllCampaignsScreenState extends State<AllCampaignsScreen> {
                               alignment: Alignment.centerLeft,
                               child: _buildGlassChip(
                                 icon: Icons.category_outlined,
-                                label: campaign.category.isNotEmpty
-                                    ? campaign.category
+                                label: campaign.getLocalizedCategory(locale).isNotEmpty
+                                    ? campaign.getLocalizedCategory(locale)
                                     : 'campaign'.tr(),
                                 background: campaign.isCompleted
                                     ? AppColors.success.withOpacity(0.9)
@@ -781,7 +782,8 @@ class _AllCampaignsScreenState extends State<AllCampaignsScreen> {
 
   bool _matchesSelectedCategory(Campaign campaign) {
     if (_selectedCategory == _allCategoryKey) return true;
-    final campaignCategory = campaign.category.trim();
+    final locale = context.locale.languageCode;
+    final campaignCategory = campaign.getLocalizedCategory(locale).trim();
     return campaignCategory == _selectedCategory;
   }
 

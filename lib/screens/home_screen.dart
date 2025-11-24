@@ -2323,7 +2323,8 @@ class _HomeScreenState extends State<HomeScreen> {
         filteredCampaigns = List.from(_allCampaigns);
       } else {
         filteredCampaigns = _allCampaigns.where((campaign) {
-          final campaignCategory = campaign.category.toString().trim().toLowerCase();
+          final locale = context.locale.languageCode;
+          final campaignCategory = campaign.getLocalizedCategory(locale).trim().toLowerCase();
           return matcherValues.contains(campaignCategory);
         }).toList();
       }
@@ -2332,14 +2333,19 @@ class _HomeScreenState extends State<HomeScreen> {
     // Apply search filter
     final searchQuery = _searchController.text.trim().toLowerCase();
     if (searchQuery.isNotEmpty) {
+      final locale = context.locale.languageCode;
       filteredCampaigns = filteredCampaigns.where((campaign) {
-        final title = campaign.title.toLowerCase();
+        final title = campaign.getLocalizedTitle(locale).toLowerCase();
+        final description = campaign.getLocalizedDescription(locale).toLowerCase();
+        final category = campaign.getLocalizedCategory(locale).toLowerCase();
+        
+        // Also search in all language versions for better search results
         final titleAr = campaign.titleAr.toLowerCase();
         final titleEn = campaign.titleEn.toLowerCase();
-        final description = campaign.description.toLowerCase();
         final descriptionAr = campaign.descriptionAr.toLowerCase();
         final descriptionEn = campaign.descriptionEn.toLowerCase();
-        final category = campaign.category.toLowerCase();
+        final categoryAr = campaign.categoryAr.toLowerCase();
+        final categoryEn = campaign.categoryEn.toLowerCase();
         
         return title.contains(searchQuery) ||
             titleAr.contains(searchQuery) ||
@@ -2347,7 +2353,9 @@ class _HomeScreenState extends State<HomeScreen> {
             description.contains(searchQuery) ||
             descriptionAr.contains(searchQuery) ||
             descriptionEn.contains(searchQuery) ||
-            category.contains(searchQuery);
+            category.contains(searchQuery) ||
+            categoryAr.contains(searchQuery) ||
+            categoryEn.contains(searchQuery);
       }).toList();
     }
 

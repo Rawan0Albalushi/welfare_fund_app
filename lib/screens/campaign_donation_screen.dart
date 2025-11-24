@@ -179,7 +179,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
     await provider.initiateDonationWithPayment(
       amount: _selectedAmount,
       donorName: 'generous_donor'.tr(),
-      message: 'donation_for_campaign'.tr().replaceAll('{title}', widget.campaign.title),
+      message: 'donation_for_campaign'.tr().replaceAll('{title}', widget.campaign.getLocalizedTitle(context.locale.languageCode)),
       programId: programId,
       campaignId: campaignId,
       note: 'donation_message'.tr(),
@@ -210,8 +210,8 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
           MaterialPageRoute(
             builder: (_) => DonationSuccessScreen(
               amount: _selectedAmount,
-              campaignTitle: paymentResult.campaignTitle ?? widget.campaign.title,
-              campaignCategory: widget.campaign.category,
+              campaignTitle: paymentResult.campaignTitle ?? widget.campaign.getLocalizedTitle(context.locale.languageCode),
+              campaignCategory: widget.campaign.getLocalizedCategory(context.locale.languageCode),
               donationId: paymentResult.donationId,
               sessionId: paymentResult.sessionId ?? provider.currentSessionId,
             ),
@@ -227,7 +227,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
           MaterialPageRoute(
             builder: (_) => PaymentFailedScreen(
               errorMessage: provider.displayErrorMessage,
-              campaignTitle: widget.campaign.title,
+              campaignTitle: widget.campaign.getLocalizedTitle(context.locale.languageCode),
               amount: _selectedAmount,
             ),
           ),
@@ -239,11 +239,11 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => DonationSuccessScreen(
-                amount: _selectedAmount,
-                campaignTitle: widget.campaign.title,
-                campaignCategory: widget.campaign.category,
-              ),
+            builder: (_) => DonationSuccessScreen(
+              amount: _selectedAmount,
+              campaignTitle: widget.campaign.getLocalizedTitle(context.locale.languageCode),
+              campaignCategory: widget.campaign.getLocalizedCategory(context.locale.languageCode),
+            ),
             ),
           );
         } else if (provider.isPaymentFailed) {
@@ -333,7 +333,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  widget.campaign.category,
+                                  widget.campaign.getLocalizedCategory(context.locale.languageCode),
                                   style: AppTextStyles.bodySmall.copyWith(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w600,
@@ -343,7 +343,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                               const SizedBox(height: 12),
                               // العنوان
                               Text(
-                                widget.campaign.title,
+                                widget.campaign.getLocalizedTitle(context.locale.languageCode),
                                 style: AppTextStyles.headlineLarge.copyWith(
                                   color: AppColors.surface,
                                   fontWeight: FontWeight.bold,
@@ -451,7 +451,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                         title: 'program'.tr(),
                         icon: Icons.info_outline,
                         child: Text(
-                          widget.campaign.description,
+                          widget.campaign.getLocalizedDescription(context.locale.languageCode),
                           style: AppTextStyles.bodyMedium.copyWith(
                             color: AppColors.textSecondary,
                             height: 1.6,

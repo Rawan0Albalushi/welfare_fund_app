@@ -84,7 +84,9 @@ class CampaignCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          _getLocalizedCategoryName(campaign.category),
+                          campaign.getLocalizedCategory(context.locale.languageCode).isNotEmpty
+                              ? campaign.getLocalizedCategory(context.locale.languageCode)
+                              : 'campaign'.tr(),
                           style: AppTextStyles.bodySmall.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,

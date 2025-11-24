@@ -13,6 +13,8 @@ class Campaign {
   final DateTime endDate;
   final bool isActive;
   final String category;
+  final String categoryAr;
+  final String categoryEn;
   final String? impactDescription;
   final String? impactDescriptionAr;
   final String? impactDescriptionEn;
@@ -36,6 +38,8 @@ class Campaign {
     required this.endDate,
     required this.isActive,
     required this.category,
+    required this.categoryAr,
+    required this.categoryEn,
     this.impactDescription,
     this.impactDescriptionAr,
     this.impactDescriptionEn,
@@ -97,6 +101,14 @@ class Campaign {
     }
   }
 
+  String getLocalizedCategory(String locale) {
+    if (locale == 'ar') {
+      return categoryAr.isNotEmpty ? categoryAr : category;
+    } else {
+      return categoryEn.isNotEmpty ? categoryEn : category;
+    }
+  }
+
   factory Campaign.fromJson(Map<String, dynamic> json) {
     return Campaign(
       id: (json['id'] ?? '').toString(),
@@ -113,6 +125,8 @@ class Campaign {
       endDate: DateTime.parse(json['endDate'] ?? json['end_date'] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String()),
       isActive: json['isActive'] ?? json['status'] == 'active' ?? true,
       category: json['category']?['name'] ?? json['category_name'] ?? json['category'] ?? '',
+      categoryAr: json['category']?['name_ar'] ?? json['category_name_ar'] ?? json['category']?['name'] ?? json['category_name'] ?? json['category'] ?? '',
+      categoryEn: json['category']?['name_en'] ?? json['category_name_en'] ?? json['category']?['name'] ?? json['category_name'] ?? json['category'] ?? '',
       impactDescription: json['impact_description'] as String?,
       impactDescriptionAr: json['impact_description_ar'] as String?,
       impactDescriptionEn: json['impact_description_en'] as String?,
@@ -139,6 +153,8 @@ class Campaign {
       'endDate': endDate.toIso8601String(),
       'isActive': isActive,
       'category': category,
+      'category_ar': categoryAr,
+      'category_en': categoryEn,
       'impact_description': impactDescription,
       'impact_description_ar': impactDescriptionAr,
       'impact_description_en': impactDescriptionEn,
@@ -164,6 +180,8 @@ class Campaign {
     DateTime? endDate,
     bool? isActive,
     String? category,
+    String? categoryAr,
+    String? categoryEn,
     String? impactDescription,
     String? impactDescriptionAr,
     String? impactDescriptionEn,
@@ -187,6 +205,8 @@ class Campaign {
       endDate: endDate ?? this.endDate,
       isActive: isActive ?? this.isActive,
       category: category ?? this.category,
+      categoryAr: categoryAr ?? this.categoryAr,
+      categoryEn: categoryEn ?? this.categoryEn,
       impactDescription: impactDescription ?? this.impactDescription,
       impactDescriptionAr: impactDescriptionAr ?? this.impactDescriptionAr,
       impactDescriptionEn: impactDescriptionEn ?? this.impactDescriptionEn,
