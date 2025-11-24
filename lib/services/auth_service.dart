@@ -113,7 +113,7 @@ class AuthService {
   // Get current user profile
   Future<Map<String, dynamic>> getCurrentUser() async {
     try {
-      final response = await _dio!.get('/auth/me');
+      final response = await _dio!.get('/v1/me/edit/profile');
       print('AuthService: getCurrentUser response: ${response.data}');
       print('AuthService: getCurrentUser response keys: ${response.data.keys}');
       return response.data;
@@ -129,7 +129,7 @@ class AuthService {
     String? email,
   }) async {
     try {
-      final response = await _dio!.patch('/me/edit/profile', data: {
+      final response = await _dio!.patch('/v1/me/edit/profile', data: {
         'name': name,
         'phone': phone,
         if (email != null && email.isNotEmpty) 'email': email,

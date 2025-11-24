@@ -61,7 +61,7 @@ class AuthRepository {
   // Get current user profile
   Future<Map<String, dynamic>> getCurrentUser() async {
     try {
-      final response = await _apiClient.dio.get('/auth/me');
+      final response = await _apiClient.dio.get('/me/edit/profile');
       return response.data;
     } on DioException catch (e) {
       throw _handleDioError(e);

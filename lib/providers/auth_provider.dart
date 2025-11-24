@@ -136,7 +136,14 @@ class AuthProvider extends ChangeNotifier {
         phone: phone,
         email: email,
       );
-      _userProfile = updatedProfile;
+      
+      // Handle different response structures (same as _loadUserProfile)
+      if (updatedProfile['data'] != null) {
+        _userProfile = updatedProfile['data'];
+      } else {
+        _userProfile = updatedProfile;
+      }
+      
       notifyListeners();
     } catch (error) {
       print('Error updating profile: $error');

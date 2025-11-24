@@ -469,7 +469,8 @@ class _SettingsScreenState extends State<SettingsScreen>
               
               // Refresh user profile if updated
               if (result == true) {
-                _checkAuthStatus();
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                await authProvider.refreshProfile();
               }
             },
           ),

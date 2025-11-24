@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
-import '../services/auth_service.dart';
+import '../providers/auth_provider.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic>? userProfile;
@@ -33,9 +34,6 @@ class _EditProfileScreenState extends State<EditProfileScreen>
 
   // Form State
   bool _isSaving = false;
-  
-  // Auth Service
-  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -477,8 +475,9 @@ class _EditProfileScreenState extends State<EditProfileScreen>
       HapticFeedback.lightImpact();
 
       try {
-        // Call update profile API
-        await _authService.updateProfile(
+        // Call update profile API using AuthProvider
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        await authProvider.updateProfile(
           name: _nameController.text.trim(),
           phone: _phoneController.text.trim(),
           email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
