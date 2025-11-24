@@ -1631,6 +1631,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       'recent_donations'.tr(),
                       style: AppTextStyles.headlineMedium,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                     const SizedBox(height: AppConstants.defaultPadding),
                     
@@ -2505,10 +2507,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
+                      const SizedBox(width: 10),
+                      Flexible(
+                        flex: 1,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               donorName,
@@ -2522,6 +2526,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 4),
                             Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
                                   Icons.access_time,
@@ -2529,11 +2534,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                   color: AppColors.textSecondary.withOpacity(0.7),
                                 ),
                                 const SizedBox(width: 4),
-                                Text(
-                                  timeAgo,
-                                  style: AppTextStyles.bodySmall.copyWith(
-                                    color: AppColors.textSecondary.withOpacity(0.85),
-                                    fontSize: 11,
+                                Flexible(
+                                  child: Text(
+                                    timeAgo,
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.textSecondary.withOpacity(0.85),
+                                      fontSize: 11,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
                                   ),
                                 ),
                               ],
@@ -2541,34 +2550,41 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.primary.withOpacity(0.15),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        flex: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primary.withOpacity(0.15),
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.favorite,
-                              size: 12,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              '${amount.toStringAsFixed(0)} ${'riyal'.tr()}',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primaryDark,
-                                fontSize: 11,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.favorite,
+                                size: 12,
+                                color: AppColors.primary,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: Text(
+                                  '${amount.toStringAsFixed(0)} ${'riyal'.tr()}',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primaryDark,
+                                    fontSize: 11,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -2734,7 +2750,7 @@ class _HomeScreenState extends State<HomeScreen> {
       height: 150,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.only(left: 0, right: 0),
         itemCount: _recentDonations.length,
         itemBuilder: (context, index) {
           final donation = _recentDonations[index];
