@@ -87,38 +87,38 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
   bool _validateForm() {
     // التحقق من المبلغ
     if (_selectedAmount <= 0) {
-      _toast('يرجى اختيار مبلغ للتبرع');
+      _toast('please_choose_donation_amount_validation'.tr());
       return false;
     }
     
     // حد أدنى للمبلغ (1 ريال)
     const double minAmount = 1.0;
     if (_selectedAmount < minAmount) {
-      _toast('الحد الأدنى للمبلغ هو $minAmount ريال');
+      _toast('${'minimum_amount_is'.tr()} $minAmount ${'riyal'.tr()}');
       return false;
     }
     
     // حد أقصى للمبلغ (100,000 ريال) لحماية من القيم غير المعقولة
     const double maxAmount = 100000.0;
     if (_selectedAmount > maxAmount) {
-      _toast('الحد الأقصى للمبلغ هو ${maxAmount.toStringAsFixed(0)} ريال. يرجى الاتصال بالدعم للمبالغ الكبيرة');
+      _toast('${'maximum_amount_is'.tr()} ${maxAmount.toStringAsFixed(0)} ${'riyal'.tr()}. ${'maximum_amount_is'.tr()}');
       return false;
     }
     
     // التحقق من الاسم
     final donorName = _donorNameController.text.trim();
     if (donorName.isEmpty) {
-      _toast('يرجى إدخال اسم المتبرع');
+      _toast('please_enter_donor_name_validation'.tr());
       return false;
     }
     
     // التحقق من طول الاسم (2-100 حرف)
     if (donorName.length < 2) {
-      _toast('اسم المتبرع يجب أن يكون على الأقل حرفين');
+      _toast('donor_name_must_be_at_least_2_characters'.tr());
       return false;
     }
     if (donorName.length > 100) {
-      _toast('اسم المتبرع طويل جداً (الحد الأقصى 100 حرف)');
+      _toast('donor_name_too_long'.tr());
       return false;
     }
     
@@ -127,12 +127,12 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
     if (email.isNotEmpty) {
       final emailRegex = RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$');
       if (!emailRegex.hasMatch(email)) {
-        _toast('يرجى إدخال بريد إلكتروني صحيح');
+        _toast('please_enter_valid_email_validation_payment'.tr());
         return false;
       }
       // التحقق من طول البريد الإلكتروني
       if (email.length > 255) {
-        _toast('البريد الإلكتروني طويل جداً');
+        _toast('email_too_long'.tr());
         return false;
       }
     }
@@ -144,11 +144,11 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
       final cleanPhone = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
       // التحقق من أن الرقم يحتوي على أرقام فقط وطوله معقول (8-15 رقم)
       if (!RegExp(r'^[0-9]+$').hasMatch(cleanPhone)) {
-        _toast('يرجى إدخال رقم هاتف صحيح (أرقام فقط)');
+        _toast('please_enter_valid_phone'.tr());
         return false;
       }
       if (cleanPhone.length < 8 || cleanPhone.length > 15) {
-        _toast('رقم الهاتف يجب أن يكون بين 8 و 15 رقم');
+        _toast('phone_must_be_between_8_and_15_digits'.tr());
         return false;
       }
     }
@@ -156,7 +156,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
     // التحقق من طول الرسالة (إذا تم إدخالها)
     final message = _messageController.text.trim();
     if (message.isNotEmpty && message.length > 500) {
-      _toast('الرسالة طويلة جداً (الحد الأقصى 500 حرف)');
+      _toast('message_too_long'.tr());
       return false;
     }
     
@@ -239,7 +239,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
               if (provider.isPending) {
                 print('PaymentScreen: Payment is still pending, not showing success screen');
                 // نعرض رسالة الانتظار بدلاً من ذلك
-                _toast('جاري التحقق من حالة الدفع...', color: AppColors.info);
+                _toast('checking_payment_status_please_wait'.tr(), color: AppColors.info);
                 return;
               }
               
@@ -255,7 +255,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
           }
           
           final finalAmount = parsedResult.amount ?? _selectedAmount;
-          final finalCampaignTitle = parsedResult.campaignTitle ?? widget.campaignTitle ?? 'تبرع خيري';
+          final finalCampaignTitle = parsedResult.campaignTitle ?? widget.campaignTitle ?? 'charity_donation'.tr();
           final finalDonationId = parsedResult.donationId;
           final finalSessionId = parsedResult.sessionId ?? provider.currentSessionId;
           
@@ -271,7 +271,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
               builder: (_) => DonationSuccessScreen(
                 amount: finalAmount,
                 campaignTitle: finalCampaignTitle,
-                campaignCategory: widget.campaignCategory ?? 'تبرع عام',
+                campaignCategory: widget.campaignCategory ?? 'general_donation'.tr(),
                 donationId: finalDonationId,
                 sessionId: finalSessionId,
               ),
@@ -286,7 +286,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
             MaterialPageRoute(
               builder: (_) => PaymentFailedScreen(
                 errorMessage: provider.displayErrorMessage,
-                campaignTitle: widget.campaignTitle ?? 'تبرع خيري',
+                campaignTitle: widget.campaignTitle ?? 'charity_donation'.tr(),
                 amount: _selectedAmount,
               ),
             ),
@@ -301,8 +301,8 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
               MaterialPageRoute(
                 builder: (_) => DonationSuccessScreen(
                   amount: _selectedAmount,
-                  campaignTitle: widget.campaignTitle ?? 'تبرع خيري',
-                  campaignCategory: widget.campaignCategory ?? 'تبرع عام',
+                  campaignTitle: widget.campaignTitle ?? 'charity_donation'.tr(),
+                  campaignCategory: widget.campaignCategory ?? 'general_donation'.tr(),
                 ),
               ),
             );
@@ -313,7 +313,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
               MaterialPageRoute(
                 builder: (_) => PaymentFailedScreen(
                   errorMessage: provider.displayErrorMessage,
-                  campaignTitle: widget.campaignTitle ?? 'تبرع خيري',
+                  campaignTitle: widget.campaignTitle ?? 'charity_donation'.tr(),
                   amount: _selectedAmount,
                 ),
               ),
@@ -330,7 +330,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
           MaterialPageRoute(
             builder: (_) => PaymentFailedScreen(
               errorMessage: provider.displayErrorMessage,
-              campaignTitle: widget.campaignTitle ?? 'تبرع خيري',
+              campaignTitle: widget.campaignTitle ?? 'charity_donation'.tr(),
               amount: _selectedAmount,
             ),
           ),
@@ -339,7 +339,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
     } catch (e) {
       // معالجة الأخطاء بشكل آمن دون تسريب معلومات حساسة
       if (!mounted) return;
-      _toast('حدث خطأ أثناء معالجة الدفع. يرجى المحاولة مرة أخرى');
+      _toast('error_occurred_processing_payment'.tr());
       
       // إعادة تعيين حالة الدفع
       final provider = context.read<PaymentProvider>();
@@ -378,15 +378,15 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                           const Icon(Icons.payment, size: 48, color: AppColors.surface),
                           const SizedBox(height: 16),
                           Text(
-                            'إتمام التبرع',
-                            style: AppTextStyles.headlineLarge.copyWith(
-                              color: AppColors.surface,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          'complete_donation'.tr(),
+                          style: AppTextStyles.headlineLarge.copyWith(
+                            color: AppColors.surface,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'اختر مبلغ التبرع وأدخل بياناتك',
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'choose_donation_amount_and_enter_your_data'.tr(),
                             style: AppTextStyles.bodyLarge.copyWith(
                               color: AppColors.surface.withOpacity(0.9),
                             ),
@@ -416,13 +416,13 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildSection(
-                        title: 'اختر مبلغ التبرع',
+                        title: 'choose_donation_amount_title'.tr(),
                         icon: Icons.favorite_outline,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'مبالغ سريعة',
+                              'quick_amounts'.tr(),
                               style: AppTextStyles.titleMedium.copyWith(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
@@ -458,7 +458,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                                               : null,
                                         ),
                                         child: Text(
-                                          '${amount.toStringAsFixed(0)} ريال',
+                                          '${amount.toStringAsFixed(0)} ${'riyal'.tr()}',
                                           style: AppTextStyles.bodyMedium.copyWith(
                                             color: isSelected ? AppColors.surface : AppColors.textPrimary,
                                             fontWeight: FontWeight.w600,
@@ -472,7 +472,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                             ),
                             const SizedBox(height: 20),
                             Text(
-                              'أو أدخل مبلغاً مخصصاً',
+                              'or_enter_custom_amount_payment'.tr(),
                               style: AppTextStyles.titleMedium.copyWith(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
@@ -490,11 +490,11 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                                 keyboardType: TextInputType.number,
                                 style: AppTextStyles.bodyLarge,
                                 decoration: InputDecoration(
-                                  hintText: 'أدخل المبلغ بالريال',
+                                  hintText: 'enter_amount_in_riyal'.tr(),
                                   hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
                                   border: InputBorder.none,
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                                  suffixText: 'ريال',
+                                  suffixText: 'riyal'.tr(),
                                   suffixStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                                 ),
                                 onChanged: (value) {
@@ -517,24 +517,24 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                       const SizedBox(height: 32),
 
                       _buildSection(
-                        title: 'معلومات المتبرع',
+                        title: 'donor_information_title'.tr(),
                         icon: Icons.person_outline,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'اسم المتبرع *',
+                              'donor_name_required'.tr(),
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            _textField(controller: _donorNameController, hint: 'أدخل اسمك الكامل'),
+                            _textField(controller: _donorNameController, hint: 'enter_your_full_name'.tr()),
                             const SizedBox(height: 16),
 
                             Text(
-                              'البريد الإلكتروني (اختياري)',
+                              'email_optional'.tr(),
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
@@ -543,13 +543,13 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                             const SizedBox(height: 8),
                             _textField(
                               controller: _donorEmailController,
-                              hint: 'أدخل بريدك الإلكتروني',
+                              hint: 'enter_your_email'.tr(),
                               keyboardType: TextInputType.emailAddress,
                             ),
                             const SizedBox(height: 16),
 
                             Text(
-                              'رقم الهاتف (اختياري)',
+                              'phone_optional'.tr(),
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
@@ -558,13 +558,13 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                             const SizedBox(height: 8),
                             _textField(
                               controller: _donorPhoneController,
-                              hint: 'أدخل رقم هاتفك',
+                              hint: 'enter_your_phone'.tr(),
                               keyboardType: TextInputType.phone,
                             ),
                             const SizedBox(height: 16),
 
                             Text(
-                              'رسالة (اختياري)',
+                              'message_optional'.tr(),
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
@@ -573,7 +573,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                             const SizedBox(height: 8),
                             _textField(
                               controller: _messageController,
-                              hint: 'أضف رسالة مع تبرعك',
+                              hint: 'add_message_with_donation'.tr(),
                               maxLines: 3,
                             ),
                           ],
@@ -609,7 +609,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                                         ),
                                         const SizedBox(width: 12),
                                         Text(
-                                          'جاري إنشاء جلسة الدفع...',
+                                          'creating_payment_session'.tr(),
                                           style: AppTextStyles.buttonLarge.copyWith(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
@@ -624,7 +624,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                                         const Icon(Icons.payment, size: 24),
                                         const SizedBox(width: 12),
                                         Text(
-                                          'إتمام الدفع',
+                                          'complete_payment'.tr(),
                                           style: AppTextStyles.buttonLarge.copyWith(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
@@ -653,7 +653,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'جميع المدفوعات آمنة ومشفرة. بياناتك محمية بنسبة 100%',
+                                'all_payments_secure_encrypted'.tr(),
                                 style: AppTextStyles.bodySmall.copyWith(color: AppColors.info),
                               ),
                             ),

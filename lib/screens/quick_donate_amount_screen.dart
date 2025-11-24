@@ -217,8 +217,8 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
         body: jsonEncode({
           'campaign_id': campaignId,
           'amount': _selectedAmount,
-          'donor_name': 'متبرع',
-          'note': 'تبرع سريع للطلاب المحتاجين',
+          'donor_name': 'donor'.tr(),
+          'note': 'quick_donation_for_needy_students'.tr(),
           'is_anonymous': false,
           'type': 'quick',
           'return_origin': origin,
@@ -272,12 +272,12 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
         }
       } else {
         final errorData = jsonDecode(response.body);
-        final errorMessage = errorData['message'] ?? 'فشل في إنشاء جلسة الدفع';
+        final errorMessage = errorData['message'] ?? 'payment_failed_creating_session'.tr();
         throw Exception(errorMessage);
       }
     } catch (e) {
       print('❌ Error: $e');
-      _showErrorSnackBar('خطأ في إنشاء التبرع: $e');
+      _showErrorSnackBar('error_creating_donation'.tr());
     } finally {
       setState(() {
         _isLoading = false;

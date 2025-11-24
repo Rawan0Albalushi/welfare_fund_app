@@ -32,7 +32,7 @@ class LanguageSwitcher extends StatelessWidget {
           value: const Locale('ar'),
           child: Row(
             children: [
-              const Text('🇸🇦', style: TextStyle(fontSize: 20)),
+              const Text('🇴🇲', style: TextStyle(fontSize: 20)),
               const SizedBox(width: 8),
               Text('arabic'.tr()),
               if (context.locale.languageCode == 'ar')
@@ -77,7 +77,7 @@ class LanguageSwitcherButton extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ListTile(
-                    leading: const Text('🇸🇦', style: TextStyle(fontSize: 24)),
+                    leading: const Text('🇴🇲', style: TextStyle(fontSize: 24)),
                     title: Text('arabic'.tr()),
                     trailing: context.locale.languageCode == 'ar'
                         ? const Icon(Icons.check, color: AppColors.primary)

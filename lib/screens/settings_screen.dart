@@ -1134,7 +1134,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 context: context,
                 locale: const Locale('ar'),
                 languageName: 'arabic'.tr(),
-                flag: '🇸🇦',
+                flag: '🇴🇲',
               ),
               const SizedBox(height: 12),
               _buildLanguageOption(

@@ -411,7 +411,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
            normalizedStatus == 'تم الرفض';
   }
 
-  // Get status text in Arabic
+  // Get status text
   String _getStatusText(String status) {
     // Debug: Print status text decision
     print('=== Status Text Debug ===');
@@ -423,27 +423,27 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     switch (normalizedStatus) {
       case 'pending':
       case 'في الانتظار':
-        print('Status text: في الانتظار');
-        return 'في الانتظار';
+        print('Status text: ${'application_pending'.tr()}');
+        return 'application_pending'.tr();
       case 'under_review':
       case 'قيد المراجعة':
       case 'قيد الدراسة':
-        print('Status text: قيد المراجعة');
-        return 'قيد المراجعة';
+        print('Status text: ${'application_under_review'.tr()}');
+        return 'application_under_review'.tr();
       case 'approved':
       case 'accepted':
       case 'مقبول':
       case 'تم القبول':
-        print('Status text: تم القبول');
-        return 'تم القبول';
+        print('Status text: ${'application_approved'.tr()}');
+        return 'application_approved'.tr();
       case 'rejected':
       case 'مرفوض':
       case 'تم الرفض':
-        print('Status text: تم الرفض');
-        return 'تم الرفض';
+        print('Status text: ${'application_rejected'.tr()}');
+        return 'application_rejected'.tr();
       default:
-        print('Status text: في الانتظار (default)');
-        return 'في الانتظار';
+        print('Status text: ${'application_pending'.tr()} (default)');
+        return 'application_pending'.tr();
     }
   }
 
@@ -674,22 +674,22 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     switch (normalizedStatus) {
       case 'pending':
       case 'في الانتظار':
-        return 'طلبك في قائمة الانتظار. سيتم مراجعته قريباً من قبل اللجنة المختصة.';
+        return 'application_pending_description'.tr();
       case 'under_review':
       case 'قيد المراجعة':
       case 'قيد الدراسة':
-        return 'طلبك قيد المراجعة من قبل اللجنة المختصة. لا يمكن تعديل البيانات في هذه المرحلة.';
+        return 'application_under_review_description'.tr();
       case 'approved':
       case 'accepted':
       case 'مقبول':
       case 'تم القبول':
-        return 'مبروك! تم قبول طلبك. سيتم التواصل معك قريباً لتأكيد التفاصيل.';
+        return 'application_approved_description'.tr();
       case 'rejected':
       case 'مرفوض':
       case 'تم الرفض':
-        return 'للأسف تم رفض طلبك. اضغط على زر إعادة التسجيل لتعديل البيانات وإعادة التقديم.';
+        return 'application_rejected_description'.tr();
       default:
-        return 'طلبك في قائمة الانتظار. سيتم مراجعته قريباً.';
+        return 'application_pending_description'.tr();
     }
   }
 
@@ -803,7 +803,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'لم يتم العثور على برامج دعم متاحة. يرجى التواصل مع الإدارة لإضافة برامج الدعم.',
+                'error_loading_support_programs'.tr(),
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: Colors.white,
                 ),
@@ -828,8 +828,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'خطأ في تحميل برامج الدعم: ${error.toString()}',
+              content: Text(
+                '${'error_loading_programs_message'.tr()}: ${error.toString()}',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: Colors.white,
               ),
@@ -841,7 +841,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
             ),
             duration: const Duration(seconds: 5),
             action: SnackBarAction(
-              label: 'إعادة المحاولة',
+              label: 'retry_button'.tr(),
               textColor: Colors.white,
               onPressed: () {
                 _loadPrograms();
@@ -1144,7 +1144,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'خطأ في التسجيل: ${error.toString()}',
+                '${'registration_failed'.tr()}: ${error.toString()}',
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: AppColors.surface,
                 ),
@@ -1192,7 +1192,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
               ),
               const SizedBox(height: 20),
               Text(
-                'تم التسجيل بنجاح! 🎉',
+                'registration_successful_message'.tr(),
                 style: AppTextStyles.headlineSmall.copyWith(
                   color: AppColors.success,
                   fontWeight: FontWeight.bold,
@@ -1201,7 +1201,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
               ),
               const SizedBox(height: 12),
               Text(
-                'تم إرسال طلب التسجيل في صندوق الطالب الجامعي بنجاح. سيتم مراجعة طلبك والرد عليك في أقرب وقت ممكن.',
+                'registration_sent_successfully'.tr(),
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -1236,7 +1236,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                     ),
                   ),
                   child: Text(
-                    'حسناً',
+                    'ok_button'.tr(),
                     style: AppTextStyles.buttonMedium.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -2014,7 +2014,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'جاري تحميل البرامج...',
+                    'loading_programs'.tr(),
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -2037,7 +2037,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'لا توجد برامج متاحة',
+                            'no_programs_available_message'.tr(),
                             style: AppTextStyles.bodyMedium.copyWith(
                               color: AppColors.error,
                             ),
@@ -2111,7 +2111,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'يرجى اختيار البرنامج';
+                  return 'please_choose_program_validation'.tr();
                 }
                 return null;
               },
@@ -2122,7 +2122,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   String _getSelectedProgramName() {
     if (_selectedProgramId == null) {
       print('StudentRegistrationScreen: No program selected');
-      return 'لم يتم اختيار برنامج';
+      return 'please_choose_program_validation'.tr();
     }
     
     print('StudentRegistrationScreen: Looking for program with ID: $_selectedProgramId');
@@ -2138,7 +2138,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     
     if (selectedProgram.isEmpty) {
       print('StudentRegistrationScreen: Selected program is empty');
-      return 'برنامج غير محدد';
+      return 'please_choose_program_validation'.tr();
     }
     
     final programName = StudentRegistrationService.getLocalizedProgramName(selectedProgram, context.locale.languageCode);
@@ -2161,7 +2161,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'تم تحديث حالة الطلب إلى: في الانتظار',
+          '${'application_status_updated_to'.tr()}: ${'application_pending'.tr()}',
           style: AppTextStyles.bodyMedium.copyWith(
             color: Colors.white,
           ),
@@ -2252,7 +2252,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'تم تحديث حالة الطلب: ${_getStatusText(_applicationStatus)}',
+              '${'application_status_updated_to'.tr()}: ${_getStatusText(_applicationStatus)}',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: Colors.white,
               ),
@@ -2270,7 +2270,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'لم يتم العثور على طلب تسجيل',
+              'registration_not_found_message'.tr(),
               style: AppTextStyles.bodyMedium.copyWith(
                 color: Colors.white,
               ),
@@ -2291,7 +2291,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'خطأ في تحديث حالة الطلب: ${error.toString()}',
+            '${'error_updating_application_status'.tr()}: ${error.toString()}',
             style: AppTextStyles.bodyMedium.copyWith(
               color: Colors.white,
             ),

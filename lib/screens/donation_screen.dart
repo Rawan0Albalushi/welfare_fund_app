@@ -101,7 +101,7 @@ class _DonationScreenState extends State<DonationScreen> {
           'amount': amount,
           'donor_name': _donorNameController.text.trim(),
           'note': _noteController.text.trim().isEmpty 
-              ? 'تبرع للطلاب المحتاجين' 
+              ? 'quick_donation_for_needy_students'.tr() 
               : _noteController.text.trim(),
           'return_origin': origin, // إضافة return_origin
         }),
@@ -142,12 +142,12 @@ class _DonationScreenState extends State<DonationScreen> {
         }
       } else {
         final errorData = jsonDecode(response.body);
-        final errorMessage = errorData['message'] ?? 'فشل في إنشاء جلسة الدفع';
+        final errorMessage = errorData['message'] ?? 'payment_failed_creating_session'.tr();
         throw Exception(errorMessage);
       }
     } catch (e) {
       print('❌ Error: $e');
-      _showErrorSnackBar('خطأ في إنشاء التبرع: $e');
+      _showErrorSnackBar('error_creating_donation'.tr());
     } finally {
       setState(() {
         _isLoading = false;

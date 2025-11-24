@@ -537,7 +537,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
       // لا نطبع تفاصيل الخطأ في رسالة المستخدم لأسباب أمنية
       await _safePop({
         'state': PaymentState.paymentFailed.name,
-        'error': 'حدث خطأ في التحقق من حالة الدفع',
+        'error': 'error_loading_payment_page'.tr(),
       });
     }
   }
@@ -768,7 +768,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.surface,
           title: Text(
-            'جاري إتمام الدفع...',
+            'processing_payment_please_wait'.tr(),
             style: AppTextStyles.titleLarge.copyWith(
               color: AppColors.surface,
               fontWeight: FontWeight.bold,
@@ -788,7 +788,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'جاري التحقق من حالة الدفع...',
+                  'checking_payment_status_please_wait_short'.tr(),
                   style: AppTextStyles.headlineSmall.copyWith(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
@@ -797,7 +797,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'يرجى الانتظار قليلاً',
+                  'please_wait_moment'.tr(),
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -929,7 +929,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.surface,
           title: Text(
-            'إتمام الدفع',
+            'complete_payment'.tr(),
             style: AppTextStyles.titleLarge.copyWith(
               color: AppColors.surface,
               fontWeight: FontWeight.bold,
@@ -1028,7 +1028,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'جاري تحميل صفحة الدفع...',
+                        'loading_payment_page'.tr(),
                         style: AppTextStyles.bodyLarge.copyWith(
                           color: AppColors.textPrimary,
                         ),

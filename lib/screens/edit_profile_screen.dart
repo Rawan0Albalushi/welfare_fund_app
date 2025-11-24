@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../services/auth_service.dart';
@@ -119,7 +120,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                     onPressed: () => Navigator.pop(context),
                   ),
                   title: Text(
-                    'تعديل الملف الشخصي',
+                    'edit_profile_title'.tr(),
                     style: AppTextStyles.headlineMedium.copyWith(
                       color: AppColors.textPrimary,
                     ),
@@ -189,7 +190,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'الملف الشخصي',
+                                      'profile'.tr(),
                                       style: AppTextStyles.headlineSmall.copyWith(
                                         color: AppColors.surface,
                                         fontWeight: FontWeight.bold,
@@ -197,7 +198,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'تحديث معلوماتك الشخصية',
+                                      'update_your_personal_information'.tr(),
                                       style: AppTextStyles.bodyMedium.copyWith(
                                         color: AppColors.surface.withOpacity(0.9),
                                       ),
@@ -241,7 +242,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                     ),
                                     const SizedBox(width: 12),
                                     Text(
-                                      'معلومات الحساب',
+                                      'account_information'.tr(),
                                       style: AppTextStyles.headlineSmall.copyWith(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.textPrimary,
@@ -254,16 +255,16 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                 // Name Field
                                 _buildTextField(
                                   controller: _nameController,
-                                  label: 'الاسم الكامل *',
-                                  hint: 'أدخل اسمك الكامل',
+                                  label: '${'full_name'.tr()} *',
+                                  hint: 'please_enter_full_name_validation'.tr(),
                                   icon: Icons.person_outline,
                                   keyboardType: TextInputType.name,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'يرجى إدخال الاسم الكامل';
+                                      return 'please_enter_full_name_validation'.tr();
                                     }
                                     if (value.trim().length < 2) {
-                                      return 'الاسم يجب أن يكون حرفين على الأقل';
+                                      return 'name_must_be_at_least_2_characters'.tr();
                                     }
                                     return null;
                                   },
@@ -273,18 +274,18 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                 // Phone Field (Read-only)
                                 _buildTextField(
                                   controller: _phoneController,
-                                  label: 'رقم الهاتف *',
-                                  hint: 'أدخل رقم هاتفك',
+                                  label: '${'phone_number'.tr()} *',
+                                  hint: 'please_enter_phone_validation'.tr(),
                                   icon: Icons.phone_outlined,
                                   keyboardType: TextInputType.phone,
                                   readOnly: true,
                                   enabled: false,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'يرجى إدخال رقم الهاتف';
+                                      return 'please_enter_phone_validation'.tr();
                                     }
                                     if (value.length != 8) {
-                                      return 'رقم الهاتف يجب أن يكون 8 أرقام';
+                                      return 'phone_must_be_8_digits'.tr();
                                     }
                                     return null;
                                   },
@@ -294,15 +295,15 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                 // Email Field
                                 _buildTextField(
                                   controller: _emailController,
-                                  label: 'البريد الإلكتروني',
-                                  hint: 'أدخل بريدك الإلكتروني',
+                                  label: 'email'.tr(),
+                                  hint: 'please_enter_email'.tr(),
                                   icon: Icons.email_outlined,
                                   keyboardType: TextInputType.emailAddress,
                                   validator: (value) {
                                     if (value != null && value.isNotEmpty) {
                                       if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                                           .hasMatch(value)) {
-                                        return 'يرجى إدخال بريد إلكتروني صحيح';
+                                        return 'please_enter_valid_email_validation'.tr();
                                       }
                                     }
                                     return null;
@@ -454,7 +455,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                   ),
                 const SizedBox(width: 12),
                 Text(
-                  _isSaving ? 'جاري الحفظ...' : 'حفظ التغييرات',
+                  _isSaving ? 'saving'.tr() : 'save_changes'.tr(),
                   style: AppTextStyles.buttonLarge.copyWith(
                     color: AppColors.surface,
                   ),
@@ -492,7 +493,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'تم تحديث الملف الشخصي بنجاح!',
+                'profile_updated_successfully'.tr(),
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: AppColors.surface,
                 ),

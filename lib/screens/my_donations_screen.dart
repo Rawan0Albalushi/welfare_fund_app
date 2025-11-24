@@ -53,7 +53,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       if (!isAuthenticated) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'يجب تسجيل الدخول أولاً لعرض التبرعات';
+          _errorMessage = 'must_login_first_to_view_donations'.tr();
         });
         return;
       }
@@ -63,7 +63,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       print('MyDonationsScreen: Auth check error: $e');
       setState(() {
         _isLoading = false;
-        _errorMessage = 'خطأ في التحقق من تسجيل الدخول: $e';
+        _errorMessage = '${'error_checking_login'.tr()}: $e';
       });
     }
   }
@@ -118,7 +118,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
         itemType: 'campaign',
         amount: 10.0, // 10 OMR
         donorName: 'Test User',
-        message: 'تبرع تجريبي للاختبار',
+        message: 'test_donation_for_testing'.tr(),
         isAnonymous: false,
         returnOrigin: origin,
       );
@@ -140,7 +140,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       print('MyDonationsScreen: Error creating test donation: $e');
       setState(() {
         _isLoading = false;
-        _errorMessage = 'خطأ في إنشاء التبرع التجريبي: $e';
+        _errorMessage = '${'error_creating_test_donation'.tr()}: $e';
       });
     }
   }
@@ -229,7 +229,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       print('MyDonationsScreen: Error checking last donation: $e');
       setState(() {
         _isLoading = false;
-        _errorMessage = 'خطأ في فحص آخر تبرع: $e';
+        _errorMessage = '${'error_checking_last_donation'.tr()}: $e';
       });
     }
   }
@@ -238,10 +238,10 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
     print('MyDonationsScreen: Filtering donations with filter: $_selectedFilter');
     print('MyDonationsScreen: Total donations: ${_donations.length}');
     
-    if (_selectedFilter == 'الكل') {
+    if (_selectedFilter == 'all') {
       print('MyDonationsScreen: Returning all donations: ${_donations.length}');
       return _donations;
-    } else if (_selectedFilter == 'هذا الشهر') {
+    } else if (_selectedFilter == 'this_month') {
       final now = DateTime.now();
       final startOfMonth = DateTime(now.year, now.month, 1);
       final filtered = _donations.where((donation) => 
@@ -249,7 +249,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       ).toList();
       print('MyDonationsScreen: This month donations: ${filtered.length}');
       return filtered;
-    } else if (_selectedFilter == 'هذا العام') {
+    } else if (_selectedFilter == 'this_year') {
       final now = DateTime.now();
       final startOfYear = DateTime(now.year, 1, 1);
       final filtered = _donations.where((donation) => 
@@ -257,25 +257,25 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       ).toList();
       print('MyDonationsScreen: This year donations: ${filtered.length}');
       return filtered;
-    } else if (_selectedFilter == 'مكتمل') {
+    } else if (_selectedFilter == 'completed') {
       final filtered = _donations.where((donation) => 
         donation.isPaid || donation.isCompleted
       ).toList();
       print('MyDonationsScreen: Completed donations: ${filtered.length}');
       return filtered;
-    } else if (_selectedFilter == 'في الانتظار') {
+    } else if (_selectedFilter == 'pending') {
       final filtered = _donations.where((donation) => 
         donation.isPending
       ).toList();
       print('MyDonationsScreen: Pending donations: ${filtered.length}');
       return filtered;
-    } else if (_selectedFilter == 'ملغي') {
+    } else if (_selectedFilter == 'cancelled') {
       final filtered = _donations.where((donation) => 
         donation.isCancelled
       ).toList();
       print('MyDonationsScreen: Cancelled donations: ${filtered.length}');
       return filtered;
-    } else if (_selectedFilter == 'فشل') {
+    } else if (_selectedFilter == 'failed') {
       final filtered = _donations.where((donation) => 
         donation.isFailed
       ).toList();
@@ -305,14 +305,14 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
     final difference = now.difference(date).inDays;
     
     if (difference == 0) {
-      return 'اليوم';
+      return 'today_date'.tr();
     } else if (difference == 1) {
-      return 'أمس';
+      return 'yesterday_date'.tr();
     } else if (difference < 7) {
-      return 'منذ $difference أيام';
+      return '$difference ${difference == 1 ? 'day_ago'.tr() : 'days_ago'.tr()}';
     } else if (difference < 30) {
       final weeks = (difference / 7).floor();
-      return 'منذ $weeks أسابيع';
+      return '$weeks ${weeks == 1 ? 'week_ago'.tr() : 'weeks_ago'.tr()}';
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }
@@ -348,30 +348,49 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
     }
   }
 
-  Color _getCategoryColor(String category) {
-    switch (category) {
-      case 'برنامج':
-        return Colors.blue;
-      case 'حملة':
-        return Colors.green;
-      case 'عام':
-        return Colors.orange;
+  String _getFilterTranslation(String filter) {
+    switch (filter) {
+      case 'all':
+        return 'all'.tr();
+      case 'this_month':
+        return 'this_month'.tr();
+      case 'this_year':
+        return 'this_year'.tr();
+      case 'completed':
+        return 'completed'.tr();
+      case 'pending':
+        return 'pending'.tr();
+      case 'cancelled':
+        return 'cancelled'.tr();
+      case 'failed':
+        return 'failed'.tr();
       default:
-        return AppColors.primary;
+        return filter;
     }
   }
 
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'برنامج':
-        return Icons.school;
-      case 'حملة':
-        return Icons.campaign;
-      case 'عام':
-        return Icons.favorite;
-      default:
-        return Icons.category;
+  Color _getCategoryColor(String category) {
+    final categoryLower = category.toLowerCase();
+    if (categoryLower.contains('program') || categoryLower.contains('برنامج')) {
+      return Colors.blue;
+    } else if (categoryLower.contains('campaign') || categoryLower.contains('حملة')) {
+      return Colors.green;
+    } else if (categoryLower.contains('general') || categoryLower.contains('عام')) {
+      return Colors.orange;
     }
+    return AppColors.primary;
+  }
+
+  IconData _getCategoryIcon(String category) {
+    final categoryLower = category.toLowerCase();
+    if (categoryLower.contains('program') || categoryLower.contains('برنامج')) {
+      return Icons.school;
+    } else if (categoryLower.contains('campaign') || categoryLower.contains('حملة')) {
+      return Icons.campaign;
+    } else if (categoryLower.contains('general') || categoryLower.contains('عام')) {
+      return Icons.favorite;
+    }
+    return Icons.category;
   }
 
   @override
@@ -448,14 +467,14 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'إجمالي التبرعات',
+                          'total_donations'.tr(),
                           style: AppTextStyles.bodyMedium.copyWith(
                             color: AppColors.surface.withOpacity(0.9),
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${_totalAmount.toStringAsFixed(0)} ريال',
+                          '${_totalAmount.toStringAsFixed(0)} ${'riyal'.tr()}',
                           style: AppTextStyles.titleLarge.copyWith(
                             color: AppColors.surface,
                             fontWeight: FontWeight.bold,
@@ -467,7 +486,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          'عدد التبرعات',
+                          'number_of_donations'.tr(),
                           style: AppTextStyles.bodyMedium.copyWith(
                             color: AppColors.surface.withOpacity(0.9),
                           ),
@@ -517,7 +536,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                           ),
                           child: Center(
                             child: Text(
-                              filter.tr(),
+                              _getFilterTranslation(filter),
                               style: AppTextStyles.bodySmall.copyWith(
                                 color: isSelected ? AppColors.surface : AppColors.textPrimary,
                                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -616,7 +635,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'جاري تحميل التبرعات...',
+              'loading_donations'.tr(),
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -726,11 +745,11 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
     if (donation.isPaid || donation.isCompleted) {
       statusColor = AppColors.success;
       statusIcon = Icons.check_circle;
-      statusText = 'مكتمل';
+      statusText = 'completed_status'.tr();
     } else if (donation.isPending) {
       statusColor = AppColors.warning;
       statusIcon = Icons.schedule;
-      statusText = 'في الانتظار';
+      statusText = 'pending_status'.tr();
     } else if (donation.isCancelled) {
       statusColor = AppColors.textSecondary;
       statusIcon = Icons.cancel;
@@ -763,11 +782,11 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                    donation.message?.contains('gift') == true;
     
     // Determine category
-    String category = 'عام';
+    String category = 'general'.tr();
     if (donation.programId != null) {
-      category = 'برنامج';
+      category = 'program'.tr();
     } else if (donation.campaignId != null) {
-      category = 'حملة';
+      category = 'campaign'.tr();
     }
     
     showModalBottomSheet(
@@ -802,7 +821,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      'تفاصيل التبرع',
+                      'donation_details_title'.tr(),
                       style: AppTextStyles.headlineSmall.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
@@ -835,14 +854,14 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                       child: Column(
                         children: [
                           Text(
-                            'مبلغ التبرع',
+                            'donation_amount_label'.tr(),
                             style: AppTextStyles.bodyMedium.copyWith(
                               color: AppColors.surface.withOpacity(0.9),
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '${donation.amount.toStringAsFixed(0)} ريال عماني',
+                            '${donation.amount.toStringAsFixed(0)} ${'omani_riyal'.tr()}',
                             style: AppTextStyles.headlineMedium.copyWith(
                               color: AppColors.surface,
                               fontWeight: FontWeight.bold,
@@ -851,7 +870,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                           if (donation.paidAmount != null && donation.paidAmount != donation.amount) ...[
                             const SizedBox(height: 8),
                             Text(
-                              'المبلغ المدفوع: ${donation.paidAmount!.toStringAsFixed(0)} ريال',
+                              '${'paid_amount'.tr()}: ${donation.paidAmount!.toStringAsFixed(0)} ${'riyal'.tr()}',
                               style: AppTextStyles.bodySmall.copyWith(
                                 color: AppColors.surface.withOpacity(0.8),
                               ),
@@ -865,7 +884,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                     _buildDetailRow(
                       icon: statusInfo['icon'],
                       iconColor: statusInfo['color'],
-                      label: 'الحالة',
+                      label: 'status_label'.tr(),
                       value: statusInfo['text'],
                       valueColor: statusInfo['color'],
                     ),
@@ -874,25 +893,25 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                     _buildDetailRow(
                       icon: Icons.calendar_today,
                       iconColor: AppColors.textSecondary,
-                      label: 'تاريخ التبرع',
+                      label: 'donation_date_label'.tr(),
                       value: '${donation.date.day}/${donation.date.month}/${donation.date.year}',
                     ),
                     const SizedBox(height: 16),
                     // Category
-                    if (category != 'عام')
+                    if (category != 'general'.tr())
                       _buildDetailRow(
-                        icon: category == 'برنامج' ? Icons.school : Icons.campaign,
+                        icon: category == 'program'.tr() ? Icons.school : Icons.campaign,
                         iconColor: AppColors.primary,
-                        label: 'النوع',
+                        label: 'type_label'.tr(),
                         value: category,
                       ),
-                    if (category != 'عام') const SizedBox(height: 16),
+                    if (category != 'general'.tr()) const SizedBox(height: 16),
                     // Program/Campaign Name
                     if (donation.programName != null || donation.campaignName != null || donation.campaignNameEn != null)
                       _buildDetailRow(
                         icon: Icons.info_outline,
                         iconColor: AppColors.primary,
-                        label: donation.programName != null ? 'البرنامج' : 'الحملة',
+                        label: donation.programName != null ? 'program'.tr() : 'campaign'.tr(),
                         value: donation.programName ?? donation.getLocalizedCampaignName(context.locale.languageCode) ?? '',
                       ),
                     if (donation.programName != null || donation.campaignName != null || donation.campaignNameEn != null) const SizedBox(height: 16),
@@ -913,7 +932,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'تبرع مهدى',
+                              'gift_donation_badge'.tr(),
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w600,
@@ -928,7 +947,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                       _buildDetailRow(
                         icon: Icons.person_outline,
                         iconColor: AppColors.textSecondary,
-                        label: 'اسم المتبرع',
+                        label: 'donor_name_required'.tr(),
                         value: donation.donorName!,
                       ),
                     if (donation.donorName != null && !donation.isAnonymous) const SizedBox(height: 16),
@@ -949,7 +968,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'تبرع مجهول',
+                              'anonymous_donation_badge'.tr(),
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: AppColors.textSecondary,
                               ),
@@ -962,7 +981,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                     _buildDetailRow(
                       icon: Icons.tag,
                       iconColor: AppColors.textSecondary,
-                      label: 'رقم التبرع',
+                      label: 'donation_id_label'.tr(),
                       value: donation.id,
                     ),
                   ],
@@ -1052,7 +1071,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                       ),
                     ),
                     Text(
-                      'ريال',
+                      'riyal'.tr(),
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textSecondary,
                         fontSize: 11,
@@ -1069,7 +1088,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                   children: [
                     // Title - Campaign name first
                     Text(
-                      donation.getLocalizedCampaignName(context.locale.languageCode) ?? donation.programName ?? 'تبرع خيري',
+                      donation.getLocalizedCampaignName(context.locale.languageCode) ?? donation.programName ?? 'charity_donation'.tr(),
                       style: AppTextStyles.bodyLarge.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w600,
@@ -1155,7 +1174,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'مرحباً بك في صفحة تبرعاتك',
+              'welcome_to_donations_page'.tr(),
               style: AppTextStyles.headlineMedium.copyWith(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
@@ -1163,7 +1182,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'اضغط على زر "تحميل التبرعات" لعرض\nجميع تبرعاتك السابقة',
+              'click_load_donations_button'.tr(),
               style: AppTextStyles.bodyLarge.copyWith(
                 color: AppColors.textSecondary,
                 height: 1.6,
@@ -1205,7 +1224,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      'تحميل التبرعات',
+                      'load_donations'.tr(),
                       style: AppTextStyles.buttonLarge.copyWith(
                         color: AppColors.surface,
                         fontWeight: FontWeight.bold,
@@ -1252,7 +1271,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'لا توجد تبرعات بعد',
+              'no_donations_yet'.tr(),
               style: AppTextStyles.headlineMedium.copyWith(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
@@ -1260,7 +1279,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'عندما تقوم بالتبرع، ستظهر تبرعاتك هنا\nلتتمكن من متابعة تاريخ تبرعاتك',
+              'when_you_donate_will_appear_here'.tr(),
               style: AppTextStyles.bodyLarge.copyWith(
                 color: AppColors.textSecondary,
                 height: 1.6,
@@ -1304,7 +1323,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      'ابدأ التبرع الآن',
+                      'start_donating_now'.tr(),
                       style: AppTextStyles.buttonLarge.copyWith(
                         color: AppColors.surface,
                         fontWeight: FontWeight.bold,

@@ -238,6 +238,8 @@
   "gift": "مهداة",
   "completed": "مكتمل",
   "pending": "في الانتظار",
+  "approved": "مقبول",
+  "rejected": "مرفوض",
   "cancelled": "ملغي",
   "failed": "فشل",
   
@@ -408,6 +410,8 @@
   "hours_ago": "ساعات",
   "minute_ago": "دقيقة",
   "minutes_ago": "دقائق",
+  "week_ago": "أسبوع",
+  "weeks_ago": "أسابيع",
   
   "program_statistics": "إحصائيات البرنامج",
   "donation_security_notice": "تأمين التبرعات - جميع المعاملات آمنة ومشفرة",
@@ -460,5 +464,113 @@
   "error_loading_image": "خطأ في تحميل الصورة",
   "image_not_available": "الصورة غير متاحة",
   "no_content": "لا يوجد محتوى",
-  "content_not_available": "المحتوى غير متاح حالياً"
+  "content_not_available": "المحتوى غير متاح حالياً",
+  
+  "optional": "اختياري",
+  "please_enter_full_name_validation": "يرجى إدخال اسمك الكامل",
+  "name_must_be_at_least_2_characters": "الاسم يجب أن يكون حرفين على الأقل",
+  "please_enter_phone_validation": "يرجى إدخال رقم هاتفك",
+  "phone_must_be_8_digits": "رقم الهاتف يجب أن يكون 8 أرقام",
+  "please_enter_valid_email_validation": "يرجى إدخال بريد إلكتروني صحيح",
+  "edit_profile_title": "تعديل الملف الشخصي",
+  "profile": "الملف الشخصي",
+  "update_your_personal_information": "تحديث معلوماتك الشخصية",
+  "account_information": "معلومات الحساب",
+  "saving": "جاري الحفظ...",
+  "save_changes": "حفظ التغييرات",
+  "profile_updated_successfully": "تم تحديث الملف الشخصي بنجاح!",
+  "please_choose_donation_amount_validation": "يرجى اختيار مبلغ للتبرع",
+  "minimum_amount_is": "الحد الأدنى للمبلغ هو",
+  "maximum_amount_is": "يرجى التواصل مع الدعم للمبالغ الكبيرة",
+  "please_enter_donor_name_validation": "يرجى إدخال اسم المتبرع",
+  "donor_name_must_be_at_least_2_characters": "اسم المتبرع يجب أن يكون حرفين على الأقل",
+  "donor_name_too_long": "اسم المتبرع طويل جداً (الحد الأقصى 100 حرف)",
+  "please_enter_valid_email_validation_payment": "يرجى إدخال بريد إلكتروني صحيح",
+  "email_too_long": "البريد الإلكتروني طويل جداً",
+  "please_enter_valid_phone": "يرجى إدخال رقم هاتف صحيح (أرقام فقط)",
+  "phone_must_be_between_8_and_15_digits": "رقم الهاتف يجب أن يكون بين 8 و 15 رقم",
+  "message_too_long": "الرسالة طويلة جداً (الحد الأقصى 500 حرف)",
+  "checking_payment_status_please_wait": "جاري التحقق من حالة الدفع، يرجى الانتظار...",
+  "charity_donation": "تبرع خيري",
+  "general_donation": "تبرع عام",
+  "complete_donation": "إتمام التبرع",
+  "choose_donation_amount_and_enter_your_data": "اختر مبلغ التبرع وأدخل بياناتك",
+  "choose_donation_amount_title": "اختر مبلغ التبرع",
+  "quick_amounts": "مبالغ سريعة",
+  "or_enter_custom_amount_payment": "أو أدخل مبلغاً مخصصاً",
+  "enter_amount_in_riyal": "أدخل المبلغ بالريال",
+  "donor_information_title": "معلومات المتبرع",
+  "donor_name_required": "اسم المتبرع *",
+  "enter_your_full_name": "أدخل اسمك الكامل",
+  "email_optional": "البريد الإلكتروني (اختياري)",
+  "enter_your_email": "أدخل بريدك الإلكتروني",
+  "phone_optional": "رقم الهاتف (اختياري)",
+  "enter_your_phone": "أدخل رقم هاتفك",
+  "message_optional": "رسالة (اختياري)",
+  "add_message_with_donation": "أضف رسالة مع تبرعك",
+  "creating_payment_session": "جاري إنشاء جلسة الدفع...",
+  "all_payments_secure_encrypted": "جميع المدفوعات آمنة ومشفرة. بياناتك محمية بنسبة 100%",
+  "error_occurred_processing_payment": "حدث خطأ أثناء معالجة الدفع. يرجى المحاولة مرة أخرى",
+  "total_donations": "إجمالي التبرعات",
+  "number_of_donations": "عدد التبرعات",
+  "loading_donations": "جاري تحميل التبرعات...",
+  "completed_status": "مكتمل",
+  "pending_status": "في الانتظار",
+  "today_date": "اليوم",
+  "yesterday_date": "أمس",
+  "days_ago_format": "أيام مضت",
+  "weeks_ago_format": "أسابيع مضت",
+  "program_category": "برنامج",
+  "campaign_category": "حملة",
+  "general_category": "عام",
+  "donation_details_title": "تفاصيل التبرع",
+  "donation_amount_label": "مبلغ التبرع",
+  "omani_riyal": "ريال عماني",
+  "paid_amount": "المبلغ المدفوع",
+  "status_label": "الحالة",
+  "donation_date_label": "تاريخ التبرع",
+  "type_label": "النوع",
+  "gift_donation_badge": "تبرع مهدى",
+  "anonymous_donation_badge": "تبرع مجهول",
+  "donation_id_label": "رقم التبرع",
+  "welcome_to_donations_page": "مرحباً بك في صفحة تبرعاتك",
+  "click_load_donations_button": "اضغط على زر \"تحميل التبرعات\" لعرض\nجميع تبرعاتك السابقة",
+  "load_donations": "تحميل التبرعات",
+  "no_donations_yet": "لا توجد تبرعات بعد",
+  "when_you_donate_will_appear_here": "عندما تقوم بالتبرع، ستظهر تبرعاتك هنا\nلتتمكن من متابعة تاريخ تبرعاتك",
+  "start_donating_now": "ابدأ التبرع الآن",
+  "must_login_first_to_view_donations": "يجب تسجيل الدخول أولاً لعرض التبرعات",
+  "error_checking_login": "خطأ في التحقق من تسجيل الدخول",
+  "test_donation_for_testing": "تبرع تجريبي للاختبار",
+  "error_creating_test_donation": "خطأ في إنشاء التبرع التجريبي",
+  "error_checking_last_donation": "خطأ في فحص آخر تبرع",
+  "all_filter": "الكل",
+  "this_month_filter": "هذا الشهر",
+  "this_year_filter": "هذا العام",
+  "completed_filter": "مكتمل",
+  "pending_filter": "في الانتظار",
+  "cancelled_filter": "ملغي",
+  "failed_filter": "فشل",
+  "error_loading_payment_page": "خطأ في تحميل صفحة الدفع",
+  "processing_payment_please_wait": "جاري معالجة الدفع، يرجى الانتظار...",
+  "checking_payment_status_please_wait_short": "جاري التحقق من حالة الدفع، يرجى الانتظار",
+  "please_wait_moment": "يرجى الانتظار قليلاً",
+  "complete_payment": "إتمام الدفع",
+  "registration_successful_message": "تم التسجيل بنجاح! 🎉",
+  "registration_sent_successfully": "تم إرسال طلب التسجيل في صندوق الطالب الجامعي بنجاح. سيتم مراجعة طلبك والرد عليك في أقرب وقت ممكن.",
+  "ok_button": "حسناً",
+  "application_status_updated_to": "تم تحديث حالة الطلب إلى",
+  "registration_not_found_message": "لم يتم العثور على طلب تسجيل",
+  "error_updating_application_status": "خطأ في تحديث حالة الطلب",
+  "loading_programs": "جاري تحميل البرامج...",
+  "no_programs_available_message": "لا توجد برامج متاحة",
+  "please_choose_program_validation": "يرجى اختيار البرنامج",
+  "error_loading_support_programs": "خطأ في تحميل برامج الدعم. يرجى التواصل مع الإدارة لإضافة برامج الدعم.",
+  "error_loading_programs_message": "خطأ في تحميل برامج الدعم",
+  "retry_button": "إعادة المحاولة",
+  "payment_failed_creating_session": "فشل في إنشاء جلسة الدفع",
+  "error_creating_donation": "خطأ في إنشاء التبرع",
+  "quick_donation_for_needy_students": "تبرع سريع للطلاب المحتاجين",
+  "cannot_open_link": "لا يمكن فتح الرابط",
+  "error_opening_link": "خطأ في فتح الرابط"
 }

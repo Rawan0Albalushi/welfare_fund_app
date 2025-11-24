@@ -376,7 +376,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  'اختياري',
+                  'optional'.tr(),
                   style: AppTextStyles.labelSmall.copyWith(
                     color: AppColors.textSecondary,
                   ),
