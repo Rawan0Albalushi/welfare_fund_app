@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
@@ -101,7 +102,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
     // حد أقصى للمبلغ (100,000 ريال) لحماية من القيم غير المعقولة
     const double maxAmount = 100000.0;
     if (_selectedAmount > maxAmount) {
-      _toast('${'maximum_amount_is'.tr()} ${maxAmount.toStringAsFixed(0)} ${'riyal'.tr()}. ${'maximum_amount_is'.tr()}');
+      _toast('${'maximum_amount_is'.tr()} ${maxAmount.toStringAsFixed(0)} ${'riyal'.tr()}');
       return false;
     }
     

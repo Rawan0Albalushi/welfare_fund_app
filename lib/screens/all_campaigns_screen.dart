@@ -35,13 +35,17 @@ class _AllCampaignsScreenState extends State<AllCampaignsScreen> {
   void initState() {
     super.initState();
     _campaigns = List<Campaign>.from(widget.initialCampaigns);
-    _updateCategories(_campaigns);
-    _filteredCampaigns = _applyFilter(_searchController.text, _campaigns);
     if (_campaigns.isEmpty) {
       _isLoading = true;
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // تأجيل استدعاء الدوال التي تستخدم context حتى بعد اكتمال initState
+      setState(() {
+        _updateCategories(_campaigns);
+        _filteredCampaigns = _applyFilter(_searchController.text, _campaigns);
+      });
       _fetchAllCampaigns();
     });
   }
