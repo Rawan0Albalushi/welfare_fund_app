@@ -83,16 +83,6 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
         _donations = donations;
         _isLoading = false;
       });
-      
-      if (donations.isEmpty && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('no_donations_found'.tr()),
-            backgroundColor: AppColors.info,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
     } catch (e) {
       print('MyDonationsScreen: Error loading donations: $e');
       setState(() {
@@ -410,21 +400,23 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
               ),
             ),
             actions: [
-              IconButton(
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+              // Only show refresh icon when there are donations
+              if (_donations.isNotEmpty)
+                IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.refresh,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.refresh,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
+                  onPressed: _checkAuthAndLoadDonations,
                 ),
-                onPressed: _checkAuthAndLoadDonations,
-              ),
             ],
             centerTitle: true,
             backgroundColor: Colors.white,
@@ -1150,7 +1142,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Welcome Icon
+            // Enhanced Empty State Icon
             Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
@@ -1167,72 +1159,27 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                 ),
               ),
               child: const Icon(
-                Icons.history_rounded,
+                Icons.volunteer_activism_rounded,
                 size: 64,
                 color: AppColors.primary,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Text(
-              'welcome_to_donations_page'.tr(),
+              'no_donations_yet'.tr(),
               style: AppTextStyles.headlineMedium.copyWith(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
-              'click_load_donations_button'.tr(),
+              'when_you_donate_will_appear_here'.tr(),
               style: AppTextStyles.bodyLarge.copyWith(
                 color: AppColors.textSecondary,
                 height: 1.6,
               ),
               textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            // Load Donations Button
-            Container(
-              width: double.infinity,
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: ElevatedButton(
-                onPressed: _checkAuthAndLoadDonations,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.download_rounded,
-                      color: AppColors.surface,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'load_donations'.tr(),
-                      style: AppTextStyles.buttonLarge.copyWith(
-                        color: AppColors.surface,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ],
         ),
@@ -1269,69 +1216,22 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
                 color: AppColors.primary,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Text(
-              'no_donations_yet'.tr(),
+              'no_donations_found_for_filter'.tr(),
               style: AppTextStyles.headlineMedium.copyWith(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
-              'when_you_donate_will_appear_here'.tr(),
+              'try_different_filter_or_check_back_later'.tr(),
               style: AppTextStyles.bodyLarge.copyWith(
                 color: AppColors.textSecondary,
                 height: 1.6,
               ),
               textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            // Call to Action Button
-            Container(
-              width: double.infinity,
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.add_rounded,
-                      color: AppColors.surface,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'start_donating_now'.tr(),
-                      style: AppTextStyles.buttonLarge.copyWith(
-                        color: AppColors.surface,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ],
         ),
