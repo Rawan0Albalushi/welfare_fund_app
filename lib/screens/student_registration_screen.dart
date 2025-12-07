@@ -384,9 +384,14 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   }
 
   // Check if the form should be read-only
-  // Returns true for: under_review, accepted, completed
-  // Returns false for: rejected (allows editing for re-submission)
+  // Returns true for: under_review, accepted, completed (only when existingData is present)
+  // Returns false for: new registration (no existingData), rejected (allows editing for re-submission)
   bool get _isReadOnly {
+    // If no existing data, this is a new registration - allow editing
+    if (widget.existingData == null) {
+      return false;
+    }
+    
     // Normalize status
     String normalizedStatus = _applicationStatus.toLowerCase();
     
@@ -1171,9 +1176,13 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     // تحديث حالة الطلب فوراً
     _updateApplicationStatus();
     
+    // حفظ navigator قبل فتح الـ dialog
+    final navigator = Navigator.of(context);
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      barrierDismissible: false, // منع الإغلاق بالضغط خارج الـ dialog
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -1216,21 +1225,17 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () async {
-                    Navigator.of(context).pop(); // Close success dialog
+                  onPressed: () {
+                    // إغلاق الـ dialog أولاً
+                    Navigator.of(dialogContext).pop();
                     
-                    // Add delay to ensure backend has saved the registration
-                    await Future.delayed(const Duration(milliseconds: 800));
-                    
-                    // Navigate back to home screen and clear navigation stack
-                    Navigator.of(context).pushNamedAndRemoveUntil(
+                    // الانتقال إلى الصفحة الرئيسية مباشرة
+                    navigator.pushNamedAndRemoveUntil(
                       AppConstants.homeRoute,
                       (route) => false,
-                    ).then((_) {
-                      // Force refresh after navigation completes
-                      // This will be handled by initState, but we add extra delay
-                      print('StudentRegistrationScreen: Navigation to home completed');
-                    });
+                    );
+                    
+                    print('StudentRegistrationScreen: Navigation to home completed');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
