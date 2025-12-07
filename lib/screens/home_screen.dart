@@ -807,43 +807,40 @@ class _HomeScreenState extends State<HomeScreen> {
         });
         
         // Normalize status format - ensure it matches expected values
-        String rawStatus = normalizedApplication['status']?.toString() ?? 'pending';
+        // Backend status values: under_review, accepted, rejected, completed
+        String rawStatus = normalizedApplication['status']?.toString() ?? 'under_review';
         String normalizedStatus = rawStatus.toLowerCase().trim();
         
         print('🔄 [_checkApplicationStatus] Normalizing status...');
         print('   - Raw status: "$rawStatus"');
         print('   - Normalized status: "$normalizedStatus"');
         
-        // Normalize status values to match backend response
+        // Normalize status values to match backend response: under_review, accepted, rejected, completed
         String finalStatus;
         switch (normalizedStatus) {
-          case 'pending':
-          case 'في الانتظار':
-            finalStatus = 'pending';
-            print('   ✅ Matched: pending');
-            break;
           case 'under_review':
           case 'قيد المراجعة':
-          case 'قيد الدراسة':
             finalStatus = 'under_review';
             print('   ✅ Matched: under_review');
             break;
-          case 'approved':
           case 'accepted':
           case 'مقبول':
-          case 'تم القبول':
-            finalStatus = 'approved';
-            print('   ✅ Matched: approved');
+            finalStatus = 'accepted';
+            print('   ✅ Matched: accepted');
             break;
           case 'rejected':
           case 'مرفوض':
-          case 'تم الرفض':
             finalStatus = 'rejected';
             print('   ✅ Matched: rejected');
             break;
+          case 'completed':
+          case 'مكتمل':
+            finalStatus = 'completed';
+            print('   ✅ Matched: completed');
+            break;
           default:
-            print('   ⚠️ Warning: Unknown status: "$rawStatus", defaulting to pending');
-            finalStatus = 'pending';
+            print('   ⚠️ Warning: Unknown status: "$rawStatus", defaulting to under_review');
+            finalStatus = 'under_review';
         }
         
         // Ensure the normalized status is set in the application data
@@ -1129,111 +1126,99 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Backend status values: under_review, accepted, rejected, completed
   String _getStatusText(String status) {
     // Normalize status
     String normalizedStatus = status.toLowerCase();
     
     switch (normalizedStatus) {
-      case 'pending':
-      case 'في الانتظار':
-        return 'pending'.tr();
       case 'under_review':
       case 'قيد المراجعة':
-      case 'قيد الدراسة':
         return 'under_review'.tr();
-      case 'approved':
       case 'accepted':
       case 'مقبول':
-      case 'تم القبول':
         return 'approved'.tr();
       case 'rejected':
       case 'مرفوض':
-      case 'تم الرفض':
         return 'rejected'.tr();
+      case 'completed':
+      case 'مكتمل':
+        return 'completed'.tr();
       default:
-        print('Warning: Unknown status in _getStatusText: $status, defaulting to pending');
-        return 'pending'.tr();
+        print('Warning: Unknown status in _getStatusText: $status, defaulting to under_review');
+        return 'under_review'.tr();
     }
   }
 
+  // Backend status values: under_review, accepted, rejected, completed
   Color _getStatusColor(String status) {
     // Normalize status
     String normalizedStatus = status.toLowerCase();
     
     switch (normalizedStatus) {
-      case 'pending':
-      case 'في الانتظار':
-        return AppColors.info;
       case 'under_review':
       case 'قيد المراجعة':
-      case 'قيد الدراسة':
         return AppColors.warning;
-      case 'approved':
       case 'accepted':
       case 'مقبول':
-      case 'تم القبول':
         return AppColors.success;
       case 'rejected':
       case 'مرفوض':
-      case 'تم الرفض':
         return AppColors.error;
-      default:
-        print('Warning: Unknown status in _getStatusColor: $status, defaulting to info color');
+      case 'completed':
+      case 'مكتمل':
         return AppColors.info;
+      default:
+        print('Warning: Unknown status in _getStatusColor: $status, defaulting to warning color');
+        return AppColors.warning;
     }
   }
 
+  // Backend status values: under_review, accepted, rejected, completed
   IconData _getStatusIcon(String status) {
     // Normalize status
     String normalizedStatus = status.toLowerCase();
     
     switch (normalizedStatus) {
-      case 'pending':
-      case 'في الانتظار':
-        return Icons.schedule;
       case 'under_review':
       case 'قيد المراجعة':
-      case 'قيد الدراسة':
         return Icons.hourglass_empty;
-      case 'approved':
       case 'accepted':
       case 'مقبول':
-      case 'تم القبول':
         return Icons.check_circle;
       case 'rejected':
       case 'مرفوض':
-      case 'تم الرفض':
         return Icons.cancel;
+      case 'completed':
+      case 'مكتمل':
+        return Icons.verified;
       default:
-        print('Warning: Unknown status in _getStatusIcon: $status, defaulting to schedule icon');
-        return Icons.schedule;
+        print('Warning: Unknown status in _getStatusIcon: $status, defaulting to hourglass icon');
+        return Icons.hourglass_empty;
     }
   }
 
+  // Backend status values: under_review, accepted, rejected, completed
   String _getStatusDescription(String status) {
     // Normalize status
     String normalizedStatus = status.toLowerCase();
     
     switch (normalizedStatus) {
-      case 'pending':
-      case 'في الانتظار':
-        return 'application_pending_description'.tr();
       case 'under_review':
       case 'قيد المراجعة':
-      case 'قيد الدراسة':
         return 'application_under_review_description'.tr();
-      case 'approved':
       case 'accepted':
       case 'مقبول':
-      case 'تم القبول':
         return 'application_approved_description'.tr();
       case 'rejected':
       case 'مرفوض':
-      case 'تم الرفض':
         return 'application_rejected_description'.tr();
+      case 'completed':
+      case 'مكتمل':
+        return 'application_completed_description'.tr();
       default:
-        print('Warning: Unknown status in _getStatusDescription: $status, defaulting to pending description');
-        return 'application_pending_description'.tr();
+        print('Warning: Unknown status in _getStatusDescription: $status, defaulting to under_review description');
+        return 'application_under_review_description'.tr();
     }
   }
 
@@ -1272,29 +1257,26 @@ class _HomeScreenState extends State<HomeScreen> {
     
     String buttonText;
     switch (normalizedStatus) {
-      case 'pending':
-      case 'في الانتظار':
-        buttonText = 'pending'.tr();
-        print('✅ [_getButtonText] Matched: pending');
-        break;
+      // Backend status values: under_review, accepted, rejected, completed
       case 'under_review':
       case 'قيد المراجعة':
-      case 'قيد الدراسة':
         buttonText = 'under_review'.tr();
         print('✅ [_getButtonText] Matched: under_review');
         break;
-      case 'approved':
       case 'accepted':
       case 'مقبول':
-      case 'تم القبول':
         buttonText = 'approved'.tr();
-        print('✅ [_getButtonText] Matched: approved');
+        print('✅ [_getButtonText] Matched: accepted');
         break;
       case 'rejected':
       case 'مرفوض':
-      case 'تم الرفض':
-        buttonText = 'resubmit_application'.tr();
+        buttonText = 'rejected'.tr();
         print('✅ [_getButtonText] Matched: rejected');
+        break;
+      case 'completed':
+      case 'مكتمل':
+        buttonText = 'completed'.tr();
+        print('✅ [_getButtonText] Matched: completed');
         break;
       default:
         buttonText = 'view_application'.tr();
@@ -1306,6 +1288,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return buttonText;
   }
 
+  // Backend status values: under_review, accepted, rejected, completed
   Color _getButtonColor() {
     if (_applicationData == null) {
       return AppColors.primary;
@@ -1317,22 +1300,18 @@ class _HomeScreenState extends State<HomeScreen> {
     String normalizedStatus = status.toLowerCase();
     
     switch (normalizedStatus) {
-      case 'pending':
-      case 'في الانتظار':
-        return AppColors.info;
       case 'under_review':
       case 'قيد المراجعة':
-      case 'قيد الدراسة':
         return AppColors.warning;
-      case 'approved':
       case 'accepted':
       case 'مقبول':
-      case 'تم القبول':
         return AppColors.success;
       case 'rejected':
       case 'مرفوض':
-      case 'تم الرفض':
         return AppColors.error;
+      case 'completed':
+      case 'مكتمل':
+        return AppColors.info;
       default:
         return AppColors.primary;
     }

@@ -251,44 +251,41 @@ class StudentRegistrationService {
       print('📋 [getCurrentUserRegistration] Registration data keys: ${registrationData.keys.toList()}');
       
       // Ensure status is properly formatted
+      // Backend status values: under_review, accepted, rejected, completed
       if (registrationData.containsKey('status')) {
-        String status = registrationData['status']?.toString().toLowerCase() ?? 'pending';
+        String status = registrationData['status']?.toString().toLowerCase() ?? 'under_review';
         print('📊 [getCurrentUserRegistration] Original status: "${registrationData['status']}"');
         print('📊 [getCurrentUserRegistration] Normalized status: "$status"');
         
-        // Normalize status values
+        // Normalize status values - Backend returns: under_review, accepted, rejected, completed
         switch (status) {
-          case 'pending':
-          case 'في الانتظار':
-            registrationData['status'] = 'pending';
-            print('   ✅ Status normalized to: pending');
-            break;
           case 'under_review':
           case 'قيد المراجعة':
-          case 'قيد الدراسة':
             registrationData['status'] = 'under_review';
             print('   ✅ Status normalized to: under_review');
             break;
-          case 'approved':
           case 'accepted':
           case 'مقبول':
-          case 'تم القبول':
-            registrationData['status'] = 'approved';
-            print('   ✅ Status normalized to: approved');
+            registrationData['status'] = 'accepted';
+            print('   ✅ Status normalized to: accepted');
             break;
           case 'rejected':
           case 'مرفوض':
-          case 'تم الرفض':
             registrationData['status'] = 'rejected';
             print('   ✅ Status normalized to: rejected');
             break;
+          case 'completed':
+          case 'مكتمل':
+            registrationData['status'] = 'completed';
+            print('   ✅ Status normalized to: completed');
+            break;
           default:
-            print('   ⚠️ Unknown status, defaulting to: pending');
-            registrationData['status'] = 'pending';
+            print('   ⚠️ Unknown status: $status, defaulting to: under_review');
+            registrationData['status'] = 'under_review';
         }
       } else {
-        print('   ⚠️ Status key not found, setting default: pending');
-        registrationData['status'] = 'pending';
+        print('   ⚠️ Status key not found, setting default: under_review');
+        registrationData['status'] = 'under_review';
       }
       
       // Ensure rejection_reason is properly handled

@@ -52,42 +52,39 @@ class StudentRegistration {
     this.incomeCertificatePath,
     this.familyCardPath,
     this.otherDocumentsPath,
-    this.status = 'pending',
+    this.status = 'under_review',
     this.createdAt,
     this.updatedAt,
   });
 
   factory StudentRegistration.fromJson(Map<String, dynamic> json) {
     // Normalize status
-    String rawStatus = json['status']?.toString() ?? 'pending';
+    // Backend status values: under_review, accepted, rejected, completed
+    String rawStatus = json['status']?.toString() ?? 'under_review';
     String normalizedStatus = rawStatus.toLowerCase();
     
-    // Normalize status values
+    // Normalize status values - Backend returns: under_review, accepted, rejected, completed
     String finalStatus;
     switch (normalizedStatus) {
-      case 'pending':
-      case 'في الانتظار':
-        finalStatus = 'pending';
-        break;
       case 'under_review':
       case 'قيد المراجعة':
-      case 'قيد الدراسة':
         finalStatus = 'under_review';
         break;
-      case 'approved':
       case 'accepted':
       case 'مقبول':
-      case 'تم القبول':
-        finalStatus = 'approved';
+        finalStatus = 'accepted';
         break;
       case 'rejected':
       case 'مرفوض':
-      case 'تم الرفض':
         finalStatus = 'rejected';
         break;
+      case 'completed':
+      case 'مكتمل':
+        finalStatus = 'completed';
+        break;
       default:
-        print('Warning: Unknown status in StudentRegistration.fromJson: $rawStatus, defaulting to pending');
-        finalStatus = 'pending';
+        print('Warning: Unknown status in StudentRegistration.fromJson: $rawStatus, defaulting to under_review');
+        finalStatus = 'under_review';
     }
     
     return StudentRegistration(

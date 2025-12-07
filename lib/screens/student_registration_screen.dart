@@ -60,7 +60,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   Uint8List? _selectedImageBytes;
   
   // Application Status
-  String _applicationStatus = 'pending'; // pending, under_review, approved, rejected
+  // Backend status values: under_review, accepted, rejected, completed
+  String _applicationStatus = 'under_review';
   String? _rejectionReason; // سبب الرفض
   
   // Services
@@ -181,34 +182,31 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     print('===================================');
     
     // Load and normalize application status
-    String rawStatus = data['status']?.toString() ?? 'pending';
+    // Backend status values: under_review, accepted, rejected, completed
+    String rawStatus = data['status']?.toString() ?? 'under_review';
     String normalizedStatus = rawStatus.toLowerCase();
     
-    // Normalize status values
+    // Normalize status values - Backend returns: under_review, accepted, rejected, completed
     switch (normalizedStatus) {
-      case 'pending':
-      case 'في الانتظار':
-        _applicationStatus = 'pending';
-        break;
       case 'under_review':
       case 'قيد المراجعة':
-      case 'قيد الدراسة':
         _applicationStatus = 'under_review';
         break;
-      case 'approved':
       case 'accepted':
       case 'مقبول':
-      case 'تم القبول':
-        _applicationStatus = 'approved';
+        _applicationStatus = 'accepted';
         break;
       case 'rejected':
       case 'مرفوض':
-      case 'تم الرفض':
         _applicationStatus = 'rejected';
         break;
+      case 'completed':
+      case 'مكتمل':
+        _applicationStatus = 'completed';
+        break;
       default:
-        print('Warning: Unknown status: $rawStatus, defaulting to pending');
-        _applicationStatus = 'pending';
+        print('Warning: Unknown status: $rawStatus, defaulting to under_review');
+        _applicationStatus = 'under_review';
     }
     
     // Load rejection reason
@@ -294,7 +292,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     }
     
     // Load financial data
-    _selectedIncomeLevel = _convertIncomeLevelToArabic(data['financial']?['income_level'] ?? 'low');
+    _selectedIncomeLevel = _convertIncomeLevelToKey(data['financial']?['income_level'] ?? 'low');
     _selectedFamilySize = _convertFamilySizeToString(data['financial']?['family_size'] ?? 3);
     
     // Load gender
@@ -330,23 +328,25 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
 
   String _convertAcademicYearToString(dynamic year) {
     final yearNum = year is int ? year : int.tryParse(year.toString()) ?? 1;
+    // Return the translation key (not translated) to match _academicYears list
     switch (yearNum) {
-      case 1: return 'first_year'.tr();
-      case 2: return 'second_year'.tr();
-      case 3: return 'third_year'.tr();
-      case 4: return 'fourth_year'.tr();
-      case 5: return 'fifth_year'.tr();
-      case 6: return 'sixth_year'.tr();
-      default: return 'first_year'.tr();
+      case 1: return 'first_year';
+      case 2: return 'second_year';
+      case 3: return 'third_year';
+      case 4: return 'fourth_year';
+      case 5: return 'fifth_year';
+      case 6: return 'sixth_year';
+      default: return 'first_year';
     }
   }
 
-  String _convertIncomeLevelToArabic(String level) {
+  // Convert income level to translation key (not translated) to match _incomeLevels list
+  String _convertIncomeLevelToKey(String level) {
     switch (level.toLowerCase()) {
-      case 'low': return 'low'.tr();
-      case 'medium': return 'medium'.tr();
-      case 'high': return 'high'.tr();
-      default: return 'low'.tr();
+      case 'low': return 'low';
+      case 'medium': return 'medium';
+      case 'high': return 'high';
+      default: return 'low';
     }
   }
 
@@ -384,8 +384,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   }
 
   // Check if the form should be read-only
-  // Returns true for: under_review, approved, accepted
-  // Returns false for: pending, rejected (allows editing)
+  // Returns true for: under_review, accepted, completed
+  // Returns false for: rejected (allows editing for re-submission)
   bool get _isReadOnly {
     // Normalize status
     String normalizedStatus = _applicationStatus.toLowerCase();
@@ -393,11 +393,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     return widget.isReadOnly || 
            normalizedStatus == 'under_review' || 
            normalizedStatus == 'قيد المراجعة' ||
-           normalizedStatus == 'قيد الدراسة' ||
-           normalizedStatus == 'approved' ||
            normalizedStatus == 'accepted' ||
            normalizedStatus == 'مقبول' ||
-           normalizedStatus == 'تم القبول';
+           normalizedStatus == 'completed' ||
+           normalizedStatus == 'مكتمل';
     // Note: rejected status allows editing for re-submission
   }
 
@@ -407,11 +406,29 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     String normalizedStatus = _applicationStatus.toLowerCase();
     
     return normalizedStatus == 'rejected' ||
-           normalizedStatus == 'مرفوض' ||
-           normalizedStatus == 'تم الرفض';
+           normalizedStatus == 'مرفوض';
+  }
+
+  // Check if the application is accepted
+  bool get _isApproved {
+    // Normalize status
+    String normalizedStatus = _applicationStatus.toLowerCase();
+    
+    return normalizedStatus == 'accepted' ||
+           normalizedStatus == 'مقبول';
+  }
+
+  // Check if the application is completed
+  bool get _isCompleted {
+    // Normalize status
+    String normalizedStatus = _applicationStatus.toLowerCase();
+    
+    return normalizedStatus == 'completed' ||
+           normalizedStatus == 'مكتمل';
   }
 
   // Get status text
+  // Backend status values: under_review, accepted, rejected, completed
   String _getStatusText(String status) {
     // Debug: Print status text decision
     print('=== Status Text Debug ===');
@@ -421,54 +438,47 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     String normalizedStatus = status.toLowerCase();
     
     switch (normalizedStatus) {
-      case 'pending':
-      case 'في الانتظار':
-        print('Status text: ${'application_pending'.tr()}');
-        return 'application_pending'.tr();
       case 'under_review':
       case 'قيد المراجعة':
-      case 'قيد الدراسة':
         print('Status text: ${'application_under_review'.tr()}');
         return 'application_under_review'.tr();
-      case 'approved':
       case 'accepted':
       case 'مقبول':
-      case 'تم القبول':
         print('Status text: ${'application_approved'.tr()}');
         return 'application_approved'.tr();
       case 'rejected':
       case 'مرفوض':
-      case 'تم الرفض':
         print('Status text: ${'application_rejected'.tr()}');
         return 'application_rejected'.tr();
+      case 'completed':
+      case 'مكتمل':
+        print('Status text: ${'application_completed'.tr()}');
+        return 'application_completed'.tr();
       default:
-        print('Status text: ${'application_pending'.tr()} (default)');
-        return 'application_pending'.tr();
+        print('Status text: ${'application_under_review'.tr()} (default)');
+        return 'application_under_review'.tr();
     }
   }
 
   // Get status color
+  // Backend status values: under_review, accepted, rejected, completed
   Color _getStatusColor(String status) {
     // Normalize status
     String normalizedStatus = status.toLowerCase();
     
     switch (normalizedStatus) {
-      case 'pending':
-      case 'في الانتظار':
-        return AppColors.warning;
       case 'under_review':
       case 'قيد المراجعة':
-      case 'قيد الدراسة':
-        return AppColors.info;
-      case 'approved':
+        return AppColors.warning;
       case 'accepted':
       case 'مقبول':
-      case 'تم القبول':
         return AppColors.success;
       case 'rejected':
       case 'مرفوض':
-      case 'تم الرفض':
         return AppColors.error;
+      case 'completed':
+      case 'مكتمل':
+        return AppColors.info;
       default:
         return AppColors.warning;
     }
@@ -640,63 +650,57 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   }
 
   // Get status icon
+  // Backend status values: under_review, accepted, rejected, completed
   IconData _getStatusIcon(String status) {
     // Normalize status
     String normalizedStatus = status.toLowerCase();
     
     switch (normalizedStatus) {
-      case 'pending':
-      case 'في الانتظار':
-        return Icons.schedule;
       case 'under_review':
       case 'قيد المراجعة':
-      case 'قيد الدراسة':
         return Icons.hourglass_empty;
-      case 'approved':
       case 'accepted':
       case 'مقبول':
-      case 'تم القبول':
         return Icons.check_circle;
       case 'rejected':
       case 'مرفوض':
-      case 'تم الرفض':
         return Icons.cancel;
+      case 'completed':
+      case 'مكتمل':
+        return Icons.verified;
       default:
-        return Icons.schedule;
+        return Icons.hourglass_empty;
     }
   }
 
   // Get status description
+  // Backend status values: under_review, accepted, rejected, completed
   String _getStatusDescription(String status) {
     // Normalize status
     String normalizedStatus = status.toLowerCase();
     
     switch (normalizedStatus) {
-      case 'pending':
-      case 'في الانتظار':
-        return 'application_pending_description'.tr();
       case 'under_review':
       case 'قيد المراجعة':
-      case 'قيد الدراسة':
         return 'application_under_review_description'.tr();
-      case 'approved':
       case 'accepted':
       case 'مقبول':
-      case 'تم القبول':
         return 'application_approved_description'.tr();
       case 'rejected':
       case 'مرفوض':
-      case 'تم الرفض':
         return 'application_rejected_description'.tr();
+      case 'completed':
+      case 'مكتمل':
+        return 'application_completed_description'.tr();
       default:
-        return 'application_pending_description'.tr();
+        return 'application_under_review_description'.tr();
     }
   }
 
   // Allow editing for rejected applications
   void _allowEditing() {
     setState(() {
-      _applicationStatus = 'pending'; // Reset to pending to allow editing
+      _applicationStatus = 'rejected'; // Keep as rejected but allow editing for re-submission
       _rejectionReason = null; // Clear rejection reason
     });
     
@@ -2149,8 +2153,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
   // تحديث حالة الطلب فوراً بعد التسجيل
   void _updateApplicationStatus() {
     setState(() {
-      // تحديث حالة الطلب إلى "pending" (في الانتظار)
-      _applicationStatus = 'pending';
+      // تحديث حالة الطلب إلى "under_review" (قيد المراجعة) - الحالة الافتراضية من الباكند
+      _applicationStatus = 'under_review';
       _rejectionReason = null; // مسح سبب الرفض إذا كان موجوداً
     });
     
@@ -2161,7 +2165,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '${'application_status_updated_to'.tr()}: ${'application_pending'.tr()}',
+          '${'application_status_updated_to'.tr()}: ${'application_under_review'.tr()}',
           style: AppTextStyles.bodyMedium.copyWith(
             color: Colors.white,
           ),
@@ -2178,18 +2182,19 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
 
   // دالة مساعدة لتحويل السنة الدراسية إلى رقم
   int _convertAcademicYearToNumber(String academicYear) {
+    // Handle translation keys
     switch (academicYear) {
-      case 'السنة الأولى':
+      case 'first_year':
         return 1;
-      case 'السنة الثانية':
+      case 'second_year':
         return 2;
-      case 'السنة الثالثة':
+      case 'third_year':
         return 3;
-      case 'السنة الرابعة':
+      case 'fourth_year':
         return 4;
-      case 'السنة الخامسة':
+      case 'fifth_year':
         return 5;
-      case 'السنة السادسة':
+      case 'sixth_year':
         return 6;
       default:
         return 1;
@@ -2244,7 +2249,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       
       if (currentRegistration != null) {
         setState(() {
-          _applicationStatus = currentRegistration['status'] ?? 'pending';
+          _applicationStatus = currentRegistration['status'] ?? 'under_review';
           _rejectionReason = currentRegistration['rejection_reason'];
         });
         

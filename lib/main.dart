@@ -21,18 +21,25 @@ import 'providers/setting_page_provider.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  if (!kIsWeb) {
+    await Firebase.initializeApp();
+  }
   print('🔔 Background message received: ${message.messageId}');
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase
-  await Firebase.initializeApp();
-  
-  // Set up background message handler
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // Initialize Firebase (only for non-web platforms or when options are available)
+  if (!kIsWeb) {
+    await Firebase.initializeApp();
+    // Set up background message handler
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  } else {
+    print('⚠️ Firebase not initialized on web - firebase_options.dart is required');
+    print('Run: dart pub global activate flutterfire_cli');
+    print('Then: flutterfire configure');
+  }
   
   // Initialize EasyLocalization
   await EasyLocalization.ensureInitialized();
@@ -135,7 +142,7 @@ class StudentWelfareFundApp extends StatelessWidget {
         // Theme configuration
         theme: ThemeData(
           useMaterial3: true,
-          fontFamily: 'Calibri',
+          fontFamily: 'IBMPlexSansArabic',
           colorScheme: ColorScheme.fromSeed(
             seedColor: AppColors.primary,
             brightness: Brightness.light,

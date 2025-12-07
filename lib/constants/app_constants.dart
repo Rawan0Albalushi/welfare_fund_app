@@ -3,6 +3,10 @@ class AppConstants {
   static const String appName = 'صندوق رعاية الطلاب';
   static const String appVersion = '1.0.0';
   
+  // API
+//static const String baseUrl = "https://welfare-student.maksab.om/api/v1";
+  static const String baseUrl = "http://127.0.0.1:8000/api/v1";
+  
   // Routes
   static const String splashRoute = '/splash';
   static const String homeRoute = '/home';
@@ -43,4 +47,5 @@ class AppConstants {
   static const double mobileBreakpoint = 600.0;
   static const double tabletBreakpoint = 900.0;
   static const double desktopBreakpoint = 1200.0;
+
 } 
