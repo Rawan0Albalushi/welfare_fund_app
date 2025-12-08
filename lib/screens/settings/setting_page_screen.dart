@@ -66,10 +66,12 @@ class _SettingPageScreenState extends State<SettingPageScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: AppColors.surface),
         leading: IconButton(
           icon: Icon(
             isRTL ? Icons.arrow_forward_ios : Icons.arrow_back_ios,
-            color: AppColors.textPrimary,
+            color: AppColors.surface,
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -78,11 +80,19 @@ class _SettingPageScreenState extends State<SettingPageScreen>
             final title = provider.page?.getLocalizedTitle(locale) ?? '';
             return Text(
               title,
-              style: AppTextStyles.appBarTitleLight,
+              style: AppTextStyles.appBarTitleDark,
             );
           },
         ),
-        centerTitle: true,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.modernGradient,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(20),
+              bottomRight: Radius.circular(20),
+            ),
+          ),
+        ),
       ),
       body: Directionality(
         textDirection: textDirection,

@@ -111,18 +111,28 @@ class _SettingsScreenState extends State<SettingsScreen>
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
+            centerTitle: true,
+            iconTheme: const IconThemeData(color: AppColors.surface),
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+              icon: const Icon(Icons.arrow_back_ios, color: AppColors.surface),
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
               'settings'.tr(),
-              style: AppTextStyles.appBarTitleLight,
+              style: AppTextStyles.appBarTitleDark,
+            ),
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: AppColors.modernGradient,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+              ),
             ),
             actions: const [
               LanguageSwitcher(),
             ],
-            centerTitle: true,
           ),
           body: SafeArea(
             child: FadeTransition(

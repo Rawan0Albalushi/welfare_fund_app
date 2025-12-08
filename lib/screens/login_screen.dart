@@ -116,20 +116,31 @@ class _LoginScreenState extends State<LoginScreen>
             position: _slideAnimation,
             child: CustomScrollView(
               slivers: [
-                // App Bar - Matching Settings Screen Design
+                // App Bar - With Gradient Background
                 SliverAppBar(
                   backgroundColor: Colors.transparent,
                   elevation: 0,
+                  pinned: true,
+                  centerTitle: true,
+                  iconTheme: const IconThemeData(color: AppColors.surface),
                   leading: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+                    icon: const Icon(Icons.arrow_back_ios, color: AppColors.surface),
                     onPressed: () => Navigator.pop(context),
                   ),
                   title: Text(
                     'login'.tr(),
-                    style: AppTextStyles.appBarTitleLight,
+                    style: AppTextStyles.appBarTitleDark,
                   ),
-        actions: const [],
-                  centerTitle: true,
+                  actions: const [],
+                  flexibleSpace: Container(
+                    decoration: const BoxDecoration(
+                      gradient: AppColors.modernGradient,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
+                      ),
+                    ),
+                  ),
                 ),
 
                 // Login Form

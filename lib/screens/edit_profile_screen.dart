@@ -109,19 +109,30 @@ class _EditProfileScreenState extends State<EditProfileScreen>
             position: _slideAnimation,
             child: CustomScrollView(
               slivers: [
-                // App Bar
+                // App Bar - With Gradient Background
                 SliverAppBar(
                   backgroundColor: Colors.transparent,
                   elevation: 0,
+                  pinned: true,
+                  centerTitle: true,
+                  iconTheme: const IconThemeData(color: AppColors.surface),
                   leading: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+                    icon: const Icon(Icons.arrow_back_ios, color: AppColors.surface),
                     onPressed: () => Navigator.pop(context),
                   ),
                   title: Text(
                     'edit_profile_title'.tr(),
-                    style: AppTextStyles.appBarTitleLight,
+                    style: AppTextStyles.appBarTitleDark,
                   ),
-                  centerTitle: true,
+                  flexibleSpace: Container(
+                    decoration: const BoxDecoration(
+                      gradient: AppColors.modernGradient,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
+                      ),
+                    ),
+                  ),
                   actions: [
                     if (_isSaving)
                       Container(
@@ -130,7 +141,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                            color: AppColors.primary,
+                            color: AppColors.surface,
                             strokeWidth: 2,
                           ),
                         ),

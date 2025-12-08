@@ -392,42 +392,37 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            centerTitle: true,
+            iconTheme: const IconThemeData(color: AppColors.surface),
             title: Text(
               'my_donations'.tr(),
-              style: AppTextStyles.appBarTitleLight,
+              style: AppTextStyles.appBarTitleDark,
+            ),
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: AppColors.modernGradient,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+              ),
             ),
             actions: [
               // Only show refresh icon when there are donations
               if (_donations.isNotEmpty)
                 IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.refresh,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
+                  icon: const Icon(
+                    Icons.refresh,
+                    color: AppColors.surface,
+                    size: 22,
                   ),
                   onPressed: _checkAuthAndLoadDonations,
                 ),
             ],
-            centerTitle: true,
-            backgroundColor: Colors.white,
-            elevation: 0,
-            surfaceTintColor: Colors.transparent,
             leading: IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary, size: 16),
-              ),
+              icon: const Icon(Icons.arrow_back_ios, color: AppColors.surface, size: 20),
               onPressed: () => Navigator.of(context).pop(),
             ),
           ),

@@ -142,13 +142,24 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.surface,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          iconTheme: const IconThemeData(color: AppColors.surface),
           title: Text(
             'processing_payment'.tr(),
             style: AppTextStyles.appBarTitleDark,
           ),
           automaticallyImplyLeading: false,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: AppColors.modernGradient,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
+            ),
+          ),
         ),
         body: Center(
           child: Padding(
@@ -188,15 +199,22 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.surface,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: AppColors.surface),
         title: Text(
           'complete_payment'.tr(),
           style: AppTextStyles.appBarTitleDark,
         ),
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.close, color: AppColors.surface),
           onPressed: () => Navigator.pop(context, {'status': 'cancel'}),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.modernGradient,
+          ),
         ),
         actions: [
           if (_isLoading)

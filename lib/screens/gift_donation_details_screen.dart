@@ -148,15 +148,25 @@ class _GiftDonationDetailsScreenState extends State<GiftDonationDetailsScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: AppColors.surface),
         title: Text(
           'gift_donation'.tr(),
-          style: AppTextStyles.appBarTitleLight,
+          style: AppTextStyles.appBarTitleDark,
         ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.modernGradient,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(20),
+              bottomRight: Radius.circular(20),
+            ),
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.surface),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),

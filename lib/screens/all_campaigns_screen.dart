@@ -107,6 +107,10 @@ class _AllCampaignsScreenState extends State<AllCampaignsScreen> {
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: AppColors.modernGradient,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(20),
+              bottomRight: Radius.circular(20),
+            ),
           ),
         ),
         actions: [

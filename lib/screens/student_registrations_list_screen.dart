@@ -137,13 +137,23 @@ class _StudentRegistrationsListScreenState extends State<StudentRegistrationsLis
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: AppColors.surface),
         title: Text(
           'student_registration'.tr(),
           style: AppTextStyles.appBarTitleDark,
         ),
-        backgroundColor: AppColors.primary,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.surface),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.modernGradient,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(20),
+              bottomRight: Radius.circular(20),
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             onPressed: () => _loadRegistrations(refresh: true),
