@@ -119,9 +119,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                   ),
                   title: Text(
                     'edit_profile_title'.tr(),
-                    style: AppTextStyles.headlineMedium.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
+                    style: AppTextStyles.appBarTitleLight,
                   ),
                   centerTitle: true,
                   actions: [

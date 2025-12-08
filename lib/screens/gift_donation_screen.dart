@@ -128,10 +128,8 @@ class _GiftDonationScreenState extends State<GiftDonationScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
-          'إهداء التبرع',
-          style: AppTextStyles.headlineMedium.copyWith(
-            color: AppColors.textPrimary,
-          ),
+          'gift_donation'.tr(),
+          style: AppTextStyles.appBarTitleLight,
         ),
         centerTitle: true,
         backgroundColor: Colors.white,

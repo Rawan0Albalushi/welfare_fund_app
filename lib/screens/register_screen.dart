@@ -116,9 +116,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                   ),
                   title: Text(
                     'create_new_account'.tr(),
-                    style: AppTextStyles.headlineMedium.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
+                    style: AppTextStyles.appBarTitleLight,
                   ),
         actions: const [],
                   centerTitle: true,

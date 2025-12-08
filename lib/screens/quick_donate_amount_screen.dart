@@ -404,9 +404,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
         ),
         title: Text(
           'quick_donation'.tr(),
-          style: AppTextStyles.headlineMedium.copyWith(
-            color: AppColors.textPrimary,
-          ),
+          style: AppTextStyles.appBarTitleLight,
         ),
         centerTitle: true,
       ),

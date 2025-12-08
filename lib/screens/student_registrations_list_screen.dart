@@ -138,11 +138,8 @@ class _StudentRegistrationsListScreenState extends State<StudentRegistrationsLis
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'تسجيلات الطلاب',
-          style: AppTextStyles.headlineSmall.copyWith(
-            color: AppColors.surface,
-            fontWeight: FontWeight.w600,
-          ),
+          'student_registration'.tr(),
+          style: AppTextStyles.appBarTitleDark,
         ),
         backgroundColor: AppColors.primary,
         elevation: 0,

@@ -141,10 +141,7 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
       appBar: AppBar(
         title: Text(
           'application_details'.tr(),
-          style: AppTextStyles.headlineSmall.copyWith(
-            color: AppColors.surface,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppTextStyles.appBarTitleDark,
         ),
         backgroundColor: AppColors.primary,
         elevation: 0,

@@ -126,9 +126,7 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                   title: Text(
                     'login'.tr(),
-                    style: AppTextStyles.headlineMedium.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
+                    style: AppTextStyles.appBarTitleLight,
                   ),
         actions: const [],
                   centerTitle: true,

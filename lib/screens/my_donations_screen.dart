@@ -394,10 +394,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
           appBar: AppBar(
             title: Text(
               'my_donations'.tr(),
-              style: AppTextStyles.headlineMedium.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppTextStyles.appBarTitleLight,
             ),
             actions: [
               // Only show refresh icon when there are donations

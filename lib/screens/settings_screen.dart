@@ -117,9 +117,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
             title: Text(
               'settings'.tr(),
-              style: AppTextStyles.headlineMedium.copyWith(
-                color: AppColors.textPrimary,
-              ),
+              style: AppTextStyles.appBarTitleLight,
             ),
             actions: const [
               LanguageSwitcher(),

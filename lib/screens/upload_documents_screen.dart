@@ -358,11 +358,8 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'رفع المستندات',
-          style: AppTextStyles.headlineSmall.copyWith(
-            color: AppColors.surface,
-            fontWeight: FontWeight.w600,
-          ),
+          'upload_documents'.tr(),
+          style: AppTextStyles.appBarTitleDark,
         ),
         backgroundColor: AppColors.primary,
         elevation: 0,

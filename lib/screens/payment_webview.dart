@@ -769,10 +769,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
           foregroundColor: AppColors.surface,
           title: Text(
             'processing_payment_please_wait'.tr(),
-            style: AppTextStyles.titleLarge.copyWith(
-              color: AppColors.surface,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppTextStyles.appBarTitleDark,
           ),
           automaticallyImplyLeading: false,
         ),
@@ -930,10 +927,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
           foregroundColor: AppColors.surface,
           title: Text(
             'complete_payment'.tr(),
-            style: AppTextStyles.titleLarge.copyWith(
-              color: AppColors.surface,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppTextStyles.appBarTitleDark,
           ),
           leading: IconButton(
             icon: const Icon(Icons.close),

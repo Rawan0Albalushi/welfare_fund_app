@@ -102,10 +102,7 @@ class _AllCampaignsScreenState extends State<AllCampaignsScreen> {
         iconTheme: const IconThemeData(color: AppColors.surface),
         title: Text(
           'all_campaigns'.tr(),
-          style: AppTextStyles.titleMedium.copyWith(
-            color: AppColors.surface,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppTextStyles.appBarTitleDark,
         ),
         flexibleSpace: Container(
           decoration: const BoxDecoration(

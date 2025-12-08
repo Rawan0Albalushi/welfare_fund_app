@@ -151,4 +151,23 @@ class AppTextStyles {
     color: AppColors.surface,
     height: 1.4,
   );
+
+  // Page Title styles - unified across all screens
+  // Use appBarTitleLight for transparent/light background AppBars
+  static const TextStyle appBarTitleLight = TextStyle(
+    fontFamily: 'IBMPlexSansArabic',
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
+    height: 1.3,
+  );
+
+  // Use appBarTitleDark for colored/gradient background AppBars
+  static const TextStyle appBarTitleDark = TextStyle(
+    fontFamily: 'IBMPlexSansArabic',
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    color: AppColors.surface,
+    height: 1.3,
+  );
 } 

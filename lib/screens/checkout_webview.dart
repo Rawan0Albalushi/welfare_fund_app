@@ -145,11 +145,8 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.surface,
           title: Text(
-            'جاري إتمام الدفع...',
-            style: AppTextStyles.titleLarge.copyWith(
-              color: AppColors.surface,
-              fontWeight: FontWeight.bold,
-            ),
+            'processing_payment'.tr(),
+            style: AppTextStyles.appBarTitleDark,
           ),
           automaticallyImplyLeading: false,
         ),
@@ -194,11 +191,8 @@ class _CheckoutWebViewState extends State<CheckoutWebView> {
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.surface,
         title: Text(
-          'إتمام الدفع',
-          style: AppTextStyles.titleLarge.copyWith(
-            color: AppColors.surface,
-            fontWeight: FontWeight.bold,
-          ),
+          'complete_payment'.tr(),
+          style: AppTextStyles.appBarTitleDark,
         ),
         leading: IconButton(
           icon: const Icon(Icons.close),

@@ -78,9 +78,7 @@ class _SettingPageScreenState extends State<SettingPageScreen>
             final title = provider.page?.getLocalizedTitle(locale) ?? '';
             return Text(
               title,
-              style: AppTextStyles.headlineMedium.copyWith(
-                color: AppColors.textPrimary,
-              ),
+              style: AppTextStyles.appBarTitleLight,
             );
           },
         ),

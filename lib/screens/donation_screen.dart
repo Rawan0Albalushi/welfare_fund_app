@@ -267,9 +267,7 @@ class _DonationScreenState extends State<DonationScreen> {
       appBar: AppBar(
         title: Text(
           'donate_now'.tr(),
-          style: AppTextStyles.headlineMedium.copyWith(
-            color: Colors.white,
-          ),
+          style: AppTextStyles.appBarTitleDark,
         ),
         actions: const [],
         backgroundColor: AppColors.primary,

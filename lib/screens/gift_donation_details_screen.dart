@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 
@@ -148,10 +149,8 @@ class _GiftDonationDetailsScreenState extends State<GiftDonationDetailsScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
-          'تفاصيل الإهداء',
-          style: AppTextStyles.headlineMedium.copyWith(
-            color: AppColors.textPrimary,
-          ),
+          'gift_donation'.tr(),
+          style: AppTextStyles.appBarTitleLight,
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
