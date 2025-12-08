@@ -15,7 +15,8 @@ class AppConfig {
     'APP_URL',
     // ✅ رابط الإنتاج
     //defaultValue: 'https://welfare-student.maksab.om',
-    defaultValue: 'http://localhost:8000',
+    //defaultValue: 'http://localhost:8000',
+    defaultValue: 'http://192.168.100.66:8000',
   );
   
   /// التحقق من أن الاتصال آمن (HTTPS) في بيئة الإنتاج

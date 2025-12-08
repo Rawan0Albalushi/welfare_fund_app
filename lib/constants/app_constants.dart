@@ -5,7 +5,7 @@ class AppConstants {
   
   // API
 //static const String baseUrl = "https://welfare-student.maksab.om/api/v1";
-  static const String baseUrl = "http://127.0.0.1:8000/api/v1";
+  static const String baseUrl = "http://192.168.100.66:8000/api/v1";
   
   // Routes
   static const String splashRoute = '/splash';

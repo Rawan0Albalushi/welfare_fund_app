@@ -1548,9 +1548,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: AppConstants.extraLargePadding),
                   
                   // Campaigns Section
-                  Text(
-                    'be_hope'.tr(),
-                    style: AppTextStyles.headlineMedium,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'be_hope'.tr(),
+                          style: AppTextStyles.headlineMedium,
+                        ),
+                      ),
+                      if (shouldShowViewAllButton)
+                        _buildViewAllButton(),
+                    ],
                   ),
                   const SizedBox(height: AppConstants.defaultPadding),
                   
@@ -1601,7 +1610,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () => _onCampaignTap(campaign),
                         ),
                       ),
-                      if (shouldShowViewAllButton) _buildViewAllButton(),
                     ],
                     
                     const SizedBox(height: AppConstants.extraLargePadding),
@@ -2764,52 +2772,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildViewAllButton() {
-    return Padding(
-      padding: const EdgeInsets.only(top: AppConstants.smallPadding),
-      child: GestureDetector(
-        onTap: _onViewAllCampaigns,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.largePadding,
-            vertical: AppConstants.defaultPadding,
+    return GestureDetector(
+      onTap: _onViewAllCampaigns,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'view_all'.tr(),
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            gradient: AppColors.modernGradient,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.25),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
-              ),
-            ],
+          const SizedBox(width: 4),
+          Icon(
+            Icons.arrow_forward_ios,
+            color: AppColors.primary,
+            size: 12,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.auto_awesome,
-                color: AppColors.surface,
-                size: 20,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'view_all_campaigns'.tr(),
-                style: AppTextStyles.buttonLarge.copyWith(
-                  color: AppColors.surface,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Icon(
-                Icons.arrow_forward_ios,
-                color: AppColors.surface,
-                size: 16,
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
