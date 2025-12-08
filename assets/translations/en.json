@@ -275,7 +275,7 @@
   "important_note": "Important Note",
   "donation_redirect_note": "Your donation will be directed to the selected active campaign for the most needy cases",
   "proceed_to_payment": "Proceed to Payment",
-"choose_amount_category": "Choose Amount & Category",
+  "choose_amount_category": "Choose Amount & Category",
   "select_campaign_to_continue": "Select an active campaign to continue",
   "please_enter_valid_amount": "Please enter a valid amount",
   "please_choose_donation_category": "Please choose a donation category",
@@ -289,9 +289,7 @@
   "all_donations_loaded": "All donations loaded successfully",
   "no_donations_found": "No donations found",
   "donation": "donation",
-  
-"checking_payment_status": "Checking payment status",
-
+  "checking_payment_status": "Checking payment status",
   "choose_from_gallery": "Choose from gallery",
   "error_selecting": "Error occurred while selecting",
   
@@ -310,8 +308,7 @@
   "document_selected_successfully": "Document selected successfully",
   "please_select_at_least_one_document": "Please select at least one document",
   "documents_uploaded_successfully": "Documents uploaded successfully",
-"error_uploading_documents": "Error occurred while uploading documents",
-
+  "error_uploading_documents": "Error occurred while uploading documents",
   "no_campaigns_available": "No campaigns available at the moment",
   "error_loading_programs": "Error loading programs",
   "error_loading_campaigns": "An error occurred while loading campaigns",
@@ -397,8 +394,7 @@
   "next_step_2": "You may be asked to provide additional documents",
   "next_step_3": "You will be notified about the financial support details",
   "approved_help_text": "If you have any questions, please contact the support team",
-"view_application_details": "View Application Details",
-
+  "view_application_details": "View Application Details",
   "account_settings": "Account Settings",
   "user": "User",
   "help_center": "Help Center",
@@ -419,11 +415,10 @@
   "days_ago": "days ago",
   "hour_ago": "hour ago",
   "hours_ago": "hours ago",
-"minute_ago": "minute ago",
+  "minute_ago": "minute ago",
   "minutes_ago": "minutes ago",
   "week_ago": "week ago",
   "weeks_ago": "weeks ago",
-
   "donation_security_notice": "Donation Security - All transactions are safe and encrypted",
 
   "payment_details": "Payment Details",
