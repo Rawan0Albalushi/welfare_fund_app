@@ -244,7 +244,11 @@ class _SettingPageScreenState extends State<SettingPageScreen>
   }
 
   Widget _buildContent(SettingPageModel page, String locale, bool isRTL) {
-    final content = page.getLocalizedContent(locale);
+    final rawContent = page.getLocalizedContent(locale);
+    
+    // Preserve line breaks and spacing by converting \n to <br> tags
+    // and wrapping in <div> with white-space style
+    final content = _processContent(rawContent);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -273,6 +277,16 @@ class _SettingPageScreenState extends State<SettingPageScreen>
                 color: AppColors.textPrimary,
                 fontFamily: 'Calibri',
                 textAlign: isRTL ? TextAlign.right : TextAlign.left,
+                whiteSpace: WhiteSpace.pre,
+              ),
+              "div": Style(
+                margin: Margins.zero,
+                padding: HtmlPaddings.zero,
+                fontSize: FontSize(16),
+                lineHeight: const LineHeight(1.6),
+                color: AppColors.textPrimary,
+                textAlign: isRTL ? TextAlign.right : TextAlign.left,
+                whiteSpace: WhiteSpace.pre,
               ),
               "p": Style(
                 margin: Margins.only(bottom: 12),
@@ -280,6 +294,7 @@ class _SettingPageScreenState extends State<SettingPageScreen>
                 lineHeight: const LineHeight(1.6),
                 color: AppColors.textPrimary,
                 textAlign: isRTL ? TextAlign.right : TextAlign.left,
+                whiteSpace: WhiteSpace.pre,
               ),
               "h1": Style(
                 margin: Margins.only(bottom: 16, top: 8),
@@ -334,6 +349,14 @@ class _SettingPageScreenState extends State<SettingPageScreen>
               "em": Style(
                 fontStyle: FontStyle.italic,
               ),
+              "pre": Style(
+                margin: Margins.only(bottom: 12),
+                fontSize: FontSize(16),
+                lineHeight: const LineHeight(1.6),
+                color: AppColors.textPrimary,
+                textAlign: isRTL ? TextAlign.right : TextAlign.left,
+                whiteSpace: WhiteSpace.pre,
+              ),
               "blockquote": Style(
                 margin: Margins.symmetric(vertical: 12, horizontal: 16),
                 padding: HtmlPaddings.only(
@@ -355,6 +378,34 @@ class _SettingPageScreenState extends State<SettingPageScreen>
         ),
       ),
     );
+  }
+  
+  /// Process content to preserve formatting and line breaks
+  String _processContent(String content) {
+    // Check if content already contains HTML tags
+    final hasHtmlTags = RegExp(r'<[^>]+>').hasMatch(content);
+    
+    if (hasHtmlTags) {
+      // If content has HTML tags, just ensure line breaks are preserved
+      // Replace \n that are not already handled by HTML
+      return content.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+    } else {
+      // If content is plain text, convert line breaks to <br> tags
+      // and preserve multiple spaces
+      String processed = content
+          .replaceAll('\r\n', '\n')
+          .replaceAll('\r', '\n')
+          .replaceAll('\n\n', '</p><p>')  // Double line breaks become paragraphs
+          .replaceAll('\n', '<br>')        // Single line breaks become <br>
+          .replaceAll('  ', '&nbsp;&nbsp;'); // Preserve double spaces
+      
+      // Wrap in paragraph tags if not already
+      if (!processed.startsWith('<p>')) {
+        processed = '<p>$processed</p>';
+      }
+      
+      return processed;
+    }
   }
 }
 
