@@ -11,8 +11,7 @@
     "invalidData": "Invalid payment data. Please try again.",
     "notCompleted": "Payment not completed yet.",
     "verifyError": "Unable to verify payment status."
-  }
-,
+  },
   "app_title": "Student Welfare Fund",
   "hello": "Hello",
   "donate_now": "Donate now",
