@@ -1167,7 +1167,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return AppColors.error;
       case 'completed':
       case 'مكتمل':
-        return AppColors.info;
+        return AppColors.successDark;
       default:
         print('Warning: Unknown status in _getStatusColor: $status, defaulting to warning color');
         return AppColors.warning;
@@ -1311,7 +1311,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return AppColors.error;
       case 'completed':
       case 'مكتمل':
-        return AppColors.info;
+        return AppColors.successDark;
       default:
         return AppColors.primary;
     }
