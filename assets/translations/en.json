@@ -279,7 +279,6 @@
   "select_campaign_to_continue": "Select an active campaign to continue",
   "please_enter_valid_amount": "Please enter a valid amount",
   "please_choose_donation_category": "Please choose a donation category",
-
   "please_choose_donation_amount": "Please choose a donation amount",
   "please_choose_category_program": "Please choose category and program",
   "feature_coming_soon": "This feature will be added soon",
@@ -420,7 +419,6 @@
   "week_ago": "week ago",
   "weeks_ago": "weeks ago",
   "donation_security_notice": "Donation Security - All transactions are safe and encrypted",
-
   "payment_details": "Payment Details",
   "donation_summary": "Donation Summary",
   "category": "Category",
