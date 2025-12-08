@@ -1381,34 +1381,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Compact Header Row
                     Row(
                       children: [
-                        // Profile icon with notification badge
-                        Stack(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.person,
-                                color: AppColors.surface,
-                                size: 18,
-                              ),
-                            ),
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.accent,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                          ],
+                        // Donation icon
+                        const Icon(
+                          Icons.volunteer_activism,
+                          color: AppColors.surface,
+                          size: 26,
                         ),
                         
                         const SizedBox(width: 12),
