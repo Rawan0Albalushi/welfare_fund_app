@@ -300,7 +300,16 @@ class CampaignCard extends StatelessWidget {
           return Container(
             width: double.infinity,
             height: 200,
-            color: Colors.grey[300],
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.primaryLight.withOpacity(0.3),
+                  AppColors.secondaryLight.withOpacity(0.3),
+                ],
+              ),
+            ),
             child: const Center(child: CircularProgressIndicator()),
           );
         },
@@ -311,27 +320,35 @@ class CampaignCard extends StatelessWidget {
           return Container(
             width: double.infinity,
             height: 200,
-            color: Colors.grey[300],
-            child: const Icon(
-              Icons.broken_image,
-              color: Colors.grey,
-              size: 48,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.primaryLight.withOpacity(0.3),
+                  AppColors.secondaryLight.withOpacity(0.3),
+                ],
+              ),
             ),
           );
         },
       );
     }
     
-    // Fallback if no image URL
-    print('⚠️ CampaignCard: No image URL, showing placeholder');
+    // Fallback if no image URL - show light gradient
+    print('⚠️ CampaignCard: No image URL, showing gradient placeholder');
     return Container(
       width: double.infinity,
       height: 200,
-      color: Colors.grey[300],
-      child: const Icon(
-        Icons.image_not_supported,
-        color: Colors.grey,
-        size: 48,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primaryLight.withOpacity(0.3),
+            AppColors.secondaryLight.withOpacity(0.3),
+          ],
+        ),
       ),
     );
   }
