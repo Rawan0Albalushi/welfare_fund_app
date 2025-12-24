@@ -157,7 +157,7 @@ class StudentWelfareFundApp extends StatelessWidget {
           ),
 
           // Card theme
-          cardTheme: CardTheme(
+          cardTheme: CardThemeData(
             color: AppColors.surface,
             elevation: 4,
             shadowColor: AppColors.textPrimary.withOpacity(0.1),
