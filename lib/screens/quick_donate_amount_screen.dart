@@ -1050,52 +1050,6 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
     );
   }
 
-  Widget _buildStatItem({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: color,
-              size: 18,
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: 11,
-                ),
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: color,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
-          textAlign: TextAlign.center,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
-
   Widget _buildCompactStatItem({
     required IconData icon,
     required String value,

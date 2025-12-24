@@ -742,7 +742,7 @@ class _PaymentFlowResult {
     print('_PaymentFlowResult: Parsing result, type: ${result.runtimeType}');
     
     if (result is Map) {
-      final map = Map<String, dynamic>.from(result as Map);
+      final map = Map<String, dynamic>.from(result);
       print('_PaymentFlowResult: Map keys: ${map.keys.toList()}');
       print('_PaymentFlowResult: Map values - state: ${map['state']}, donationId: ${map['donationId']}, donation_id: ${map['donation_id']}, sessionId: ${map['sessionId']}, session_id: ${map['session_id']}, amount: ${map['amount']}');
       

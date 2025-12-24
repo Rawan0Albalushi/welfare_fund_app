@@ -41,7 +41,7 @@ class _CampaignPaymentResult {
 
   factory _CampaignPaymentResult.fromNavigatorResult(dynamic result) {
     if (result is Map) {
-      final map = Map<String, dynamic>.from(result as Map);
+      final map = Map<String, dynamic>.from(result);
       return _CampaignPaymentResult(
         state: _parseState(map['state']),
         amount: _parseAmount(map['amount']),

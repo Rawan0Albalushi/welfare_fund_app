@@ -414,24 +414,6 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
            normalizedStatus == 'مرفوض';
   }
 
-  // Check if the application is accepted
-  bool get _isApproved {
-    // Normalize status
-    String normalizedStatus = _applicationStatus.toLowerCase();
-    
-    return normalizedStatus == 'accepted' ||
-           normalizedStatus == 'مقبول';
-  }
-
-  // Check if the application is completed
-  bool get _isCompleted {
-    // Normalize status
-    String normalizedStatus = _applicationStatus.toLowerCase();
-    
-    return normalizedStatus == 'completed' ||
-           normalizedStatus == 'مكتمل';
-  }
-
   // Get status text
   // Backend status values: under_review, accepted, rejected, completed
   String _getStatusText(String status) {
@@ -700,31 +682,6 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
       default:
         return 'application_under_review_description'.tr();
     }
-  }
-
-  // Allow editing for rejected applications
-  void _allowEditing() {
-    setState(() {
-      _applicationStatus = 'rejected'; // Keep as rejected but allow editing for re-submission
-      _rejectionReason = null; // Clear rejection reason
-    });
-    
-    // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'edit_enabled'.tr(),
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: Colors.white,
-            ),
-          ),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
   }
 
   @override
@@ -2183,41 +2140,6 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen>
         duration: const Duration(seconds: 3),
       ),
     );
-  }
-
-  // دالة مساعدة لتحويل السنة الدراسية إلى رقم
-  int _convertAcademicYearToNumber(String academicYear) {
-    // Handle translation keys
-    switch (academicYear) {
-      case 'first_year':
-        return 1;
-      case 'second_year':
-        return 2;
-      case 'third_year':
-        return 3;
-      case 'fourth_year':
-        return 4;
-      case 'fifth_year':
-        return 5;
-      case 'sixth_year':
-        return 6;
-      default:
-        return 1;
-    }
-  }
-
-  // دالة مساعدة لتحويل مستوى الدخل إلى الإنجليزية
-  String _convertIncomeLevelToEnglish(String incomeLevel) {
-    switch (incomeLevel) {
-      case 'منخفض':
-        return 'low';
-      case 'متوسط':
-        return 'medium';
-      case 'مرتفع':
-        return 'high';
-      default:
-        return 'medium';
-    }
   }
 
   // إعادة تحميل حالة الطلب من الخادم

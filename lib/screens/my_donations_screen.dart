@@ -359,30 +359,6 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
     }
   }
 
-  Color _getCategoryColor(String category) {
-    final categoryLower = category.toLowerCase();
-    if (categoryLower.contains('program') || categoryLower.contains('برنامج')) {
-      return Colors.blue;
-    } else if (categoryLower.contains('campaign') || categoryLower.contains('حملة')) {
-      return Colors.green;
-    } else if (categoryLower.contains('general') || categoryLower.contains('عام')) {
-      return Colors.orange;
-    }
-    return AppColors.primary;
-  }
-
-  IconData _getCategoryIcon(String category) {
-    final categoryLower = category.toLowerCase();
-    if (categoryLower.contains('program') || categoryLower.contains('برنامج')) {
-      return Icons.school;
-    } else if (categoryLower.contains('campaign') || categoryLower.contains('حملة')) {
-      return Icons.campaign;
-    } else if (categoryLower.contains('general') || categoryLower.contains('عام')) {
-      return Icons.favorite;
-    }
-    return Icons.category;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
@@ -566,41 +542,6 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       },
     );
   }
-
-  Widget _buildStatCard(String title, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            color: AppColors.surface,
-            size: 20,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: AppTextStyles.titleMedium.copyWith(
-              color: AppColors.surface,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Text(
-            title,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.surface.withOpacity(0.8),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
 
   Widget _buildDonationsContent() {
     print('MyDonationsScreen: Building donations content...');

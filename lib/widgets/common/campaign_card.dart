@@ -242,36 +242,6 @@ class CampaignCard extends StatelessWidget {
     );
   }
 
-  String _getLocalizedCategoryName(String category) {
-    // Try to get localized category name using translation keys
-    
-    // Map category names to translation keys
-    final categoryMap = {
-      'فرص تعليمية': 'category_education_opportunities',
-      'فرص التعليم': 'category_education_opportunities',
-      'Education Opportunities': 'category_education_opportunities',
-      'السكن والنقل': 'category_housing_transport',
-      'Housing & Transport': 'category_housing_transport',
-      'شراء الأجهزة': 'category_device_purchase',
-      'Device Purchase': 'category_device_purchase',
-      'شراء أجهزة': 'category_device_purchase',
-      'الامتحانات': 'category_exams',
-      'Exams': 'category_exams',
-      'الإعانة الشهرية': 'category_emergency_support',
-      'Emergency Support': 'category_emergency_support',
-      'رسوم الاختبارات': 'category_exams',
-      'الدعم الطارئ': 'category_emergency_support',
-    };
-    
-    final translationKey = categoryMap[category];
-    if (translationKey != null) {
-      return translationKey.tr();
-    }
-    
-    // If no translation key found, return the category as is
-    return category;
-  }
-
   // Build campaign image widget - use imageUrl directly from backend
   Widget _buildCampaignImage(Campaign campaign) {
     print('═══════════════════════════════════════════════════════════');

@@ -18,17 +18,7 @@ class PaymentService {
   final ApiClient _apiClient = ApiClient();
 
   // قاعدة API المستخدمة في بقية الخدمات أيضًا
-  // تأكد أن هذا يطابق العنوان في ApiClient.initialize
-  static const String _baseUrl = AppConfig.apiBaseUrlV1;
   static const String baseUrl = AppConfig.apiBaseUrlV1;
-
-  String get _apiBase => _baseUrl;
-
-  // احصل على التوكن من التخزين المحلي
-  Future<String?> _getAuthToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('auth_token');
-  }
 
   /// النسخة الجديدة الموصى بها — تُطابق باكند Laravel:
   ///

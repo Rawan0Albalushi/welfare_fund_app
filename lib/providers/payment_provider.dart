@@ -246,7 +246,7 @@ class PaymentProvider extends ChangeNotifier {
       if (payload is String) {
         data = jsonDecode(payload) as Map<String, dynamic>;
       } else if (payload is Map) {
-        data = Map<String, dynamic>.from(payload as Map);
+        data = Map<String, dynamic>.from(payload);
       } else {
         // غير معروف
         return;
