@@ -13,6 +13,12 @@
     "verifyError": "تعذر التحقق من حالة الدفع."
   },
   "app_title": "صندوق رعاية الطالب",
+  "app_subtitle": "رعاية الطالب الجامعي - ولاية الرستاق",
+  "hero_title": "اصنع الفرق مع صندوق رعاية الطالب",
+  "hero_subtitle": "تبرعك يساعد طالباً على مواصلة تعليمه وتحقيق حلمه",
+  "featured_campaigns": "حملات مميزة",
+  "student_cta_title": "طالب محتاج؟ قدّم طلبك",
+  "student_cta_subtitle": "سجّل طلبك في صندوق رعاية الطالب الجامعي وتمكن من الدعم المالي",
   "hello": "مرحباً",
   "donate_now": "تبرع الآن",
   "payment_success": "تم الدفع بنجاح",
@@ -97,6 +103,11 @@
   "sign_in": "تسجيل الدخول",
   
   "student_registration": "تسجيل الطالب",
+  "fund_info": {
+    "dialog_title": "معلومات هامة - صندوق رعاية الطالب الجامعي",
+    "section1_title": "ملاحظات عامة",
+    "section2_title": "أسباب رفض طلب الدعم المالي"
+  },
   "application_status": "حالة الطلب",
   "rejection_reason": "سبب الرفض:",
   "personal_information": "المعلومات الشخصية",
@@ -278,7 +289,9 @@
   "feature_coming_soon": "سيتم إضافة هذه الميزة قريباً",
   "choose_source": "اختر مصدر",
   "take_photo_camera": "التقاط صورة من الكاميرا",
-  
+  "choose_from_gallery": "اختيار من المعرض",
+  "error_selecting": "حدث خطأ أثناء الاختيار",
+
   "all_donations_loaded": "تم تحميل جميع التبرعات بنجاح",
   "no_donations_found": "لم يتم العثور على تبرعات",
   "donation": "تبرع",
@@ -584,5 +597,44 @@
   "error_creating_donation": "خطأ في إنشاء التبرع",
   "quick_donation_for_needy_students": "تبرع سريع للطلاب المحتاجين",
   "cannot_open_link": "لا يمكن فتح الرابط",
-  "error_opening_link": "خطأ في فتح الرابط"
+  "error_opening_link": "خطأ في فتح الرابط",
+  
+  "civil_id": "الرقم المدني",
+  "please_enter_civil_id": "يرجى إدخال الرقم المدني",
+  "date_of_birth": "تاريخ الميلاد",
+  "please_select_date_of_birth": "يرجى اختيار تاريخ الميلاد",
+  "please_enter_address": "يرجى إدخال العنوان",
+  "institution": "المؤسسة التعليمية",
+  "please_enter_institution": "يرجى إدخال اسم المؤسسة التعليمية",
+  
+  "guardian_information": "بيانات ولي الأمر",
+  "guardian_name": "اسم ولي الأمر",
+  "please_enter_guardian_name": "يرجى إدخال اسم ولي الأمر",
+  "guardian_job": "الوظيفة",
+  "please_enter_guardian_job": "يرجى إدخال وظيفة ولي الأمر",
+  "monthly_income": "الدخل الشهري",
+  "is_father_alive": "هل الأب على قيد الحياة؟",
+  "is_mother_alive": "هل الأم على قيد الحياة؟",
+  "parents_marital_status": "الحالة الاجتماعية للوالدين",
+  "stable": "مستقران",
+  "separated": "منفصلان",
+  "invalid_family_size": "حجم الأسرة يجب أن يكون بين 1 و 20",
+  
+  "documents_optional_note": "جميع المرفقات مطلوبة",
+  "please_upload_all_documents": "يرجى رفع جميع المرفقات المطلوبة",
+  "please_select_academic_year": "يرجى اختيار السنة الدراسية",
+  "please_enter_college_validation": "يرجى إدخال اسم الكلية",
+  "please_enter_major_validation": "يرجى إدخال التخصص",
+  "please_enter_gpa_validation": "يرجى إدخال المعدل التراكمي",
+  "application_letter": "رسالة تقديم الطلب",
+  "id_card_doc": "صورة البطاقة الشخصية",
+  "enrollment_letter": "رسالة الانتظام",
+  "tuition_letter": "رسالة الرسوم الدراسية",
+  "income_proof": "إثبات الدخل",
+  "bank_statements": "كشف حساب البنك",
+  "debt_proof": "إثبات المديونية",
+  "supporting_documents": "المستندات الداعمة",
+  "housing_letter": "رسالة رسوم السكن",
+  
+  "please_fill_required_fields": "يرجى ملء جميع الحقول المطلوبة"
 }

@@ -15,8 +15,111 @@ class StudentRegistrationService {
     );
   }
 
-  // POST /api/v1/students/registration - Submit student registration
+  /// POST /api/v1/students/registration - تقديم طلب تسجيل جديد
+  /// 
+  /// يدعم الهيكل الجديد للبيانات:
+  /// - personal: البيانات الشخصية
+  /// - academic: البيانات الأكاديمية  
+  /// - guardian: بيانات ولي الأمر
+  /// - documents: المرفقات
   Future<Map<String, dynamic>> submitStudentRegistration({
+    required int programId,
+    // البيانات الشخصية (personal)
+    required String fullName,
+    required String civilId,
+    required DateTime dateOfBirth,
+    required String phone,
+    required String address,
+    required String maritalStatus, // single, married, divorced, widowed
+    String? email,
+    // البيانات الأكاديمية (academic)
+    required String institution,
+    required String studentId,
+    String? college,
+    String? major,
+    String? program,
+    int? academicYear,
+    double? gpa,
+    // بيانات ولي الأمر (guardian)
+    required String guardianName,
+    required String guardianJob,
+    required double guardianMonthlyIncome,
+    required int guardianFamilySize,
+    required bool isFatherAlive,
+    required bool isMotherAlive,
+    required String parentsMaritalStatus, // stable, separated
+    // المرفقات (documents) - اختيارية
+    Map<String, Uint8List>? documentFiles,
+  }) async {
+    try {
+      // تحويل تاريخ الميلاد للصيغة المطلوبة YYYY-MM-DD
+      String dateOfBirthFormatted = dateOfBirth.toIso8601String().split('T').first;
+      
+      Map<String, dynamic> data = {
+        'program_id': programId,
+        // البيانات الشخصية
+        'personal[full_name]': fullName,
+        'personal[civil_id]': civilId,
+        'personal[date_of_birth]': dateOfBirthFormatted,
+        'personal[phone]': phone,
+        'personal[address]': address,
+        'personal[marital_status]': maritalStatus,
+        if (email != null && email.isNotEmpty) 'personal[email]': email,
+        // البيانات الأكاديمية
+        'academic[institution]': institution,
+        'academic[student_id]': studentId,
+        if (college != null && college.isNotEmpty) 'academic[college]': college,
+        if (major != null && major.isNotEmpty) 'academic[major]': major,
+        if (program != null && program.isNotEmpty) 'academic[program]': program,
+        if (academicYear != null) 'academic[academic_year]': academicYear,
+        if (gpa != null) 'academic[gpa]': gpa,
+        // بيانات ولي الأمر
+        'guardian[name]': guardianName,
+        'guardian[job]': guardianJob,
+        'guardian[monthly_income]': guardianMonthlyIncome,
+        'guardian[family_size]': guardianFamilySize,
+        'guardian[is_father_alive]': isFatherAlive ? '1' : '0',
+        'guardian[is_mother_alive]': isMotherAlive ? '1' : '0',
+        'guardian[parents_marital_status]': parentsMaritalStatus,
+      };
+
+      _log('API Data being sent (form-data format):');
+      data.forEach((key, value) {
+        _log('$key: $value');
+      });
+
+      FormData formData = FormData.fromMap(data);
+      
+      // إضافة المرفقات إذا وجدت
+      if (documentFiles != null) {
+        for (var entry in documentFiles.entries) {
+          String fieldName = 'documents[${entry.key}]';
+          String extension = _getFileExtension(entry.value);
+          formData.files.add(MapEntry(
+            fieldName,
+            MultipartFile.fromBytes(
+              entry.value,
+              filename: '${entry.key}.$extension',
+            ),
+          ));
+          _log('Adding document: $fieldName');
+        }
+      }
+
+      final response = await _apiClient.dio.post(
+        '/students/registration',
+        data: formData,
+      );
+
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  /// دالة قديمة للتوافق مع الكود السابق
+  @Deprecated('Use submitStudentRegistration with new parameters instead')
+  Future<Map<String, dynamic>> submitStudentRegistrationLegacy({
     required String fullName,
     required String studentId,
     required String phone,
@@ -41,11 +144,10 @@ class StudentRegistrationService {
     int? programId,
   }) async {
     try {
-      // Convert academic year string to number
       int academicYearNumber = _convertAcademicYearToNumber(academicYear);
       
       Map<String, dynamic> data = {
-        'program_id': programId ?? 1, // Use selected program ID or default to 1
+        'program_id': programId ?? 1,
         'personal[full_name]': fullName,
         'personal[student_id]': studentId,
         'personal[email]': email ?? '',
@@ -61,13 +163,11 @@ class StudentRegistrationService {
         'financial[family_size]': familySize,
       };
 
-      // Print the data being sent to API
-      _log('API Data being sent (form-data format):');
+      _log('API Data being sent (legacy format):');
       data.forEach((key, value) {
         _log('$key: $value');
       });
 
-      // Always use FormData for multipart/form-data
       FormData formData = FormData.fromMap(data);
       
       if (idCardImageBytes != null) {
@@ -91,7 +191,7 @@ class StudentRegistrationService {
     }
   }
 
-  // GET /api/v1/students/registration - Get all student registrations (for admin)
+  /// GET /api/v1/students/registration - Get all student registrations (for admin)
   Future<List<Map<String, dynamic>>> getAllStudentRegistrations({
     int? page,
     int? limit,
@@ -116,7 +216,7 @@ class StudentRegistrationService {
     }
   }
 
-  // GET /api/v1/students/registration/{id} - Get specific student registration
+  /// GET /api/v1/students/registration/{id} - Get specific student registration
   Future<Map<String, dynamic>> getStudentRegistrationById(String id) async {
     try {
       final response = await _apiClient.dio.get('/students/registration/$id');
@@ -126,73 +226,27 @@ class StudentRegistrationService {
     }
   }
 
-  // POST /api/v1/students/registration/{id}/documents - Upload documents for student registration
+  /// POST /api/v1/students/registration/{id}/documents - رفع المستندات
   Future<Map<String, dynamic>> uploadStudentDocuments({
     required String registrationId,
-    String? idCardImagePath,
-    Uint8List? idCardImageBytes,
-    String? transcriptPath,
-    Uint8List? transcriptBytes,
-    String? incomeCertificatePath,
-    Uint8List? incomeCertificateBytes,
-    String? familyCardPath,
-    Uint8List? familyCardBytes,
-    String? otherDocumentsPath,
-    Uint8List? otherDocumentsBytes,
+    Map<String, Uint8List>? documentFiles,
   }) async {
     try {
-      Map<String, dynamic> data = {};
-      FormData formData = FormData.fromMap(data);
+      FormData formData = FormData();
 
-      // Add files if provided
-      if (idCardImageBytes != null) {
-        formData.files.add(MapEntry(
-          'id_card_image',
-          MultipartFile.fromBytes(
-            idCardImageBytes,
-            filename: 'id_card.jpg',
-          ),
-        ));
-      }
-
-      if (transcriptBytes != null) {
-        formData.files.add(MapEntry(
-          'transcript',
-          MultipartFile.fromBytes(
-            transcriptBytes,
-            filename: 'transcript.pdf',
-          ),
-        ));
-      }
-
-      if (incomeCertificateBytes != null) {
-        formData.files.add(MapEntry(
-          'income_certificate',
-          MultipartFile.fromBytes(
-            incomeCertificateBytes,
-            filename: 'income_certificate.pdf',
-          ),
-        ));
-      }
-
-      if (familyCardBytes != null) {
-        formData.files.add(MapEntry(
-          'family_card',
-          MultipartFile.fromBytes(
-            familyCardBytes,
-            filename: 'family_card.pdf',
-          ),
-        ));
-      }
-
-      if (otherDocumentsBytes != null) {
-        formData.files.add(MapEntry(
-          'other_documents',
-          MultipartFile.fromBytes(
-            otherDocumentsBytes,
-            filename: 'other_documents.pdf',
-          ),
-        ));
+      if (documentFiles != null) {
+        for (var entry in documentFiles.entries) {
+          String fieldName = entry.key;
+          String extension = _getFileExtension(entry.value);
+          formData.files.add(MapEntry(
+            fieldName,
+            MultipartFile.fromBytes(
+              entry.value,
+              filename: '$fieldName.$extension',
+            ),
+          ));
+          _log('Uploading document: $fieldName');
+        }
       }
 
       final response = await _apiClient.dio.post(
@@ -206,8 +260,7 @@ class StudentRegistrationService {
     }
   }
 
-  // Get current user's student registration
-  // Endpoint: GET /api/v1/students/registration/my-registration
+  /// GET /api/v1/students/registration/my-registration - Get current user's registration
   Future<Map<String, dynamic>?> getCurrentUserRegistration() async {
     print('═══════════════════════════════════════════════════════════');
     print('🌐 [getCurrentUserRegistration] Starting...');
@@ -226,8 +279,6 @@ class StudentRegistrationService {
       
       _log('API Response: ${response.data}');
       
-      // Extract data from response
-      _log('Response data type: ${response.data.runtimeType}');
       if (response.data is Map) {
         _log('Response data keys: ${(response.data as Map).keys}');
         print('📋 [getCurrentUserRegistration] Response keys: ${(response.data as Map).keys.toList()}');
@@ -250,14 +301,12 @@ class StudentRegistrationService {
       print('📋 [getCurrentUserRegistration] Processing registration data...');
       print('📋 [getCurrentUserRegistration] Registration data keys: ${registrationData.keys.toList()}');
       
-      // Ensure status is properly formatted
-      // Backend status values: under_review, accepted, rejected, completed
+      // Normalize status
       if (registrationData.containsKey('status')) {
         String status = registrationData['status']?.toString().toLowerCase() ?? 'under_review';
         print('📊 [getCurrentUserRegistration] Original status: "${registrationData['status']}"');
         print('📊 [getCurrentUserRegistration] Normalized status: "$status"');
         
-        // Normalize status values - Backend returns: under_review, accepted, rejected, completed
         switch (status) {
           case 'under_review':
           case 'قيد المراجعة':
@@ -288,7 +337,7 @@ class StudentRegistrationService {
         registrationData['status'] = 'under_review';
       }
       
-      // Ensure rejection_reason is properly handled
+      // Handle rejection reason
       if (registrationData.containsKey('rejection_reason')) {
         String? rejectionReason = registrationData['rejection_reason']?.toString();
         if (rejectionReason != null && rejectionReason.isNotEmpty) {
@@ -324,24 +373,20 @@ class StudentRegistrationService {
       _log('Response status: ${e.response?.statusCode}');
       _log('Response data: ${e.response?.data}');
       
-      // Handle 404 - user may not have registered yet
       if (e.response?.statusCode == 404) {
         print('⚠️ [getCurrentUserRegistration] 404 - No registration found for current user');
         print('⚠️ [getCurrentUserRegistration] Returning null');
         _log('No registration found for current user (404)');
         print('═══════════════════════════════════════════════════════════');
-        return null; // No registration found
+        return null;
       }
       
-      // Handle 500 - Server error (backend issue)
       if (e.response?.statusCode == 500) {
         print('⚠️ [getCurrentUserRegistration] 500 - Server error');
         print('⚠️ [getCurrentUserRegistration] This is a backend issue that needs to be fixed');
         print('⚠️ [getCurrentUserRegistration] Returning null to prevent app crash');
         _log('Server error (500) in getCurrentUserRegistration - returning null');
         print('═══════════════════════════════════════════════════════════');
-        // Return null instead of throwing to prevent app from crashing
-        // The backend needs to be fixed, but we don't want to crash the app
         return null;
       }
       
@@ -351,35 +396,36 @@ class StudentRegistrationService {
     } catch (e) {
       print('❌ [getCurrentUserRegistration] Unexpected error: $e');
       print('═══════════════════════════════════════════════════════════');
-      // If it's not a DioException, return null instead of crashing
       return null;
     }
   }
 
-  // Update student registration
+  /// PUT /api/v1/students/registration/{id} - تحديث طلب مرفوض
   Future<Map<String, dynamic>> updateStudentRegistration({
     required String registrationId,
     required Map<String, dynamic> data,
-    String? idCardImagePath,
-    Uint8List? idCardImageBytes,
+    Map<String, Uint8List>? documentFiles,
   }) async {
     try {
-      FormData? formData;
+      FormData formData = FormData.fromMap(data);
       
-      if (idCardImageBytes != null) {
-        formData = FormData.fromMap(data);
-        formData.files.add(MapEntry(
-          'id_card_image',
-          MultipartFile.fromBytes(
-            idCardImageBytes,
-            filename: 'id_card.jpg',
-          ),
-        ));
+      if (documentFiles != null) {
+        for (var entry in documentFiles.entries) {
+          String fieldName = 'documents[${entry.key}]';
+          String extension = _getFileExtension(entry.value);
+          formData.files.add(MapEntry(
+            fieldName,
+            MultipartFile.fromBytes(
+              entry.value,
+              filename: '${entry.key}.$extension',
+            ),
+          ));
+        }
       }
 
       final response = await _apiClient.dio.put(
         '/students/registration/$registrationId',
-        data: formData ?? data,
+        data: formData,
       );
 
       return response.data;
@@ -388,7 +434,7 @@ class StudentRegistrationService {
     }
   }
 
-  // Delete student registration
+  /// DELETE /api/v1/students/registration/{id} - Delete student registration
   Future<void> deleteStudentRegistration(String registrationId) async {
     try {
       await _apiClient.dio.delete('/students/registration/$registrationId');
@@ -397,7 +443,7 @@ class StudentRegistrationService {
     }
   }
 
-  // Helper method to get localized program name
+  /// Helper method to get localized program name
   static String getLocalizedProgramName(Map<String, dynamic> program, String locale) {
     if (locale == 'ar') {
       return program['title_ar']?.isNotEmpty == true ? program['title_ar'] : (program['name'] ?? '');
@@ -406,7 +452,7 @@ class StudentRegistrationService {
     }
   }
 
-  // GET /api/v1/programs - Get all support programs
+  /// GET /api/v1/programs - Get all support programs
   Future<List<Map<String, dynamic>>> getSupportPrograms() async {
     try {
       _log('Calling API: /programs');
@@ -419,7 +465,6 @@ class StudentRegistrationService {
       List<Map<String, dynamic>> programs = [];
       
       if (response.data['data'] != null) {
-        // Handle Laravel Resource format
         final data = response.data['data'];
         _log('Data field found: $data');
         _log('Data type: ${data.runtimeType}');
@@ -427,15 +472,12 @@ class StudentRegistrationService {
         if (data is List) {
           programs = List<Map<String, dynamic>>.from(data);
         } else if (data is Map) {
-          // Single program case
           programs = [Map<String, dynamic>.from(data)];
         }
       } else if (response.data is List) {
-        // Handle direct list response
         programs = List<Map<String, dynamic>>.from(response.data);
         _log('Direct list response: $programs');
       } else if (response.data is Map) {
-        // Handle single object response
         programs = [Map<String, dynamic>.from(response.data)];
         _log('Single object response: $programs');
       }
@@ -443,7 +485,6 @@ class StudentRegistrationService {
       _log('Raw programs data: $programs');
       _log('Programs count: ${programs.length}');
       
-      // Print each program details for debugging
       for (int i = 0; i < programs.length; i++) {
         final program = programs[i];
         _log('Program $i:');
@@ -455,9 +496,7 @@ class StudentRegistrationService {
         _log('  - Description: ${program['description']} (type: ${program['description']?.runtimeType})');
       }
       
-      // Validate and normalize programs
       final validPrograms = programs.where((program) {
-        // Check for different possible field names
         final hasId = program['id'] != null;
         final hasTitleAr = program['title_ar'] != null;
         final hasTitleEn = program['title_en'] != null;
@@ -470,13 +509,12 @@ class StudentRegistrationService {
         
         return isValid;
       }).map((program) {
-        // Normalize the data structure with bilingual support
         final titleAr = program['title_ar'] ?? program['title'] ?? program['name'] ?? 'برنامج غير محدد';
         final titleEn = program['title_en'] ?? program['title'] ?? program['name'] ?? 'Undefined Program';
         
         return {
           'id': program['id'],
-          'name': titleAr, // Use Arabic title as default name
+          'name': titleAr,
           'title_ar': titleAr,
           'title_en': titleEn,
           'description': program['description_ar'] ?? program['description'] ?? '',
@@ -485,7 +523,7 @@ class StudentRegistrationService {
           'status': program['status'] ?? 'active',
           'image': program['image'] ?? '',
           'category': program['category'] ?? {},
-          'original_data': program, // Keep original data for debugging
+          'original_data': program,
         };
       }).toList();
       
@@ -522,40 +560,68 @@ class StudentRegistrationService {
     }
   }
 
-  // Helper methods for data conversion
+  // Helper: تحديد نوع الملف من البايتات
+  String _getFileExtension(Uint8List bytes) {
+    // Check for PDF signature
+    if (bytes.length >= 4 && bytes[0] == 0x25 && bytes[1] == 0x50 && bytes[2] == 0x44 && bytes[3] == 0x46) {
+      return 'pdf';
+    }
+    // Check for PNG signature
+    if (bytes.length >= 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) {
+      return 'png';
+    }
+    // Check for JPEG signature
+    if (bytes.length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xD8) {
+      return 'jpg';
+    }
+    // Default to jpg
+    return 'jpg';
+  }
+
+  // Helper: تحويل السنة الأكاديمية لرقم
   int _convertAcademicYearToNumber(String academicYear) {
-    switch (academicYear) {
+    switch (academicYear.toLowerCase()) {
+      case 'first_year':
       case 'السنة الأولى':
         return 1;
+      case 'second_year':
       case 'السنة الثانية':
         return 2;
+      case 'third_year':
       case 'السنة الثالثة':
         return 3;
+      case 'fourth_year':
       case 'السنة الرابعة':
         return 4;
+      case 'fifth_year':
       case 'السنة الخامسة':
         return 5;
+      case 'sixth_year':
       case 'السنة السادسة':
         return 6;
       default:
-        return 1;
+        return int.tryParse(academicYear) ?? 1;
     }
   }
 
+  // Helper: تحويل مستوى الدخل للإنجليزية
   String _convertIncomeLevelToEnglish(String incomeLevel) {
-    switch (incomeLevel) {
+    switch (incomeLevel.toLowerCase()) {
       case 'منخفض':
+      case 'low':
         return 'low';
       case 'متوسط':
+      case 'medium':
         return 'medium';
       case 'مرتفع':
+      case 'high':
         return 'high';
       default:
         return 'medium';
     }
   }
 
-  // Handle Dio errors and extract meaningful error messages
+  // Handle Dio errors
   String _handleDioError(DioException e) {
     if (e.response != null) {
       final data = e.response!.data;
@@ -563,9 +629,14 @@ class StudentRegistrationService {
         // Handle Laravel validation errors
         if (data['errors'] != null) {
           final errors = data['errors'] as Map<String, dynamic>;
-          final firstError = errors.values.first;
-          if (firstError is List && firstError.isNotEmpty) {
-            return firstError.first.toString();
+          List<String> errorMessages = [];
+          errors.forEach((key, value) {
+            if (value is List && value.isNotEmpty) {
+              errorMessages.add(value.first.toString());
+            }
+          });
+          if (errorMessages.isNotEmpty) {
+            return errorMessages.join('\n');
           }
         }
         // Handle general error message
@@ -582,6 +653,106 @@ class StudentRegistrationService {
       return 'لا يمكن الاتصال بالخادم';
     } else {
       return 'حدث خطأ غير متوقع';
+    }
+  }
+}
+
+/// أنواع المستندات المتاحة للرفع
+class DocumentType {
+  static const String applicationLetter = 'application_letter';
+  static const String idCard = 'id_card';
+  static const String enrollmentLetter = 'enrollment_letter';
+  static const String tuitionLetter = 'tuition_letter';
+  static const String incomeProof = 'income_proof';
+  static const String bankStatements = 'bank_statements';
+  static const String debtProof = 'debt_proof';
+  static const String supportingDocuments = 'supporting_documents';
+  static const String housingLetter = 'housing_letter';
+
+  static const List<String> all = [
+    applicationLetter,
+    idCard,
+    enrollmentLetter,
+    tuitionLetter,
+    incomeProof,
+    bankStatements,
+    debtProof,
+    supportingDocuments,
+    housingLetter,
+  ];
+
+  static String getArabicLabel(String type) {
+    switch (type) {
+      case applicationLetter:
+        return 'رسالة تقديم الطلب';
+      case idCard:
+        return 'صورة البطاقة الشخصية';
+      case enrollmentLetter:
+        return 'رسالة الانتظام';
+      case tuitionLetter:
+        return 'رسالة الرسوم الدراسية';
+      case incomeProof:
+        return 'إثبات الدخل';
+      case bankStatements:
+        return 'كشف حساب البنك';
+      case debtProof:
+        return 'إثبات المديونية';
+      case supportingDocuments:
+        return 'المستندات الداعمة';
+      case housingLetter:
+        return 'رسالة رسوم السكن';
+      default:
+        return type;
+    }
+  }
+
+  static String getEnglishLabel(String type) {
+    switch (type) {
+      case applicationLetter:
+        return 'Application Letter';
+      case idCard:
+        return 'ID Card';
+      case enrollmentLetter:
+        return 'Enrollment Letter';
+      case tuitionLetter:
+        return 'Tuition Letter';
+      case incomeProof:
+        return 'Income Proof';
+      case bankStatements:
+        return 'Bank Statements';
+      case debtProof:
+        return 'Debt Proof';
+      case supportingDocuments:
+        return 'Supporting Documents';
+      case housingLetter:
+        return 'Housing Letter';
+      default:
+        return type;
+    }
+  }
+
+  static String getDescription(String type) {
+    switch (type) {
+      case applicationLetter:
+        return 'رسالة موجهة لإدارة الصندوق';
+      case idCard:
+        return 'صورة البطاقة الشخصية لصاحب الطلب';
+      case enrollmentLetter:
+        return 'رسالة انتظام الطالب بالدراسة';
+      case tuitionLetter:
+        return 'رسالة بالرسوم ومدة الدراسة';
+      case incomeProof:
+        return 'إثبات الدخل الشهري للعائلة';
+      case bankStatements:
+        return 'كشف حساب 6 أشهر للعاملين';
+      case debtProof:
+        return 'إثبات المديونية';
+      case supportingDocuments:
+        return 'عقد زواج/شهادة وفاة/ملكية/إيجار/حكم سجن';
+      case housingLetter:
+        return 'رسالة رسوم السكن لفصل واحد';
+      default:
+        return '';
     }
   }
 }

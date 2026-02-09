@@ -166,18 +166,16 @@ class _UploadDocumentsScreenState extends State<UploadDocumentsScreen> {
     });
 
     try {
+      final Map<String, Uint8List> documentFiles = {};
+      if (_idCardImageBytes != null) documentFiles['id_card'] = _idCardImageBytes!;
+      if (_transcriptBytes != null) documentFiles['enrollment_letter'] = _transcriptBytes!;
+      if (_incomeCertificateBytes != null) documentFiles['income_proof'] = _incomeCertificateBytes!;
+      if (_familyCardBytes != null) documentFiles['bank_statements'] = _familyCardBytes!;
+      if (_otherDocumentsBytes != null) documentFiles['supporting_documents'] = _otherDocumentsBytes!;
+
       await _studentService.uploadStudentDocuments(
         registrationId: widget.registrationId,
-        idCardImagePath: _idCardImagePath,
-        idCardImageBytes: _idCardImageBytes,
-        transcriptPath: _transcriptPath,
-        transcriptBytes: _transcriptBytes,
-        incomeCertificatePath: _incomeCertificatePath,
-        incomeCertificateBytes: _incomeCertificateBytes,
-        familyCardPath: _familyCardPath,
-        familyCardBytes: _familyCardBytes,
-        otherDocumentsPath: _otherDocumentsPath,
-        otherDocumentsBytes: _otherDocumentsBytes,
+        documentFiles: documentFiles.isNotEmpty ? documentFiles : null,
       );
 
       if (mounted) {

@@ -282,9 +282,10 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
                               _buildInfoRow('full_name'.tr(), _registration!.fullName),
                               _buildInfoRow('student_id'.tr(), _registration!.studentId),
                               _buildInfoRow('phone_number'.tr(), _registration!.phone),
-                              if (_registration!.email != null)
+                              if (_registration!.email != null && _registration!.email!.isNotEmpty)
                                 _buildInfoRow('email'.tr(), _registration!.email!),
-                              _buildInfoRow('gender'.tr(), _registration!.gender),
+                              if (_registration!.gender != null && _registration!.gender!.isNotEmpty)
+                                _buildInfoRow('gender'.tr(), _registration!.gender!),
                               _buildInfoRow('marital_status'.tr(), _registration!.maritalStatus),
                             ],
                           ),
@@ -297,10 +298,10 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
                             color: AppColors.secondary,
                             children: [
                               _buildInfoRow('university'.tr(), _registration!.university),
-                              _buildInfoRow('college'.tr(), _registration!.college),
-                              _buildInfoRow('major'.tr(), _registration!.major),
-                              _buildInfoRow('academic_year'.tr(), _registration!.academicYear),
-                              _buildInfoRow('gpa'.tr(), _registration!.gpa.toString()),
+                              _buildInfoRow('college'.tr(), _registration!.college ?? ''),
+                              _buildInfoRow('major'.tr(), _registration!.major ?? ''),
+                              _buildInfoRow('academic_year'.tr(), _registration!.academicYear?.toString() ?? ''),
+                              _buildInfoRow('gpa'.tr(), _registration!.gpa?.toString() ?? ''),
                             ],
                           ),
                           const SizedBox(height: 20),
@@ -313,42 +314,32 @@ class _StudentRegistrationDetailsScreenState extends State<StudentRegistrationDe
                             children: [
                               _buildInfoRow('income_level'.tr(), _registration!.incomeLevel),
                               _buildInfoRow('family_size'.tr(), _registration!.familySize),
-                              if (_registration!.financialNeed != null)
-                                _buildInfoRow('financial_need'.tr(), _registration!.financialNeed!),
-                              if (_registration!.previousSupport != null)
-                                _buildInfoRow('previous_support'.tr(), _registration!.previousSupport!),
                             ],
                           ),
                           const SizedBox(height: 20),
 
-                          // ID Card Image Section
-                          if (_registration!.idCardImagePath != null) ...[
+                          // ID Card Image Section (from documents.idCard)
+                          if (_registration!.documents?.idCard != null &&
+                              _registration!.documents!.idCard!.isNotEmpty) ...[
                             _buildSection(
                               title: 'id_photo'.tr(),
                               icon: Icons.credit_card,
                               color: AppColors.info,
                               children: [
-                                _buildIdCardImage(_registration!.idCardImagePath!),
+                                _buildIdCardImage(_registration!.documents!.idCard!),
                               ],
                             ),
                             const SizedBox(height: 20),
                           ],
 
                           // Additional Information
-                          if (_registration!.address != null ||
-                              _registration!.emergencyContact != null ||
-                              _registration!.emergencyPhone != null) ...[
+                          if (_registration!.address != null && _registration!.address!.isNotEmpty) ...[
                             _buildSection(
                               title: 'additional_information'.tr(),
                               icon: Icons.info_outlined,
                               color: AppColors.info,
                               children: [
-                                if (_registration!.address != null)
-                                  _buildInfoRow('address'.tr(), _registration!.address!),
-                                if (_registration!.emergencyContact != null)
-                                  _buildInfoRow('emergency_contact'.tr(), _registration!.emergencyContact!),
-                                if (_registration!.emergencyPhone != null)
-                                  _buildInfoRow('emergency_phone'.tr(), _registration!.emergencyPhone!),
+                                _buildInfoRow('address'.tr(), _registration!.address!),
                               ],
                             ),
                             const SizedBox(height: 20),
