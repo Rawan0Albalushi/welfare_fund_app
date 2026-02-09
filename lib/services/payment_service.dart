@@ -173,11 +173,11 @@ class PaymentService {
     }
   }
 
-  /// معرف مرجعي فريد (اختياري)
+  /// معرف مرجعي فريد — يجب أن يحتوي فقط على حروف إنجليزية وأرقام ومسافات وحروف عربية (متطلب Thawani).
   String generateClientReferenceId() {
     final ts = DateTime.now().millisecondsSinceEpoch;
-    final rand = (ts % 10000).toString().padLeft(4, '0');
-    return 'donation_${ts}_$rand';
+    final rand = (ts % 100000).toString().padLeft(5, '0');
+    return 'donation${ts}$rand';
   }
 
   /// إنشاء جلسة دفع لتبرع موجود
@@ -397,6 +397,7 @@ class PaymentService {
     required int campaignId,
     required double amount,
     required String donorName,
+    String? donorPhone,
     String? note,
     String type = 'quick',
     String? returnOrigin,
@@ -406,20 +407,22 @@ class PaymentService {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
       
+      final body = <String, dynamic>{
+        'campaign_id': campaignId,
+        'amount': amount,
+        'donor_name': donorName,
+        if (donorPhone != null && donorPhone.isNotEmpty) 'donor_phone': donorPhone,
+        if (note != null) 'note': note,
+        'type': type,
+        if (returnOrigin != null) 'return_origin': returnOrigin,
+      };
       final response = await http.post(
         Uri.parse(AppConfig.donationsWithPaymentEndpoint),
         headers: {
           'Authorization': 'Bearer $token', // ✅ مهم جداً!
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({
-          'campaign_id': campaignId,
-          'amount': amount,
-          'donor_name': donorName,
-          'note': note,
-          'type': type,
-          if (returnOrigin != null) 'return_origin': returnOrigin,
-        }),
+        body: jsonEncode(body),
       );
 
       if (response.statusCode == 201) {

@@ -40,6 +40,50 @@ class DonationService {
     return _resolveFallbackBase();
   }
 
+  /// طباعة مفاتيح الخريطة (ومستوى واحد داخلي) للتشخيص
+  static void _debugPrintNestedKeys(String prefix, Map<String, dynamic>? map) {
+    if (!kDebugMode || map == null) return;
+    debugPrint('$prefix keys: ${map.keys.toList()}');
+    for (final entry in map.entries) {
+      if (entry.value is Map) {
+        debugPrint('$prefix.${entry.key} keys: ${(entry.value as Map).keys.toList()}');
+      }
+    }
+  }
+
+  /// استخراج رابط دفع من أي مكان في الخريطة (لتوافق أشكال الباكند المختلفة)
+  static String? _extractPaymentUrlFromMap(Map<String, dynamic>? map) {
+    if (map == null) return null;
+    for (final entry in map.entries) {
+      final v = entry.value;
+      final key = entry.key.toLowerCase();
+      if (v is String && v.startsWith('http') && v.length > 10) {
+        if (key.contains('url') || key.contains('link') || v.contains('pay') || v.contains('checkout') || v.contains('thawani')) {
+          return v;
+        }
+      }
+      if (v is Map) {
+        final found = _extractPaymentUrlFromMap(Map<String, dynamic>.from(v));
+        if (found != null) return found;
+      }
+    }
+    return null;
+  }
+
+  /// استخراج session_id من أي مكان في الخريطة
+  static String? _extractSessionIdFromMap(Map<String, dynamic>? map) {
+    if (map == null) return null;
+    final sid = map['session_id'] ?? map['sessionId'];
+    if (sid is String && sid.isNotEmpty) return sid;
+    for (final entry in map.entries) {
+      if (entry.value is Map) {
+        final found = _extractSessionIdFromMap(Map<String, dynamic>.from(entry.value));
+        if (found != null) return found;
+      }
+    }
+    return null;
+  }
+
   // ===== ENDPOINT 1: Create donation with direct payment =====
   /// POST /api/v1/donations/with-payment
   Future<Map<String, dynamic>> createDonationWithPayment({
@@ -109,24 +153,69 @@ class DonationService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+        if (kDebugMode) {
+          debugPrint('DonationService: Response keys: ${responseData.keys.toList()}');
+          _debugPrintNestedKeys('DonationService: response', responseData);
+        }
 
         final Map<String, dynamic>? data =
             (responseData['data'] is Map) ? responseData['data'] as Map<String, dynamic> : null;
         final Map<String, dynamic>? ps =
             (data?['payment_session'] is Map) ? data!['payment_session'] as Map<String, dynamic> : null;
 
-        final String? paymentUrl =
-            (ps?['payment_url'] ?? ps?['redirect_url'] ?? responseData['payment_url'] ?? data?['payment_url'])
-                ?.toString();
+        // دعم أشكال متعددة من الباكند: payment_url, checkout_url, redirect_url, url
+        String? paymentUrl = (ps?['payment_url'] ?? ps?['redirect_url'] ?? ps?['checkout_url'] ?? ps?['url'] ??
+            responseData['payment_url'] ?? responseData['checkout_url'] ?? responseData['redirect_url'] ?? responseData['url'] ??
+            data?['payment_url'] ?? data?['checkout_url'] ?? data?['redirect_url'] ?? data?['url'])
+            ?.toString();
+        if (paymentUrl == null || paymentUrl.isEmpty) {
+          paymentUrl = _extractPaymentUrlFromMap(responseData);
+        }
 
-        final String? sessionId =
-            (ps?['session_id'] ?? responseData['session_id'] ?? data?['session_id'])?.toString();
+        String? sessionId = (ps?['session_id'] ?? responseData['session_id'] ?? data?['session_id'])?.toString();
+        if (sessionId == null || sessionId.isEmpty) {
+          sessionId = _extractSessionIdFromMap(responseData);
+        }
 
-        // ✅ إضافة: استخراج donation_id من الاستجابة
+        // استخراج donation_id من الاستجابة
         final Map<String, dynamic>? donation =
             (data?['donation'] is Map) ? data!['donation'] as Map<String, dynamic> : null;
         final String? donationId =
             (donation?['donation_id'] ?? donation?['id'] ?? data?['donation_id'] ?? responseData['donation_id'])?.toString();
+
+        if (kDebugMode && (paymentUrl == null || sessionId == null)) {
+          debugPrint('DonationService: Missing from response - paymentUrl: ${paymentUrl != null}, sessionId: ${sessionId != null}, donationId: ${donationId != null}');
+          debugPrint('DonationService: data keys: ${data?.keys.toList()}, ps keys: ${ps?.keys.toList()}');
+          debugPrint('DonationService: Raw response body (first 500 chars): ${response.body.length > 500 ? response.body.substring(0, 500) : response.body}');
+        }
+
+        // حالة: التبرع أنشئ لكن فشل إنشاء جلسة الدفع (مثلاً خطأ من Thawani)
+        final paymentError = data?['payment_error'];
+        if ((paymentUrl == null || sessionId == null) && (paymentError != null || (responseData['message']?.toString() ?? '').toLowerCase().contains('payment'))) {
+          final backendMessage = responseData['message']?.toString() ?? '';
+          if (kDebugMode) {
+            debugPrint('═══════════════════════════════════════════════════════════');
+            debugPrint('🔴 [فشل الدفع] التبرع أنشئ لكن جلسة الدفع فشلت');
+            debugPrint('🔴 message من الباكند: $backendMessage');
+            debugPrint('🔴 donation_id: $donationId');
+            debugPrint('🔴 payment_error من الباكند: $paymentError');
+            if (paymentError is Map) {
+              debugPrint('🔴 payment_error (تفاصيل): $paymentError');
+            } else if (paymentError is String) {
+              debugPrint('🔴 payment_error (نص): $paymentError');
+            }
+            debugPrint('🔴 استجابة الباكند كاملة (body): ${response.body}');
+            debugPrint('═══════════════════════════════════════════════════════════');
+          }
+          final result = <String, dynamic>{
+            'ok': false,
+            'data': data ?? responseData,
+            'error_message': backendMessage.isNotEmpty ? backendMessage : 'تم إنشاء التبرع لكن تعذر فتح صفحة الدفع. يرجى المحاولة لاحقاً أو التواصل مع الدعم.',
+            if (paymentError != null) 'payment_error': paymentError,
+            if (donationId != null) 'donation_id': donationId,
+          };
+          return result;
+        }
 
         // نعيد جسم موحّد يفيد الـ UI
         final result = <String, dynamic>{
@@ -134,7 +223,7 @@ class DonationService {
           'data': data ?? responseData,
           if (paymentUrl != null) 'payment_url': paymentUrl,
           if (sessionId != null) 'payment_session_id': sessionId,
-          if (donationId != null) 'donation_id': donationId, // ✅ إضافة: donation_id للتحقق من الحالة
+          if (donationId != null) 'donation_id': donationId,
         };
         return result;
       } else if (response.statusCode == 401) {
@@ -147,10 +236,12 @@ class DonationService {
         throw Exception('حدث خطأ في إنشاء التبرع. يرجى المحاولة مرة أخرى.');
       }
     } catch (e, stackTrace) {
-      // ⚠️ لا نطبع تفاصيل الخطأ في الإنتاج لأسباب أمنية
       if (kDebugMode) {
-        debugPrint('DonationService: Error creating donation with payment');
-        debugPrint('DonationService: Stack trace: $stackTrace');
+        debugPrint('═══════════════════════════════════════════════════════════');
+        debugPrint('🔴 [فشل الدفع] خطأ أثناء إنشاء التبرع مع الدفع');
+        debugPrint('🔴 الاستثناء: $e');
+        debugPrint('🔴 Stack trace: $stackTrace');
+        debugPrint('═══════════════════════════════════════════════════════════');
       }
       rethrow;
     }
@@ -215,14 +306,11 @@ class DonationService {
         final Map<String, dynamic>? ps =
             (data?['payment_session'] is Map) ? data!['payment_session'] as Map<String, dynamic> : null;
 
-        final String? paymentUrl =
-            (ps?['payment_url'] ?? ps?['redirect_url'] ?? responseData['payment_url'] ?? data?['payment_url'])
-                ?.toString();
+        final String? paymentUrl = (ps?['payment_url'] ?? ps?['redirect_url'] ?? ps?['checkout_url'] ??
+            responseData['payment_url'] ?? responseData['checkout_url'] ?? data?['payment_url'] ?? data?['checkout_url'])
+            ?.toString();
+        final String? sessionId = (ps?['session_id'] ?? responseData['session_id'] ?? data?['session_id'])?.toString();
 
-        final String? sessionId =
-            (ps?['session_id'] ?? responseData['session_id'] ?? data?['session_id'])?.toString();
-
-        // نعيد جسم موحّد يفيد الـ UI
         final result = <String, dynamic>{
           'ok': true,
           'data': data ?? responseData,
@@ -238,7 +326,6 @@ class DonationService {
         throw Exception('حدث خطأ في إنشاء التبرع المجهول. يرجى المحاولة مرة أخرى.');
       }
     } catch (e) {
-      // ⚠️ لا نطبع تفاصيل الخطأ في الإنتاج
       if (kDebugMode) {
         debugPrint('DonationService: Error creating anonymous donation');
       }
@@ -880,9 +967,10 @@ class DonationService {
   }
 
   // ===== Helpers =====
+  /// معرف مرجعي — فقط حروف إنجليزية وأرقام (متطلب Thawani لـ client_reference_id).
   String generateClientReferenceId() {
     final ts = DateTime.now().millisecondsSinceEpoch;
-    final rand = (ts % 10000).toString().padLeft(4, '0');
-    return 'donation_${ts}_$rand';
+    final rand = (ts % 100000).toString().padLeft(5, '0');
+    return 'donation${ts}$rand';
   }
 }

@@ -7,6 +7,7 @@ import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 
 import '../models/campaign.dart';
+import '../providers/auth_provider.dart';
 import '../providers/payment_provider.dart';
 import 'payment_webview.dart';
 import 'donation_success_screen.dart';
@@ -90,6 +91,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
   double _selectedAmount = 0;
   final List<double> _quickAmounts = [50, 100, 200, 500, 1000];
   final TextEditingController _customAmountController = TextEditingController();
+  final TextEditingController _donorPhoneController = TextEditingController();
 
   @override
   void initState() {
@@ -114,6 +116,7 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
   void dispose() {
     _animationController.dispose();
     _customAmountController.dispose();
+    _donorPhoneController.dispose();
     super.dispose();
   }
 
@@ -156,6 +159,42 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
     if (!_validateAmount()) return;
 
     final provider = context.read<PaymentProvider>();
+    final auth = context.read<AuthProvider>();
+    final isLoggedIn = auth.isAuthenticated && auth.userProfile != null;
+    String? donorPhone = isLoggedIn
+        ? (auth.userProfile!['phone']?.toString() ?? auth.userProfile!['user']?['phone']?.toString())
+        : _donorPhoneController.text.trim();
+
+    if (!isLoggedIn) {
+      if (donorPhone == null || donorPhone.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('please_enter_donor_phone'.tr()),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      final cleanPhone = donorPhone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+      if (!RegExp(r'^[0-9]+$').hasMatch(cleanPhone)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('please_enter_valid_phone'.tr()),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      if (cleanPhone.length < 8 || cleanPhone.length > 15) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('phone_must_be_between_8_and_15_digits'.tr()),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
 
     // ابدأ دورة الدفع
     provider.initializePayment(_selectedAmount);
@@ -175,10 +214,11 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
       }
     }
 
-    // إنشاء التبرع مع الدفع مباشرة
+    // إنشاء التبرع مع الدفع مباشرة (مع donor_phone للمسجلين)
     await provider.initiateDonationWithPayment(
       amount: _selectedAmount,
       donorName: 'generous_donor'.tr(),
+      donorPhone: donorPhone,
       message: 'donation_for_campaign'.tr().replaceAll('{title}', widget.campaign.getLocalizedTitle(context.locale.languageCode)),
       programId: programId,
       campaignId: campaignId,
@@ -582,7 +622,47 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                             ],
                           ),
                         ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 24),
+
+                      // رقم الهاتف للمتبرعين غير المسجلين فقط
+                      Consumer<AuthProvider>(
+                        builder: (_, auth, __) {
+                          if (auth.isAuthenticated && auth.userProfile != null) return const SizedBox.shrink();
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'donor_phone_label'.tr(),
+                                style: AppTextStyles.titleMedium.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppColors.textTertiary, width: 1.5),
+                                ),
+                                child: TextField(
+                                  controller: _donorPhoneController,
+                                  keyboardType: TextInputType.phone,
+                                  style: AppTextStyles.bodyLarge,
+                                  decoration: InputDecoration(
+                                    hintText: 'enter_your_phone'.tr(),
+                                    hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
+                                    prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.textSecondary),
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+                          );
+                        },
+                      ),
 
                       // زر التبرع أو حالة الإكمال
                       if (widget.campaign.isCompleted)

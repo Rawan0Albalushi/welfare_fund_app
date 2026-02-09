@@ -7,7 +7,7 @@ import '../constants/app_constants.dart';
 import '../services/donation_service.dart';
 // WebView web platform registration (for Flutter Web)
 // ignore: avoid_web_libraries_in_flutter
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 
 /// شاشة فشل الدفع.
 /// - عند الضغط على "المحاولة مرة أخرى" ترجع 'retry' للصفحة السابقة عبر Navigator.pop.
@@ -68,12 +68,20 @@ class _PaymentFailedScreenState extends State<PaymentFailedScreen> {
       // استخراج عنوان الحملة إذا كان متوفراً
       _campaignTitle = uri.queryParameters['campaign_title'];
       
-      print('PaymentFailedScreen: donation_id = $_donationId');
-      print('PaymentFailedScreen: session_id = $_sessionId');
-      print('PaymentFailedScreen: error_message = $_errorMessage');
-      print('PaymentFailedScreen: amount = $_amount');
-      print('PaymentFailedScreen: campaign_title = $_campaignTitle');
-      
+      if (_donationId == null && widget.donationId != null) _donationId = widget.donationId;
+      if (_sessionId == null && widget.sessionId != null) _sessionId = widget.sessionId;
+      if (_errorMessage == null && widget.errorMessage != null) _errorMessage = widget.errorMessage;
+      if (_amount == null && widget.amount != null) _amount = widget.amount;
+      if (_campaignTitle == null && widget.campaignTitle != null) _campaignTitle = widget.campaignTitle;
+
+      if (kDebugMode) {
+        print('PaymentFailedScreen: donation_id = $_donationId');
+        print('PaymentFailedScreen: session_id = $_sessionId');
+        print('PaymentFailedScreen: error_message = $_errorMessage');
+        print('PaymentFailedScreen: amount = $_amount');
+        print('PaymentFailedScreen: campaign_title = $_campaignTitle');
+      }
+
       // إذا كان لدينا donation_id، احصل على تفاصيل التبرع من API
       if (_donationId != null) {
         _fetchDonationDetails();

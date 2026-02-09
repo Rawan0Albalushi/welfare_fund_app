@@ -528,6 +528,8 @@
   "enter_your_email": "أدخل بريدك الإلكتروني",
   "phone_optional": "رقم الهاتف (اختياري)",
   "enter_your_phone": "أدخل رقم هاتفك",
+  "donor_phone_label": "رقم هاتف المتبرع",
+  "please_enter_donor_phone": "يرجى إدخال رقم هاتف المتبرع (مطلوب للمتبرعين غير المسجلين)",
   "message_optional": "رسالة (اختياري)",
   "add_message_with_donation": "أضف رسالة مع تبرعك",
   "creating_payment_session": "جاري إنشاء جلسة الدفع...",

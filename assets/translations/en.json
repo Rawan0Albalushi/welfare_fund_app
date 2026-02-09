@@ -512,6 +512,8 @@
   "enter_your_email": "Enter your email",
   "phone_optional": "Phone (Optional)",
   "enter_your_phone": "Enter your phone number",
+  "donor_phone_label": "Donor Phone",
+  "please_enter_donor_phone": "Please enter donor phone (required for anonymous donors)",
   "message_optional": "Message (Optional)",
   "add_message_with_donation": "Add a message with your donation",
   "creating_payment_session": "Creating payment session...",

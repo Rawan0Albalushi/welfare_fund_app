@@ -18,6 +18,7 @@ class DonationsService {
     required int programId,
     required double amount,
     required String donorName,
+    String? donorPhone,
     String? note,
     String type = 'quick',
   }) async {
@@ -32,6 +33,14 @@ class DonationsService {
         };
       }
 
+      final body = <String, dynamic>{
+        'program_id': programId,
+        'amount': amount,
+        'donor_name': donorName,
+        if (donorPhone != null && donorPhone.isNotEmpty) 'donor_phone': donorPhone,
+        if (note != null) 'note': note,
+        'type': type,
+      };
       final response = await http.post(
         Uri.parse('$baseUrl/donations/with-payment'), // ✅ استخدم with-payment
         headers: {
@@ -39,13 +48,7 @@ class DonationsService {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          'program_id': programId,
-          'amount': amount,
-          'donor_name': donorName,
-          'note': note,
-          'type': type,
-        }),
+        body: json.encode(body),
       );
       
       if (response.statusCode == 201) {
@@ -72,6 +75,7 @@ class DonationsService {
     required int campaignId,
     required double amount,
     required String donorName,
+    String? donorPhone,
     String? note,
     String type = 'quick',
   }) async {
@@ -86,6 +90,14 @@ class DonationsService {
         };
       }
 
+      final body = <String, dynamic>{
+        'campaign_id': campaignId,
+        'amount': amount,
+        'donor_name': donorName,
+        if (donorPhone != null && donorPhone.isNotEmpty) 'donor_phone': donorPhone,
+        if (note != null) 'note': note,
+        'type': type,
+      };
       final response = await http.post(
         Uri.parse('$baseUrl/donations/with-payment'), // ✅ استخدم with-payment
         headers: {
@@ -93,13 +105,7 @@ class DonationsService {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          'campaign_id': campaignId,
-          'amount': amount,
-          'donor_name': donorName,
-          'note': note,
-          'type': type,
-        }),
+        body: json.encode(body),
       );
       
       if (response.statusCode == 201) {

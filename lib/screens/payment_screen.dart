@@ -6,6 +6,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 
+import '../providers/auth_provider.dart';
 import '../providers/payment_provider.dart';
 import 'payment_webview.dart';
 import 'donation_success_screen.dart';
@@ -138,12 +139,15 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
       }
     }
     
-    // التحقق من رقم الهاتف (إذا تم إدخاله)
+    // التحقق من رقم الهاتف — مطلوب للمستخدمين غير المسجلين
     final phone = _donorPhoneController.text.trim();
+    final isLoggedIn = context.read<AuthProvider>().isAuthenticated && context.read<AuthProvider>().userProfile != null;
+    if (!isLoggedIn && phone.isEmpty) {
+      _toast('please_enter_donor_phone'.tr());
+      return false;
+    }
     if (phone.isNotEmpty) {
-      // إزالة المسافات والرموز للتحقق
       final cleanPhone = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
-      // التحقق من أن الرقم يحتوي على أرقام فقط وطوله معقول (8-15 رقم)
       if (!RegExp(r'^[0-9]+$').hasMatch(cleanPhone)) {
         _toast('please_enter_valid_phone'.tr());
         return false;
@@ -191,12 +195,17 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
         if (widget.itemType == 'campaign') campaignId = parsedId;
       }
 
-      // إنشاء التبرع مع الدفع مباشرة
+      final auth = context.read<AuthProvider>();
+      final donorPhone = (auth.isAuthenticated && auth.userProfile != null)
+          ? (auth.userProfile!['phone']?.toString() ?? auth.userProfile!['user']?['phone']?.toString())
+          : (_donorPhoneController.text.trim().isNotEmpty ? _donorPhoneController.text.trim() : null);
+
+      // إنشاء التبرع مع الدفع مباشرة (رقم الهاتف من الملف الشخصي إن كان مسجلاً)
       await provider.initiateDonationWithPayment(
         amount: _selectedAmount,
         donorName: _donorNameController.text.trim(),
         donorEmail: _donorEmailController.text.trim().isNotEmpty ? _donorEmailController.text.trim() : null,
-        donorPhone: _donorPhoneController.text.trim().isNotEmpty ? _donorPhoneController.text.trim() : null,
+        donorPhone: donorPhone,
         message: _messageController.text.trim().isNotEmpty ? _messageController.text.trim() : null,
         itemId: widget.itemId,
         itemType: widget.itemType,
@@ -549,20 +558,32 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                             ),
                             const SizedBox(height: 16),
 
-                            Text(
-                              'phone_optional'.tr(),
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            Consumer<AuthProvider>(
+                              builder: (_, auth, __) {
+                                if (auth.isAuthenticated && auth.userProfile != null) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'donor_phone_label'.tr() + ' *',
+                                      style: AppTextStyles.bodyMedium.copyWith(
+                                        color: AppColors.textPrimary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    _textField(
+                                      controller: _donorPhoneController,
+                                      hint: 'enter_your_phone'.tr(),
+                                      keyboardType: TextInputType.phone,
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                );
+                              },
                             ),
-                            const SizedBox(height: 8),
-                            _textField(
-                              controller: _donorPhoneController,
-                              hint: 'enter_your_phone'.tr(),
-                              keyboardType: TextInputType.phone,
-                            ),
-                            const SizedBox(height: 16),
 
                             Text(
                               'message_optional'.tr(),

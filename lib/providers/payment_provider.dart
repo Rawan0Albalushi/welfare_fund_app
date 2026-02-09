@@ -132,32 +132,54 @@ class PaymentProvider extends ChangeNotifier {
 
       if (result['ok'] == true && result['payment_url'] != null) {
         _currentSessionId = result['payment_session_id']?.toString();
-        // ✅ إضافة: حفظ donation_id من الاستجابة
-        _currentDonationId = result['donation_id']?.toString() ?? 
-                            result['data']?['donation']?['donation_id']?.toString();
+        _currentDonationId = result['donation_id']?.toString() ??
+            result['data']?['donation']?['donation_id']?.toString() ??
+            result['data']?['donation']?['id']?.toString();
         _currentAmount = amount;
         _state = PaymentState.sessionCreated;
-        
-        // إنشاء PaymentResponse وهمي للتوافق
+
         _paymentResponse = PaymentResponse(
           success: true,
           sessionId: _currentSessionId,
           paymentUrl: result['payment_url'].toString(),
           message: 'تم إنشاء التبرع بنجاح',
         );
-        
+
         notifyListeners();
       } else {
-        _errorMessage = 'فشل في إنشاء التبرع';
+        final backendMsg = result['error_message']?.toString() ?? '';
+        final paymentError = result['payment_error'];
+        final did = result['donation_id']?.toString() ??
+            result['data']?['donation']?['donation_id']?.toString() ??
+            result['data']?['donation']?['id']?.toString();
+        if (kDebugMode) {
+          debugPrint('═══════════════════════════════════════════════════════════');
+          debugPrint('🔴 [PaymentProvider] فشل إنشاء جلسة الدفع');
+          debugPrint('🔴 result keys: ${result.keys.toList()}');
+          debugPrint('🔴 error_message: $backendMsg');
+          debugPrint('🔴 payment_error: $paymentError');
+          debugPrint('🔴 donation_id: $did');
+          debugPrint('═══════════════════════════════════════════════════════════');
+        }
+        if (backendMsg.toLowerCase().contains('payment session failed') ||
+            backendMsg.toLowerCase().contains('donation created but')) {
+          _errorMessage = 'تم إنشاء التبرع لكن تعذر فتح صفحة الدفع. يرجى المحاولة لاحقاً أو التواصل مع الدعم.';
+        } else {
+          _errorMessage = backendMsg.isNotEmpty ? backendMsg : 'فشل في إنشاء التبرع';
+        }
+        _currentDonationId = did;
+        _currentAmount = amount;
         _state = PaymentState.paymentFailed;
         notifyListeners();
       }
-    } catch (e) {
-      // ⚠️ لا نطبع تفاصيل الخطأ في الإنتاج لأسباب أمنية
+    } catch (e, stackTrace) {
       if (kDebugMode) {
-        debugPrint('PaymentProvider: Error in initiateDonationWithPayment');
+        debugPrint('═══════════════════════════════════════════════════════════');
+        debugPrint('🔴 [PaymentProvider] استثناء أثناء initiateDonationWithPayment');
+        debugPrint('🔴 الاستثناء: $e');
+        debugPrint('🔴 Stack trace: $stackTrace');
+        debugPrint('═══════════════════════════════════════════════════════════');
       }
-      // رسالة خطأ عامة لا تكشف تفاصيل داخلية
       _errorMessage = 'حدث خطأ في إنشاء التبرع. يرجى المحاولة مرة أخرى';
       _state = PaymentState.paymentFailed;
       notifyListeners();

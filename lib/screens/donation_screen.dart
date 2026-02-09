@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher_string.dart';
@@ -9,6 +10,7 @@ import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_config.dart';
 import '../constants/app_text_styles.dart';
+import '../providers/auth_provider.dart';
 import 'checkout_webview.dart';
 
 class DonationScreen extends StatefulWidget {
@@ -33,6 +35,7 @@ class _DonationScreenState extends State<DonationScreen> {
   bool _isLoading = false;
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _donorNameController = TextEditingController();
+  final TextEditingController _donorPhoneController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
   @override
@@ -45,12 +48,30 @@ class _DonationScreenState extends State<DonationScreen> {
     if (widget.donorName != null) {
       _donorNameController.text = widget.donorName!;
     }
+    // رقم الهاتف يُملأ لاحقاً من الـ profile إن وُجد (في didChangeDependencies أو بعد أول build)
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = context.read<AuthProvider>();
+    if (auth.isAuthenticated &&
+        auth.userProfile != null &&
+        _donorPhoneController.text.isEmpty) {
+      final phone = auth.userProfile!['phone']?.toString() ??
+          auth.userProfile!['user']?['phone']?.toString() ??
+          '';
+      if (phone.isNotEmpty) {
+        _donorPhoneController.text = phone;
+      }
+    }
   }
 
   @override
   void dispose() {
     _amountController.dispose();
     _donorNameController.dispose();
+    _donorPhoneController.dispose();
     _noteController.dispose();
     super.dispose();
   }
@@ -65,6 +86,34 @@ class _DonationScreenState extends State<DonationScreen> {
     if (_donorNameController.text.isEmpty) {
       _showErrorSnackBar('required_field'.tr());
       return;
+    }
+
+    final auth = context.read<AuthProvider>();
+    final phone = _donorPhoneController.text.trim();
+    final bool isLoggedIn = auth.isAuthenticated && auth.userProfile != null;
+    final String? profilePhone = isLoggedIn
+        ? (auth.userProfile!['phone']?.toString() ??
+            auth.userProfile!['user']?['phone']?.toString())
+        : null;
+    final String? donorPhoneToSend = phone.isNotEmpty
+        ? phone
+        : (profilePhone != null && profilePhone.isNotEmpty ? profilePhone : null);
+
+    // للمتبرعين غير المسجلين: رقم الهاتف مطلوب
+    if (!isLoggedIn && (donorPhoneToSend == null || donorPhoneToSend.isEmpty)) {
+      _showErrorSnackBar('please_enter_donor_phone'.tr());
+      return;
+    }
+    if (donorPhoneToSend != null && donorPhoneToSend.isNotEmpty) {
+      final cleanPhone = donorPhoneToSend.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+      if (!RegExp(r'^[0-9]+$').hasMatch(cleanPhone)) {
+        _showErrorSnackBar('please_enter_valid_phone'.tr());
+        return;
+      }
+      if (cleanPhone.length < 8 || cleanPhone.length > 15) {
+        _showErrorSnackBar('phone_must_be_between_8_and_15_digits'.tr());
+        return;
+      }
     }
 
     final amount = double.tryParse(_amountController.text);
@@ -100,6 +149,7 @@ class _DonationScreenState extends State<DonationScreen> {
           'campaign_id': widget.campaignId ?? 1,
           'amount': amount,
           'donor_name': _donorNameController.text.trim(),
+          if (donorPhoneToSend != null && donorPhoneToSend.isNotEmpty) 'donor_phone': donorPhoneToSend,
           'note': _noteController.text.trim().isEmpty 
               ? 'quick_donation_for_needy_students'.tr() 
               : _noteController.text.trim(),
@@ -354,6 +404,33 @@ class _DonationScreenState extends State<DonationScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
+
+                    // رقم الهاتف — يظهر فقط لغير المسجلين (المسجلون يُرسل رقمهم من الملف الشخصي)
+                    Consumer<AuthProvider>(
+                      builder: (_, auth, __) {
+                        if (auth.isAuthenticated && auth.userProfile != null) {
+                          return const SizedBox.shrink();
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextFormField(
+                              controller: _donorPhoneController,
+                              keyboardType: TextInputType.phone,
+                              decoration: InputDecoration(
+                                labelText: 'donor_phone_label'.tr(),
+                                hintText: 'enter_your_phone'.tr(),
+                                prefixIcon: const Icon(Icons.phone),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        );
+                      },
+                    ),
 
                     // Note Field
                     TextFormField(

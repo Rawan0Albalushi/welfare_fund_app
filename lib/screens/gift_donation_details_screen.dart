@@ -358,6 +358,26 @@ class _GiftDonationDetailsScreenState extends State<GiftDonationDetailsScreen> {
                 const SizedBox(height: 24),
               ],
 
+              // للمتبرع المجهول: رقم الهاتف مطلوب فقط
+              if (_isAnonymous) ...[
+                _buildSectionTitle('رقم هاتف المتبرع (مطلوب)'),
+                const SizedBox(height: 12),
+                _buildTextField(
+                  controller: _donorPhoneController,
+                  label: 'رقم هاتفك',
+                  hint: 'أدخل رقم هاتفك',
+                  icon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'يرجى إدخال رقم هاتفك (مطلوب للمتبرعين المجهولين)';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+              ],
+
               // Submit Button
               SizedBox(
                 width: double.infinity,

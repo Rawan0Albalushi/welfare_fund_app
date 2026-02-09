@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher_string.dart';
@@ -10,6 +11,7 @@ import '../constants/app_config.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_constants.dart';
 import '../models/campaign.dart';
+import '../providers/auth_provider.dart';
 import '../services/campaign_service.dart';
 import 'checkout_webview.dart';
 import 'donation_success_screen.dart';
@@ -25,6 +27,7 @@ class QuickDonateAmountScreen extends StatefulWidget {
 class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
   double _selectedAmount = 50.0;
   final TextEditingController _customAmountController = TextEditingController();
+  final TextEditingController _donorPhoneController = TextEditingController();
   bool _isCustomAmount = false;
   bool _isLoading = false;
 
@@ -39,6 +42,22 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
   void initState() {
     super.initState();
     _loadInitialData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = context.read<AuthProvider>();
+    if (auth.isAuthenticated &&
+        auth.userProfile != null &&
+        _donorPhoneController.text.isEmpty) {
+      final phone = auth.userProfile!['phone']?.toString() ??
+          auth.userProfile!['user']?['phone']?.toString() ??
+          '';
+      if (phone.isNotEmpty) {
+        _donorPhoneController.text = phone;
+      }
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -133,6 +152,7 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
   @override
   void dispose() {
     _customAmountController.dispose();
+    _donorPhoneController.dispose();
     super.dispose();
   }
 
@@ -174,6 +194,40 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
       return;
     }
 
+    final auth = context.read<AuthProvider>();
+    final isLoggedIn = auth.isAuthenticated && auth.userProfile != null;
+    final phone = _donorPhoneController.text.trim();
+    if (!isLoggedIn) {
+      if (phone.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('please_enter_donor_phone'.tr()),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      final cleanPhone = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+      if (!RegExp(r'^[0-9]+$').hasMatch(cleanPhone)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('please_enter_valid_phone'.tr()),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      if (cleanPhone.length < 8 || cleanPhone.length > 15) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('phone_must_be_between_8_and_15_digits'.tr()),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
+
     _processPayment();
   }
 
@@ -185,6 +239,16 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
     try {
       // ✅ احصل على التوكن (اختياري)
       final token = await _getAuthToken();
+      final auth = context.read<AuthProvider>();
+      final isLoggedIn = auth.isAuthenticated && auth.userProfile != null;
+      final phoneFromController = _donorPhoneController.text.trim();
+      final profilePhone = isLoggedIn
+          ? (auth.userProfile!['phone']?.toString() ??
+              auth.userProfile!['user']?['phone']?.toString())
+          : null;
+      final donorPhone = phoneFromController.isNotEmpty
+          ? phoneFromController
+          : (profilePhone != null && profilePhone.isNotEmpty ? profilePhone : null);
 
       // الحصول على origin للمنصة الويب
       final origin = kIsWeb ? Uri.base.origin : AppConfig.serverBaseUrl;
@@ -210,19 +274,23 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
         print('QuickDonate: Using anonymous donation request');
       }
 
-      // 1) استدعاء POST /api/v1/donations/with-payment مع return_origin
+      // 1) استدعاء POST /api/v1/donations/with-payment مع return_origin و donor_phone
+      final body = <String, dynamic>{
+        'campaign_id': campaignId,
+        'amount': _selectedAmount,
+        'donor_name': 'donor'.tr(),
+        'note': 'quick_donation_for_needy_students'.tr(),
+        'is_anonymous': false,
+        'type': 'quick',
+        'return_origin': origin,
+      };
+      if (donorPhone != null && donorPhone.isNotEmpty) {
+        body['donor_phone'] = donorPhone;
+      }
       final response = await http.post(
         Uri.parse(AppConfig.donationsWithPaymentEndpoint),
         headers: headers,
-        body: jsonEncode({
-          'campaign_id': campaignId,
-          'amount': _selectedAmount,
-          'donor_name': 'donor'.tr(),
-          'note': 'quick_donation_for_needy_students'.tr(),
-          'is_anonymous': false,
-          'type': 'quick',
-          'return_origin': origin,
-        }),
+        body: jsonEncode(body),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -560,7 +628,52 @@ class _QuickDonateAmountScreenState extends State<QuickDonateAmountScreen> {
               ),
             ),
 
-            const SizedBox(height: AppConstants.extraLargePadding),
+            const SizedBox(height: AppConstants.defaultPadding),
+
+            // رقم الهاتف — يظهر فقط لغير المسجلين
+            Consumer<AuthProvider>(
+              builder: (_, auth, __) {
+                if (auth.isAuthenticated && auth.userProfile != null) {
+                  return const SizedBox.shrink();
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'donor_phone_label'.tr(),
+                      style: AppTextStyles.headlineSmall.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: AppConstants.smallPadding),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.textPrimary.withOpacity(0.1),
+                          width: 1,
+                        ),
+                      ),
+                      child: TextField(
+                        controller: _donorPhoneController,
+                        keyboardType: TextInputType.phone,
+                        style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textPrimary),
+                        decoration: InputDecoration(
+                          hintText: 'enter_your_phone'.tr(),
+                          hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                          prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.textSecondary),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppConstants.extraLargePadding),
+                  ],
+                );
+              },
+            ),
 
             // Selected Amount Display
             if (_selectedAmount > 0) ...[
