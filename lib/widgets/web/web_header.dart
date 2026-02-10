@@ -163,7 +163,7 @@ class _WebHeaderState extends State<WebHeader> {
       _NavItem(icon: Icons.home_rounded, label: 'home'.tr(), index: 0),
       _NavItem(icon: Icons.campaign_rounded, label: 'campaigns'.tr(), index: 1),
       _NavItem(icon: Icons.favorite_rounded, label: 'quick_donate'.tr(), index: 2),
-      _NavItem(icon: Icons.history_rounded, label: 'my_donations'.tr(), index: 3),
+      _NavItem(icon: Icons.newspaper_rounded, label: 'fund_news'.tr(), index: 3),
       _NavItem(icon: Icons.school_rounded, label: 'student_registration'.tr(), index: 4),
     ];
     

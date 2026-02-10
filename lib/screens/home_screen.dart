@@ -18,7 +18,7 @@ import '../services/student_registration_service.dart';
 import '../providers/auth_provider.dart';
 import 'quick_donate_amount_screen.dart';
 // import 'gift_donation_screen.dart'; // Unused for now
-import 'my_donations_screen.dart';
+import 'fund_news_screen.dart';
 import 'campaign_donation_screen.dart';
 import 'student_registration_screen.dart';
 import 'settings_screen.dart';
@@ -395,31 +395,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _onMyDonations() async {
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final isAuthenticated = authProvider.isAuthenticated;
-      
-      if (!mounted) return; // تحقق من أن الـ widget لا يزال موجوداً
-      
-      if (isAuthenticated) {
-        // إذا كان المستخدم مسجل دخول، افتح شاشة تبرعاتي
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const MyDonationsScreen(),
-          ),
-        );
-      } else {
-        // إذا لم يكن مسجل دخول، اعرض bottom sheet
-        _showLoginBottomSheet();
-      }
-    } catch (error) {
-      // في حالة حدوث خطأ، اعرض bottom sheet كإجراء احترازي
-      if (mounted) {
-        _showLoginBottomSheet();
-      }
-    }
+  void _onFundNews() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const FundNewsScreen(),
+      ),
+    );
   }
 
   void _showLoginBottomSheet() {
@@ -1223,14 +1205,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         Expanded(
-                          child:                         _buildModernCircleFeature(
-                          icon: Icons.history,
-                          label: 'my_donations'.tr(),
-                          gradient: const LinearGradient(
-                            colors: [AppColors.secondary, AppColors.secondaryLight],
+                          child: _buildModernCircleFeature(
+                            icon: Icons.newspaper_rounded,
+                            label: 'fund_news'.tr(),
+                            gradient: const LinearGradient(
+                              colors: [AppColors.secondary, AppColors.secondaryLight],
+                            ),
+                            onTap: _onFundNews,
                           ),
-                          onTap: _onMyDonations,
-                        ),
                         ),
                       ],
                     ),
@@ -1337,8 +1319,8 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() {
               _currentIndex = index;
             });
-          } else if (index == 1) { // تبرعاتي
-            _onMyDonations();
+          } else if (index == 1) { // أخبار الصندوق
+            _onFundNews();
           } else if (index == 2) { // الإعدادات
             Navigator.push(
               context,
@@ -1361,8 +1343,8 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'home'.tr(),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'my_donations'.tr(),
+            icon: Icon(Icons.newspaper_rounded),
+            label: 'fund_news'.tr(),
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),

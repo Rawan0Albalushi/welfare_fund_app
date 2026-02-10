@@ -15,7 +15,7 @@ import '../quick_donate_amount_screen.dart';
 import '../all_campaigns_screen.dart';
 import '../campaign_donation_screen.dart';
 import '../student_registration_screen.dart';
-import '../my_donations_screen.dart';
+import '../fund_news_screen.dart';
 import '../settings_screen.dart';
 import '../login_screen.dart';
 import '../register_screen.dart';
@@ -132,8 +132,13 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
           ),
         );
         break;
-      case 3: // My Donations
-        _handleMyDonations();
+      case 3: // Fund News
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const FundNewsScreen(),
+          ),
+        );
         break;
       case 4: // Student Registration
         _handleStudentRegistration();
@@ -162,20 +167,6 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
           ),
         );
         break;
-    }
-  }
-
-  void _handleMyDonations() {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.isAuthenticated) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const MyDonationsScreen(),
-        ),
-      );
-    } else {
-      _showLoginDialog();
     }
   }
 

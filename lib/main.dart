@@ -13,6 +13,7 @@ import 'screens/home_screen.dart';
 import 'screens/donation_success_screen.dart';
 import 'screens/payment_failed_screen.dart';
 import 'screens/payment_loading_screen.dart';
+import 'screens/fund_news_screen.dart';
 import 'services/auth_service.dart';
 import 'services/api_client.dart';
 import 'providers/auth_provider.dart';
@@ -263,6 +264,7 @@ class StudentWelfareFundApp extends StatelessWidget {
           AppConstants.paymentSuccessRoute: (context) => const DonationSuccessScreen(),
           AppConstants.paymentCancelRoute: (context) => const PaymentFailedScreen(),
           '/payment/loading': (context) => const PaymentLoadingScreen(),
+          AppConstants.fundNewsRoute: (context) => const FundNewsScreen(),
         },
           );
         },

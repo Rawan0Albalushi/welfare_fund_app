@@ -64,8 +64,8 @@ class WebSidebar extends StatelessWidget {
                   ),
                   _buildNavItem(
                     context: context,
-                    icon: Icons.history_rounded,
-                    label: 'my_donations'.tr(),
+                    icon: Icons.newspaper_rounded,
+                    label: 'fund_news'.tr(),
                     index: 3,
                   ),
                   

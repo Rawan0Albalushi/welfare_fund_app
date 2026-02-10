@@ -12,6 +12,7 @@ class AppConstants {
   static const String homeRoute = '/home';
   static const String paymentSuccessRoute = '/payment/success';
   static const String paymentCancelRoute = '/payment/cancel';
+  static const String fundNewsRoute = '/fund-news';
   
   // Padding values
   static const double smallPadding = 8.0;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../constants/app_colors.dart';
+import '../../constants/app_constants.dart';
 import '../../constants/app_text_styles.dart';
 import '../responsive/responsive_layout.dart';
 import 'web_header.dart';
@@ -138,8 +139,8 @@ class WebPageWrapper extends StatelessWidget {
       case 2: // Quick Donate
         Navigator.pushNamed(context, '/quick-donate');
         break;
-      case 3: // My Donations
-        Navigator.pushNamed(context, '/my-donations');
+      case 3: // Fund News
+        Navigator.pushNamed(context, AppConstants.fundNewsRoute);
         break;
       case 4: // Student Registration
         Navigator.pushNamed(context, '/student-registration');
