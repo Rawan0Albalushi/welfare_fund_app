@@ -13,6 +13,7 @@ import 'login_screen.dart' as login;
 import 'edit_profile_screen.dart';
 import 'my_donations_screen.dart';
 import 'settings/setting_page_screen.dart';
+import 'fund_partners_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -545,6 +546,20 @@ class _SettingsScreenState extends State<SettingsScreen>
                   builder: (context) => const SettingPageScreen(
                     pageKey: 'contact_us',
                   ),
+                ),
+              );
+            },
+          ),
+          _buildDivider(),
+          _buildSettingsTile(
+            icon: Icons.handshake_rounded,
+            title: 'fund_partners'.tr(),
+            subtitle: 'fund_partners_tile_subtitle'.tr(),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FundPartnersScreen(),
                 ),
               );
             },

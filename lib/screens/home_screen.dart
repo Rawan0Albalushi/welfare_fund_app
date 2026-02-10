@@ -22,6 +22,7 @@ import 'fund_news_screen.dart';
 import 'campaign_donation_screen.dart';
 import 'student_registration_screen.dart';
 import 'settings_screen.dart';
+import 'my_donations_screen.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
 import 'all_campaigns_screen.dart';
@@ -1319,8 +1320,13 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() {
               _currentIndex = index;
             });
-          } else if (index == 1) { // أخبار الصندوق
-            _onFundNews();
+          } else if (index == 1) { // تبرعاتي
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MyDonationsScreen(),
+              ),
+            );
           } else if (index == 2) { // الإعدادات
             Navigator.push(
               context,
@@ -1343,8 +1349,8 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'home'.tr(),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.newspaper_rounded),
-            label: 'fund_news'.tr(),
+            icon: Icon(Icons.volunteer_activism),
+            label: 'my_donations'.tr(),
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
