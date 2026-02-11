@@ -65,6 +65,74 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// تسجيل بالهاتف ثم التحقق بـ OTP - المرحلة الأولى (إرسال OTP)
+  /// Returns map with verifyId, phone (masked), and optionally devOtp للاختبار.
+  Future<Map<String, dynamic>> registerWithPhone({
+    required String phone,
+    required String password,
+    required String passwordConfirmation,
+    required String name,
+    String? email,
+  }) async {
+    final response = await _authService.registerWithPhone(
+      phone: phone,
+      password: password,
+      passwordConfirmation: passwordConfirmation,
+      name: name,
+      email: email,
+    );
+    final data = response['data'];
+    if (data == null || data['verifyId'] == null) {
+      throw Exception('Invalid response from server');
+    }
+    final devOtp = data['otp'] ?? data['dev_otp'] ?? data['debug_otp'] ?? data['code'];
+    return {
+      'verifyId': data['verifyId'] as String,
+      'phone': data['phone'] as String? ?? phone,
+      if (devOtp != null) 'devOtp': devOtp.toString(),
+    };
+  }
+
+  /// إكمال التسجيل بإدخال رمز OTP - يحفظ التوكن ويحمّل البروفايل
+  Future<bool> verifyPhoneOtp(String verifyId, String verifyCode) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+      final response = await _authService.verifyPhoneOtp(
+        verifyId: verifyId,
+        verifyCode: verifyCode,
+      );
+      if (response['data'] != null || response['token'] != null) {
+        await _loadUserProfile();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// في بيئة التطوير: جلب الرمز من GET /auth/dev/otp?verifyId=...
+  Future<String?> getDevOtp(String verifyId) async {
+    return await _authService.getDevOtp(verifyId);
+  }
+
+  /// إعادة إرسال رمز OTP - يعيد verifyId جديد
+  Future<Map<String, dynamic>> resendOtp(String phone) async {
+    final response = await _authService.resendOtp(phone: phone);
+    final data = response['data'];
+    if (data == null || data['verifyId'] == null) {
+      throw Exception('Invalid response from server');
+    }
+    return {
+      'verifyId': data['verifyId'] as String,
+      'phone': data['phone'] as String? ?? phone,
+    };
+  }
+
   // Login user
   Future<bool> login(String phone, String password) async {
     try {

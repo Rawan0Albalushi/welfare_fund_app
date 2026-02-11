@@ -636,5 +636,21 @@
   "supporting_documents": "Supporting Documents",
   "housing_letter": "Housing Letter",
   
-  "please_fill_required_fields": "Please fill all required fields"
+  "please_fill_required_fields": "Please fill all required fields",
+
+  "verify_phone": "Verify Phone",
+  "otp_enter_code": "Enter verification code",
+  "otp_sent_to": "Code sent to {0}",
+  "otp_must_be_6_digits": "Verification code must be 6 digits",
+  "verify": "Verify",
+  "resend_code": "Resend code",
+  "otp_resent": "New code sent",
+  "phone_verified_successfully": "Phone verified successfully",
+  "session_expired_register_again": "Session expired, please try registering again",
+  "code_expired_request_new": "Code expired, request a new one",
+  "invalid_verification_code": "Invalid verification code",
+  "otp_dev_mode": "Dev mode",
+  "otp_dev_code_label": "Code from server (for testing):",
+  "otp_use_this_code": "Use this code",
+  "otp_dev_check_logs": "In development the OTP is not sent. Check server logs or use a fixed code if the backend supports it."
 }

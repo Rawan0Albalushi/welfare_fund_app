@@ -652,5 +652,21 @@
   "supporting_documents": "المستندات الداعمة",
   "housing_letter": "رسالة رسوم السكن",
   
-  "please_fill_required_fields": "يرجى ملء جميع الحقول المطلوبة"
+  "please_fill_required_fields": "يرجى ملء جميع الحقول المطلوبة",
+
+  "verify_phone": "التحقق من رقم الهاتف",
+  "otp_enter_code": "أدخل رمز التحقق",
+  "otp_sent_to": "تم إرسال الرمز إلى {0}",
+  "otp_must_be_6_digits": "يجب أن يكون رمز التحقق 6 أرقام",
+  "verify": "تحقق",
+  "resend_code": "إعادة إرسال الرمز",
+  "otp_resent": "تم إرسال رمز جديد",
+  "phone_verified_successfully": "تم التحقق من رقم الهاتف بنجاح",
+  "session_expired_register_again": "انتهت الجلسة، جرّب التسجيل من جديد",
+  "code_expired_request_new": "انتهت صلاحية الرمز، اطلب رمزاً جديداً",
+  "invalid_verification_code": "رمز التحقق غير صحيح",
+  "otp_dev_mode": "وضع التطوير",
+  "otp_dev_code_label": "الرمز المُرسل من الخادم (للاختبار):",
+  "otp_use_this_code": "استخدم هذا الرمز",
+  "otp_dev_check_logs": "في بيئة التطوير الرمز لا يُرسل فعلياً. تحقق من سجلات الخادم (log) أو استخدم رمزاً ثابتاً إذا يدعمه الباكند."
 }

@@ -48,7 +48,7 @@ class AuthService {
     print('AuthService: Dio initialized successfully');
   }
 
-  // Register user
+  // Register user (legacy - without phone verification)
   Future<Map<String, dynamic>> register({
     required String phone,
     required String password,
@@ -76,6 +76,116 @@ class AuthService {
         await _saveToken(response.data['token']);
       }
 
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  /// تسجيل جديد بالهاتف مع إرسال OTP (بدون حفظ توكن حتى التحقق)
+  /// Returns: { "verifyId": "...", "phone": "968****4567" }
+  Future<Map<String, dynamic>> registerWithPhone({
+    required String phone,
+    required String password,
+    required String passwordConfirmation,
+    required String name,
+    String? email,
+  }) async {
+    if (_dio == null) {
+      throw Exception('AuthService not initialized. Please call initialize() first.');
+    }
+    try {
+      final response = await _dio!.post('/auth/register/phone', data: {
+        'phone': phone,
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+        'name': name,
+        if (email != null && email.isNotEmpty) 'email': email,
+      });
+      final data = response.data;
+      // للتطوير: طباعة الاستجابة في الـ log (إذا الباكند يرسل otp في الاستجابة ستظهر هنا)
+      assert(() {
+        print('AuthService [register/phone] response: $data');
+        final devOtp = data['data']?['otp'] ?? data['data']?['dev_otp'] ?? data['data']?['debug_otp'] ?? data['data']?['code'];
+        if (devOtp != null) {
+          print('AuthService [DEV] OTP من الباكند: $devOtp');
+        }
+        return true;
+      }());
+      return data;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  /// إدخال رمز التحقق وإكمال التسجيل - يحفظ التوكن عند النجاح
+  Future<Map<String, dynamic>> verifyPhoneOtp({
+    required String verifyId,
+    required String verifyCode,
+  }) async {
+    if (_dio == null) {
+      throw Exception('AuthService not initialized. Please call initialize() first.');
+    }
+    try {
+      final response = await _dio!.post('/auth/verify/phone/otp', data: {
+        'verifyId': verifyId,
+        'verifyCode': verifyCode,
+      });
+      final data = response.data;
+      if (data['data']?['token'] != null) {
+        await _saveToken(data['data']['token']);
+      } else if (data['token'] != null) {
+        await _saveToken(data['token']);
+      }
+      return data;
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final status = e.response!.statusCode;
+        final data = e.response!.data;
+        if (data is Map<String, dynamic> && data['message'] != null) {
+          throw Exception(data['message'].toString());
+        }
+        if (status == 404) {
+          throw Exception('session_expired_register_again');
+        }
+        if (status == 203) {
+          throw Exception('code_expired_request_new');
+        }
+        if (status == 201 || status == 422) {
+          throw Exception('invalid_verification_code');
+        }
+      }
+      throw _handleDioError(e);
+    }
+  }
+
+  /// في بيئة التطوير فقط: جلب الرمز عبر GET /auth/dev/otp?verifyId=...
+  /// Returns: data.otp أو null إذا الـ endpoint غير متوفر
+  Future<String?> getDevOtp(String verifyId) async {
+    if (_dio == null) return null;
+    try {
+      final response = await _dio!.get(
+        '/auth/dev/otp',
+        queryParameters: {'verifyId': verifyId},
+      );
+      final data = response.data;
+      final otp = data['data']?['otp'] ?? data['otp'];
+      return otp?.toString();
+    } on DioException catch (_) {
+      return null;
+    }
+  }
+
+  /// إعادة إرسال رمز OTP
+  /// Returns: { "data": { "verifyId": "uuid-new", "phone": "968****4567" } }
+  Future<Map<String, dynamic>> resendOtp({required String phone}) async {
+    if (_dio == null) {
+      throw Exception('AuthService not initialized. Please call initialize() first.');
+    }
+    try {
+      final response = await _dio!.post('/auth/resend-otp', data: {
+        'phone': phone,
+      });
       return response.data;
     } on DioException catch (e) {
       throw _handleDioError(e);

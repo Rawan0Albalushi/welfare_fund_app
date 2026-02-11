@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:easy_localization/easy_localization.dart';
+import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -138,7 +138,15 @@ class StudentWelfareFundApp extends StatelessWidget {
         locale: context.locale,
         supportedLocales: context.supportedLocales,
         localizationsDelegates: context.localizationDelegates,
-        
+
+        // RTL for Arabic, LTR for English
+        builder: (context, child) {
+          final isRtl = context.locale.languageCode == 'ar';
+          return Directionality(
+            textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
 
         // Theme configuration
         theme: ThemeData(
@@ -251,8 +259,6 @@ class StudentWelfareFundApp extends StatelessWidget {
           // Scaffold theme
           scaffoldBackgroundColor: AppColors.background,
         ),
-
-        // RTL/LTR support is handled automatically by EasyLocalization
 
         // Initial route - check URL first
         initialRoute: _getInitialRoute(),

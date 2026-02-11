@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
-import '../services/auth_service.dart';
 import 'login_screen.dart';
+import 'phone_otp_verify_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 
@@ -36,9 +36,6 @@ class _RegisterScreenState extends State<RegisterScreen>
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
   bool _isEmailOptional = true;
-  
-  // Auth Service
-  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -210,8 +207,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                                     if (value == null || value.isEmpty) {
                                       return 'required_field'.tr();
                                     }
-                                    if (value.length != 8) {
-                                      return 'required_field'.tr();
+                                    final digits = value.replaceAll(RegExp(r'\D'), '');
+                                    if (digits.length < 8) {
+                                      return 'phone_must_be_between_8_and_15_digits'.tr();
                                     }
                                     return null;
                                   },
@@ -617,30 +615,26 @@ class _RegisterScreenState extends State<RegisterScreen>
       HapticFeedback.lightImpact();
 
       try {
-                 // Call register API
-         await _authService.register(
-           phone: _phoneController.text.trim(),
-           password: _passwordController.text,
-           passwordConfirmation: _confirmPasswordController.text,
-           email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
-           name: _nameController.text.trim(),
-         );
+        final authProvider = context.read<AuthProvider>();
+        final result = await authProvider.registerWithPhone(
+          phone: _phoneController.text.trim(),
+          password: _passwordController.text,
+          passwordConfirmation: _confirmPasswordController.text,
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim().isEmpty
+              ? null
+              : _emailController.text.trim(),
+        );
 
         setState(() {
           _isLoading = false;
         });
 
-        // Show success message and navigate to home
         if (mounted) {
-          // تأكيد تسجيل الدخول تلقائياً عبر مزود الحالة بعد نجاح التسجيل
-          try {
-            await context.read<AuthProvider>().checkAuthStatus();
-          } catch (_) {}
-
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'registration_successful'.tr(),
+                'otp_resent'.tr(),
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: AppColors.surface,
                 ),
@@ -652,9 +646,21 @@ class _RegisterScreenState extends State<RegisterScreen>
               ),
             ),
           );
-          
-          // Navigate to home screen
-          Navigator.pushReplacementNamed(context, '/home');
+          final verifyId = result['verifyId'] as String;
+          final maskedPhone = result['phone'] as String?;
+          final phone = _phoneController.text.trim();
+          final devOtp = result['devOtp'] as String?;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PhoneOtpVerifyScreen(
+                verifyId: verifyId,
+                phone: phone,
+                maskedPhone: maskedPhone,
+                devOtp: devOtp,
+              ),
+            ),
+          );
         }
       } catch (error) {
         setState(() {
