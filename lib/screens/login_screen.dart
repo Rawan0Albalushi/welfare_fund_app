@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
-import 'package:easy_localization/easy_localization.dart';
+import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../services/auth_service.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/responsive/responsive_layout.dart';
+import '../widgets/web/web_page_wrapper.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -107,209 +110,220 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    final info = ResponsiveLayout.getResponsiveInfo(context);
+    final useWebHeader = kIsWeb && (info.isDesktop || info.isTablet);
+
+    if (useWebHeader) {
+      return WebPageWrapper(
+        title: 'login'.tr(),
+        showBackButton: true,
+        child: _buildFormContent(),
+      );
+    }
+
+    final locale = context.locale.languageCode;
+    final isRTL = locale == 'ar';
+
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: AppColors.surface),
+        leading: IconButton(
+          icon: Icon(
+            isRTL ? Icons.arrow_forward_ios : Icons.arrow_back_ios,
+            color: AppColors.surface,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'login'.tr(),
+          style: AppTextStyles.appBarTitleDark,
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.modernGradient,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(20),
+              bottomRight: Radius.circular(20),
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: SlideTransition(
             position: _slideAnimation,
-            child: CustomScrollView(
-              slivers: [
-                // App Bar - With Gradient Background
-                SliverAppBar(
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  pinned: true,
-                  centerTitle: true,
-                  iconTheme: const IconThemeData(color: AppColors.surface),
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, color: AppColors.surface),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  title: Text(
-                    'login'.tr(),
-                    style: AppTextStyles.appBarTitleDark,
-                  ),
-                  actions: const [],
-                  flexibleSpace: Container(
-                    decoration: const BoxDecoration(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  _buildFormContent(),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormContent() {
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.surfaceVariant,
+            width: 1,
+          ),
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 20,
+                    decoration: BoxDecoration(
                       gradient: AppColors.modernGradient,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(20),
-                        bottomRight: Radius.circular(20),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'login'.tr(),
+                    style: AppTextStyles.headlineSmall.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Phone Field
+              _buildTextField(
+                controller: _phoneController,
+                label: 'phone_number'.tr(),
+                hint: 'phone_number'.tr(),
+                icon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'required_field'.tr();
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // Password Field
+              _buildTextField(
+                controller: _passwordController,
+                label: 'password'.tr(),
+                hint: 'password'.tr(),
+                icon: Icons.lock_outline,
+                isPassword: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'required_field'.tr();
+                  }
+                  if (value.length < 6) {
+                    return 'password_too_short'.tr();
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // Remember Me & Forgot Password
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _rememberMe,
+                        onChanged: (value) {
+                          setState(() {
+                            _rememberMe = value!;
+                          });
+                        },
+                        activeColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      Text(
+                        'remember_me'.tr(),
+                        style: AppTextStyles.bodyMedium,
+                      ),
+                    ],
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      // Navigate to forgot password
+                    },
+                    child: Text(
+                      'forgot_password'.tr(),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
-                ),
+                ],
+              ),
+              const SizedBox(height: 30),
 
-                // Login Form
-                SliverPadding(
-                  padding: const EdgeInsets.all(20),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      const SizedBox(height: 20),
+              // Login Button
+              _buildLoginButton(),
+              const SizedBox(height: 25),
 
-                      // Login Form
-                      ScaleTransition(
-                        scale: _scaleAnimation,
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: AppColors.surfaceVariant,
-                              width: 1,
-                            ),
-                          ),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 4,
-                                      height: 20,
-                                      decoration: BoxDecoration(
-                                        gradient: AppColors.modernGradient,
-                                        borderRadius: BorderRadius.circular(2),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      'login'.tr(),
-                                      style: AppTextStyles.headlineSmall.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 24),
-
-                                // Phone Field
-                                _buildTextField(
-                                  controller: _phoneController,
-                                  label: 'phone_number'.tr(),
-                                  hint: 'phone_number'.tr(),
-                                  icon: Icons.phone_outlined,
-                                  keyboardType: TextInputType.phone,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'required_field'.tr();
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 20),
-
-                                // Password Field
-                                _buildTextField(
-                                  controller: _passwordController,
-                                  label: 'password'.tr(),
-                                  hint: 'password'.tr(),
-                                  icon: Icons.lock_outline,
-                                  isPassword: true,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'required_field'.tr();
-                                    }
-                                    if (value.length < 6) {
-                                      return 'password_too_short'.tr();
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 20),
-
-                                // Remember Me & Forgot Password
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Checkbox(
-                                          value: _rememberMe,
-                                          onChanged: (value) {
-                                            setState(() {
-                                              _rememberMe = value!;
-                                            });
-                                          },
-                                          activeColor: AppColors.primary,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                        ),
-                                        Text(
-                                          'remember_me'.tr(),
-                                          style: AppTextStyles.bodyMedium,
-                                        ),
-                                      ],
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        // Navigate to forgot password
-                                      },
-                                      child: Text(
-                                        'forgot_password'.tr(),
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 30),
-
-                                // Login Button
-                                _buildLoginButton(),
-                                const SizedBox(height: 25),
-
-                                // Divider
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        height: 1,
-                                        color: AppColors.surfaceVariant,
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                                      child: Text(
-                                        'or',
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Container(
-                                        height: 1,
-                                        color: AppColors.surfaceVariant,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 25),
-
-                                // Register Button
-                                _buildRegisterButton(),
-                                const SizedBox(height: 20),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-                    ]),
+              // Divider
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 1,
+                      color: AppColors.surfaceVariant,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'or',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      height: 1,
+                      color: AppColors.surfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 25),
+
+              // Register Button
+              _buildRegisterButton(),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
       ),

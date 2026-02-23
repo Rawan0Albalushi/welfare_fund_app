@@ -1321,6 +1321,11 @@ class _HomeScreenState extends State<HomeScreen> {
               _currentIndex = index;
             });
           } else if (index == 1) { // تبرعاتي
+            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            if (!authProvider.isAuthenticated) {
+              _showLoginBottomSheet();
+              return;
+            }
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -1482,14 +1487,26 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: NetworkImage(imageUrl),
-                  fit: BoxFit.cover,
-                ),
+            Positioned.fill(
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.primary.withOpacity(0.6),
+                          AppColors.primary.withOpacity(0.4),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             Container(

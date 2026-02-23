@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io' show Platform;
 import '../constants/app_colors.dart';
+import '../constants/app_config.dart';
 import '../constants/app_constants.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
@@ -365,7 +366,7 @@ class _SplashScreenState extends State<SplashScreen>
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  // Modern logo with enhanced styling
+                                  // شعار التطبيق
                                   Semantics(
                                     label: 'splash.logoLabel'.tr(),
                                     image: true,
@@ -374,7 +375,7 @@ class _SplashScreenState extends State<SplashScreen>
                                       height: 140,
                                       decoration: BoxDecoration(
                                         color: AppColors.surface,
-                                        borderRadius: BorderRadius.circular(70),
+                                        borderRadius: BorderRadius.circular(20),
                                         boxShadow: [
                                           BoxShadow(
                                             color: AppColors.primary.withOpacity(0.3),
@@ -383,10 +384,13 @@ class _SplashScreenState extends State<SplashScreen>
                                           ),
                                         ],
                                       ),
-                                      child: const Icon(
-                                        Icons.favorite,
-                                        size: 70,
-                                        color: AppColors.primary,
+                                      clipBehavior: Clip.antiAlias,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(12),
+                                        child: Image.asset(
+                                          AppConfig.appLogoAsset,
+                                          fit: BoxFit.contain,
+                                        ),
                                       ),
                                     ),
                                   ),

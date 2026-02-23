@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 
@@ -141,6 +142,9 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
   }
 
   Future<void> _proceedToDonation() async {
+    if (kDebugMode) {
+      debugPrint('[DONATION_LOG] بداية التبرع: amount=${_selectedAmount}, campaignId=${widget.campaign.id}, type=${widget.campaign.type}');
+    }
     // Check if campaign is completed
     if (widget.campaign.isCompleted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -215,6 +219,9 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
     }
 
     // إنشاء التبرع مع الدفع مباشرة (مع donor_phone للمسجلين)
+    if (kDebugMode) {
+      debugPrint('[DONATION_LOG] استدعاء initiateDonationWithPayment: programId=$programId, campaignId=$campaignId');
+    }
     await provider.initiateDonationWithPayment(
       amount: _selectedAmount,
       donorName: 'generous_donor'.tr(),
@@ -225,6 +232,9 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
       note: 'donation_message'.tr(),
     );
 
+    if (kDebugMode) {
+      debugPrint('[DONATION_LOG] بعد initiateDonationWithPayment: state=${provider.state}, paymentUrl=${provider.paymentUrl != null ? "موجود" : "null"}, errorMessage=${provider.displayErrorMessage}');
+    }
     if (provider.state == PaymentState.sessionCreated && provider.paymentUrl != null) {
       // افتح الـ WebView داخل التطبيق
       provider.startPayment();
@@ -269,6 +279,8 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
               errorMessage: provider.displayErrorMessage,
               campaignTitle: widget.campaign.getLocalizedTitle(context.locale.languageCode),
               amount: _selectedAmount,
+              donationId: provider.currentDonationId,
+              sessionId: provider.currentSessionId,
             ),
           ),
         );
@@ -295,6 +307,8 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
                 errorMessage: provider.displayErrorMessage,
                 campaignTitle: widget.campaign.title,
                 amount: _selectedAmount,
+                donationId: provider.currentDonationId,
+                sessionId: provider.currentSessionId,
               ),
             ),
           );
@@ -304,6 +318,10 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
       }
     } else {
       // فشل إنشاء الجلسة
+      if (kDebugMode) {
+        debugPrint('[DONATION_LOG] ⚠ الانتقال لصفحة الفشل: السبب = إنشاء الجلسة فشل (state != sessionCreated أو paymentUrl null)');
+        debugPrint('[DONATION_LOG] state=${provider.state}, hasPaymentUrl=${provider.paymentUrl != null}, displayErrorMessage=${provider.displayErrorMessage}');
+      }
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -312,6 +330,8 @@ class _CampaignDonationScreenState extends State<CampaignDonationScreen>
             errorMessage: provider.displayErrorMessage,
             campaignTitle: widget.campaign.title,
             amount: _selectedAmount,
+            donationId: provider.currentDonationId,
+            sessionId: provider.currentSessionId,
           ),
         ),
       );

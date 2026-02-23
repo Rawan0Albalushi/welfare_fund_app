@@ -141,14 +141,17 @@ class DonationService {
       final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}/donations/with-payment');
       // ⚠️ لا نطبع معلومات حساسة في الإنتاج (URLs, headers, payloads)
       if (kDebugMode) {
-        debugPrint('DonationService: Creating donation with payment');
+        debugPrint('[DONATION_LOG] DonationService: طلب createDonationWithPayment itemType=$itemType itemId=$itemId amount=$amount returnOrigin=${returnOrigin != null ? "موجود" : "null"}');
       }
       
       final response = await http.post(uri, headers: headers, body: jsonEncode(payload));
       
       // ⚠️ لا نطبع تفاصيل الاستجابة في الإنتاج
       if (kDebugMode) {
-        debugPrint('DonationService: Response status: ${response.statusCode}');
+        debugPrint('[DONATION_LOG] DonationService: استجابة API statusCode=${response.statusCode} bodyLength=${response.body.length}');
+        if (response.statusCode != 200 && response.statusCode != 201) {
+          debugPrint('[DONATION_LOG] DonationService: جسم الاستجابة (غير 200/201): ${response.body.length > 400 ? response.body.substring(0, 400) + "..." : response.body}');
+        }
       }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -183,10 +186,12 @@ class DonationService {
         final String? donationId =
             (donation?['donation_id'] ?? donation?['id'] ?? data?['donation_id'] ?? responseData['donation_id'])?.toString();
 
-        if (kDebugMode && (paymentUrl == null || sessionId == null)) {
-          debugPrint('DonationService: Missing from response - paymentUrl: ${paymentUrl != null}, sessionId: ${sessionId != null}, donationId: ${donationId != null}');
-          debugPrint('DonationService: data keys: ${data?.keys.toList()}, ps keys: ${ps?.keys.toList()}');
-          debugPrint('DonationService: Raw response body (first 500 chars): ${response.body.length > 500 ? response.body.substring(0, 500) : response.body}');
+        if (kDebugMode) {
+          debugPrint('[DONATION_LOG] DonationService: من الاستجابة paymentUrl=${paymentUrl != null}, sessionId=${sessionId != null}, donationId=${donationId != null}');
+          if (paymentUrl == null || sessionId == null) {
+            debugPrint('[DONATION_LOG] DonationService: نقص في الاستجابة - data keys: ${data?.keys.toList()}, ps keys: ${ps?.keys.toList()}');
+            debugPrint('[DONATION_LOG] DonationService: Raw body (500 حرف): ${response.body.length > 500 ? response.body.substring(0, 500) : response.body}');
+          }
         }
 
         // حالة: التبرع أنشئ لكن فشل إنشاء جلسة الدفع (مثلاً خطأ من Thawani)
@@ -204,8 +209,11 @@ class DonationService {
             } else if (paymentError is String) {
               debugPrint('🔴 payment_error (نص): $paymentError');
             }
-            debugPrint('🔴 استجابة الباكند كاملة (body): ${response.body}');
+            debugPrint('[DONATION_LOG] DonationService: استجابة الباكند كاملة (body): ${response.body}');
             debugPrint('═══════════════════════════════════════════════════════════');
+          }
+          if (kDebugMode) {
+            debugPrint('[DONATION_LOG] DonationService: إرجاع ok=false (التبرع أنشئ لكن جلسة الدفع فشلت)');
           }
           final result = <String, dynamic>{
             'ok': false,
@@ -218,6 +226,9 @@ class DonationService {
         }
 
         // نعيد جسم موحّد يفيد الـ UI
+        if (kDebugMode) {
+          debugPrint('[DONATION_LOG] DonationService: إرجاع ok=true مع payment_url و session_id');
+        }
         final result = <String, dynamic>{
           'ok': true,
           'data': data ?? responseData,
@@ -227,21 +238,21 @@ class DonationService {
         };
         return result;
       } else if (response.statusCode == 401) {
+        if (kDebugMode) debugPrint('[DONATION_LOG] DonationService: 401 Unauthorized');
         throw Exception('انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.');
       } else if (response.statusCode == 422) {
         final errorData = jsonDecode(response.body);
         final errorMessage = (errorData['message']?.toString()) ?? 'بيانات غير صحيحة';
+        if (kDebugMode) debugPrint('[DONATION_LOG] DonationService: 422 Validation - $errorMessage');
         throw Exception(errorMessage);
       } else {
+        if (kDebugMode) debugPrint('[DONATION_LOG] DonationService: خطأ HTTP ${response.statusCode} body=${response.body.length > 200 ? response.body.substring(0, 200) : response.body}');
         throw Exception('حدث خطأ في إنشاء التبرع. يرجى المحاولة مرة أخرى.');
       }
     } catch (e, stackTrace) {
       if (kDebugMode) {
-        debugPrint('═══════════════════════════════════════════════════════════');
-        debugPrint('🔴 [فشل الدفع] خطأ أثناء إنشاء التبرع مع الدفع');
-        debugPrint('🔴 الاستثناء: $e');
-        debugPrint('🔴 Stack trace: $stackTrace');
-        debugPrint('═══════════════════════════════════════════════════════════');
+        debugPrint('[DONATION_LOG] DonationService: استثناء في createDonationWithPayment: $e');
+        debugPrint('[DONATION_LOG] Stack: $stackTrace');
       }
       rethrow;
     }

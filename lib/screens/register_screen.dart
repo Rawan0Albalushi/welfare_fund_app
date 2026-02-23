@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:easy_localization/easy_localization.dart';
+import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import 'login_screen.dart';
@@ -94,51 +94,50 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.locale.languageCode;
+    final isRTL = locale == 'ar';
+
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: AppColors.surface),
+        leading: IconButton(
+          icon: Icon(
+            isRTL ? Icons.arrow_forward_ios : Icons.arrow_back_ios,
+            color: AppColors.surface,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'create_new_account'.tr(),
+          style: AppTextStyles.appBarTitleDark,
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.modernGradient,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(20),
+              bottomRight: Radius.circular(20),
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: SlideTransition(
             position: _slideAnimation,
-            child: CustomScrollView(
-              slivers: [
-                // App Bar - With Gradient Background
-                SliverAppBar(
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  pinned: true,
-                  centerTitle: true,
-                  iconTheme: const IconThemeData(color: AppColors.surface),
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, color: AppColors.surface),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  title: Text(
-                    'create_new_account'.tr(),
-                    style: AppTextStyles.appBarTitleDark,
-                  ),
-                  actions: const [],
-                  flexibleSpace: Container(
-                    decoration: const BoxDecoration(
-                      gradient: AppColors.modernGradient,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(20),
-                        bottomRight: Radius.circular(20),
-                      ),
-                    ),
-                  ),
-                ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
 
-                // Register Form
-                SliverPadding(
-                  padding: const EdgeInsets.all(20),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      const SizedBox(height: 20),
-
-                      // Register Form
-                      ScaleTransition(
+                  // Register Form
+                  ScaleTransition(
                         scale: _scaleAnimation,
                         child: Container(
                           padding: const EdgeInsets.all(24),
@@ -342,11 +341,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(height: 30),
-                    ]),
-                  ),
-                ),
-              ],
+                  const SizedBox(height: 30),
+                ],
+              ),
             ),
           ),
         ),

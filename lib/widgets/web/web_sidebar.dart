@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
+import '../../constants/app_config.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_text_styles.dart';
 import '../../providers/auth_provider.dart';
@@ -109,17 +110,18 @@ class WebSidebar extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            // Logo Icon
+            // شعار التطبيق
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: AppColors.surface.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(
-                Icons.volunteer_activism,
-                color: AppColors.surface,
-                size: 32,
+              child: Image.asset(
+                AppConfig.appLogoAsset,
+                width: 32,
+                height: 32,
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(height: 12),

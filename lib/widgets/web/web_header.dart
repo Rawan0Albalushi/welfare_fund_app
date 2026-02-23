@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
+import '../../constants/app_config.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_text_styles.dart';
 import '../../providers/auth_provider.dart';
@@ -112,10 +113,11 @@ class _WebHeaderState extends State<WebHeader> {
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.volunteer_activism,
-                        color: Colors.white,
-                        size: 26,
+                      child: Image.asset(
+                        AppConfig.appLogoAsset,
+                        width: 26,
+                        height: 26,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),

@@ -101,29 +101,31 @@ class _PaymentFailedScreenState extends State<PaymentFailedScreen> {
       final donationService = DonationService();
       final response = await donationService.checkDonationStatus(_donationId!);
       
-      if (response != null && response['success'] == true) {
-        final data = response['data'];
-        if (data != null) {
-          setState(() {
-            _amount = (data['amount'] as num?)?.toDouble();
-            _campaignTitle = data['campaign_title'] as String?;
-          });
-          
-          print('PaymentFailedScreen: Fetched amount: $_amount');
-          print('PaymentFailedScreen: Fetched campaign title: $_campaignTitle');
-        }
+      // Backend returns { message, data } (no "success" key); treat as success when data exists
+      final data = response?['data'] as Map<String, dynamic>?;
+      if (response != null && data != null) {
+        final amountVal = data['amount'];
+        final num? amountNum = amountVal is num
+            ? amountVal
+            : (amountVal is String ? num.tryParse(amountVal) : null);
+        final String? campaignTitle = data['campaign_title'] as String? ??
+            (data['campaign'] is Map
+                ? ((data['campaign'] as Map)['title_ar'] as String? ??
+                    (data['campaign'] as Map)['title_en'] as String?)
+                : null);
+        setState(() {
+          _amount = amountNum?.toDouble();
+          _campaignTitle = campaignTitle;
+        });
+        print('PaymentFailedScreen: Fetched amount: $_amount');
+        print('PaymentFailedScreen: Fetched campaign title: $_campaignTitle');
       } else {
-        print('PaymentFailedScreen: Failed to fetch donation details - user may not be authenticated');
-        // إذا فشل الحصول على البيانات من API، استخدم البيانات من URL
+        print('PaymentFailedScreen: No donation data in response - user may not be authenticated');
         if (_amount == null && widget.amount != null) {
-          setState(() {
-            _amount = widget.amount;
-          });
+          setState(() => _amount = widget.amount);
         }
         if (_campaignTitle == null && widget.campaignTitle != null) {
-          setState(() {
-            _campaignTitle = widget.campaignTitle;
-          });
+          setState(() => _campaignTitle = widget.campaignTitle);
         }
       }
     } catch (e) {

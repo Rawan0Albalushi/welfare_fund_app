@@ -42,5 +42,8 @@ class AppConfig {
   static const String paymentsConfirmEndpoint = '$apiBaseUrlV1/payments/confirm';
 
   static String get origin => serverBaseUrl;
+
+  /// مسار شعار التطبيق
+  static const String appLogoAsset = 'assets/image/logo (2).png';
 }
 

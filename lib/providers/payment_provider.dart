@@ -90,7 +90,7 @@ class PaymentProvider extends ChangeNotifier {
 
       // ⚠️ لا نطبع معلومات حساسة في الإنتاج
       if (kDebugMode) {
-        debugPrint('PaymentProvider: Initiating donation payment');
+        debugPrint('[DONATION_LOG] PaymentProvider: بداية initiateDonationWithPayment amount=$amount programId=$programId campaignId=$campaignId finalItemId=$finalItemId finalItemType=$finalItemType');
       }
 
       // الحصول على origin للمنصة الويب
@@ -130,6 +130,9 @@ class PaymentProvider extends ChangeNotifier {
         returnOrigin: origin,
       );
 
+      if (kDebugMode) {
+        debugPrint('[DONATION_LOG] PaymentProvider: نتيجة createDonationWithPayment keys=${result.keys.toList()} ok=${result['ok']} hasPaymentUrl=${result['payment_url'] != null} error_message=${result['error_message']}');
+      }
       if (result['ok'] == true && result['payment_url'] != null) {
         _currentSessionId = result['payment_session_id']?.toString();
         _currentDonationId = result['donation_id']?.toString() ??
@@ -145,6 +148,9 @@ class PaymentProvider extends ChangeNotifier {
           message: 'تم إنشاء التبرع بنجاح',
         );
 
+        if (kDebugMode) {
+          debugPrint('[DONATION_LOG] PaymentProvider: جلسة الدفع أنشئت بنجاح sessionId=$_currentSessionId donationId=$_currentDonationId');
+        }
         notifyListeners();
       } else {
         final backendMsg = result['error_message']?.toString() ?? '';

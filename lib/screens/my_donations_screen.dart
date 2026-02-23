@@ -9,6 +9,7 @@ import '../services/donation_service.dart';
 import '../providers/auth_provider.dart';
 import 'settings_screen.dart';
 import 'home_screen.dart';
+import 'login_screen.dart';
 
 class MyDonationsScreen extends StatefulWidget {
   final bool forceRefresh;
@@ -27,6 +28,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
   List<Donation> _donations = [];
   bool _isLoading = true; // Auto loading enabled
   String? _errorMessage;
+  bool _isLoginRequired = false;
 
   @override
   void initState() {
@@ -54,6 +56,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
         setState(() {
           _isLoading = false;
           _errorMessage = 'must_login_first_to_view_donations'.tr();
+          _isLoginRequired = true;
         });
         return;
       }
@@ -64,6 +67,7 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       setState(() {
         _isLoading = false;
         _errorMessage = '${'error_checking_login'.tr()}: $e';
+        _isLoginRequired = false;
       });
     }
   }
@@ -82,6 +86,8 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
       setState(() {
         _donations = donations;
         _isLoading = false;
+        _errorMessage = null;
+        _isLoginRequired = false;
       });
     } catch (e) {
       print('MyDonationsScreen: Error loading donations: $e');
@@ -576,68 +582,91 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
     }
 
     if (_errorMessage != null) {
+      final isLoginRequired = _isLoginRequired;
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
+            Icon(
+              isLoginRequired ? Icons.login : Icons.error_outline,
               size: 64,
-              color: AppColors.error,
+              color: isLoginRequired ? AppColors.primary : AppColors.error,
             ),
             const SizedBox(height: 16),
             Text(
-              'error_occurred'.tr(),
+              isLoginRequired ? 'login_required'.tr() : 'error_occurred'.tr(),
               style: AppTextStyles.headlineSmall.copyWith(
                 color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              _errorMessage!,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                _errorMessage!,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: _checkAuthAndLoadDonations,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.surface,
-                  ),
-                  child: Text('retry'.tr()),
+            const SizedBox(height: 24),
+            if (isLoginRequired)
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.login, size: 20),
+                label: Text('login'.tr()),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.surface,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
-                ElevatedButton(
-                  onPressed: _createTestDonation,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.success,
-                    foregroundColor: AppColors.surface,
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: _checkAuthAndLoadDonations,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.surface,
+                    ),
+                    child: Text('retry'.tr()),
                   ),
-                  child: Text('create_test_donation'.tr()),
-                ),
-                ElevatedButton(
-                  onPressed: _testAllEndpoints,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.warning,
-                    foregroundColor: AppColors.surface,
+                  ElevatedButton(
+                    onPressed: _createTestDonation,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: AppColors.surface,
+                    ),
+                    child: Text('create_test_donation'.tr()),
                   ),
-                  child: Text('test_apis'.tr()),
-                ),
-                ElevatedButton(
-                  onPressed: _checkLastDonation,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.info,
-                    foregroundColor: AppColors.surface,
+                  ElevatedButton(
+                    onPressed: _testAllEndpoints,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.warning,
+                      foregroundColor: AppColors.surface,
+                    ),
+                    child: Text('test_apis'.tr()),
                   ),
-                  child: Text('check_last_donation'.tr()),
-                ),
-              ],
-            ),
+                  ElevatedButton(
+                    onPressed: _checkLastDonation,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.info,
+                      foregroundColor: AppColors.surface,
+                    ),
+                    child: Text('check_last_donation'.tr()),
+                  ),
+                ],
+              ),
           ],
         ),
       );
