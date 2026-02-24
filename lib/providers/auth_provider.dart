@@ -74,6 +74,7 @@ class AuthProvider extends ChangeNotifier {
     required String name,
     String? email,
   }) async {
+    print('AuthProvider [registerWithPhone] calling API with phone="$phone"');
     final response = await _authService.registerWithPhone(
       phone: phone,
       password: password,
@@ -81,14 +82,19 @@ class AuthProvider extends ChangeNotifier {
       name: name,
       email: email,
     );
-    final data = response['data'];
+    final data = response['data'] as Map<String, dynamic>?;
+    print('AuthProvider [registerWithPhone] response keys=${response.keys.toList()}, data is null=${data == null}');
     if (data == null || data['verifyId'] == null) {
+      print('AuthProvider [registerWithPhone] ERROR: missing data or verifyId - cannot navigate to OTP screen');
       throw Exception('Invalid response from server');
     }
+    final verifyId = data['verifyId'] as String;
+    final maskedPhone = data['phone'] as String? ?? phone;
     final devOtp = data['otp'] ?? data['dev_otp'] ?? data['debug_otp'] ?? data['code'];
+    print('AuthProvider [registerWithPhone] success: verifyId=$verifyId, maskedPhone=$maskedPhone, hasDevOtp=${devOtp != null}');
     return {
-      'verifyId': data['verifyId'] as String,
-      'phone': data['phone'] as String? ?? phone,
+      'verifyId': verifyId,
+      'phone': maskedPhone,
       if (devOtp != null) 'devOtp': devOtp.toString(),
     };
   }

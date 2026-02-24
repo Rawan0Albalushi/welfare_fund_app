@@ -94,26 +94,38 @@ class AuthService {
     if (_dio == null) {
       throw Exception('AuthService not initialized. Please call initialize() first.');
     }
+    final body = {
+      'phone': phone,
+      'password': password,
+      'password_confirmation': passwordConfirmation,
+      'name': name,
+      if (email != null && email.isNotEmpty) 'email': email,
+    };
+    print('AuthService [register/phone] request: phone="$phone" (length=${phone.length}), endpoint=/auth/register/phone');
     try {
-      final response = await _dio!.post('/auth/register/phone', data: {
-        'phone': phone,
-        'password': password,
-        'password_confirmation': passwordConfirmation,
-        'name': name,
-        if (email != null && email.isNotEmpty) 'email': email,
-      });
-      final data = response.data;
-      // للتطوير: طباعة الاستجابة في الـ log (إذا الباكند يرسل otp في الاستجابة ستظهر هنا)
-      assert(() {
-        print('AuthService [register/phone] response: $data');
-        final devOtp = data['data']?['otp'] ?? data['data']?['dev_otp'] ?? data['data']?['debug_otp'] ?? data['data']?['code'];
+      final response = await _dio!.post('/auth/register/phone', data: body);
+      final data = response.data as Map<String, dynamic>?;
+      if (data == null) {
+        print('AuthService [register/phone] ERROR: response.data is null');
+        throw Exception('Invalid response from server');
+      }
+      // Log full response for debugging OTP delivery issues
+      print('AuthService [register/phone] response: message=${data['message']}, has data=${data.containsKey('data')}, statusCode=${response.statusCode}');
+      final inner = data['data'] as Map<String, dynamic>?;
+      if (inner != null) {
+        print('AuthService [register/phone] data.verifyId=${inner['verifyId']}, data.phone(masked)=${inner['phone']}');
+        final devOtp = inner['otp'] ?? inner['dev_otp'] ?? inner['debug_otp'] ?? inner['code'];
         if (devOtp != null) {
-          print('AuthService [DEV] OTP من الباكند: $devOtp');
+          print('AuthService [register/phone] [DEV] OTP from backend: $devOtp');
+        } else {
+          print('AuthService [register/phone] No OTP in response - use GET /auth/dev/otp?verifyId=... for testing, or check SMS gateway on server');
         }
-        return true;
-      }());
+      } else {
+        print('AuthService [register/phone] WARNING: response.data has no nested "data" - raw keys: ${data.keys.toList()}');
+      }
       return data;
     } on DioException catch (e) {
+      print('AuthService [register/phone] DioException: type=${e.type}, message=${e.message}, statusCode=${e.response?.statusCode}, response=${e.response?.data}');
       throw _handleDioError(e);
     }
   }
@@ -162,16 +174,28 @@ class AuthService {
   /// في بيئة التطوير فقط: جلب الرمز عبر GET /auth/dev/otp?verifyId=...
   /// Returns: data.otp أو null إذا الـ endpoint غير متوفر
   Future<String?> getDevOtp(String verifyId) async {
-    if (_dio == null) return null;
+    if (_dio == null) {
+      print('AuthService [getDevOtp] skip: Dio not initialized');
+      return null;
+    }
+    final url = '${_dio!.options.baseUrl}/auth/dev/otp?verifyId=$verifyId';
+    print('AuthService [getDevOtp] request: verifyId=$verifyId, url=$url');
     try {
       final response = await _dio!.get(
         '/auth/dev/otp',
         queryParameters: {'verifyId': verifyId},
       );
       final data = response.data;
-      final otp = data['data']?['otp'] ?? data['otp'];
-      return otp?.toString();
-    } on DioException catch (_) {
+      final otp = (data is Map) ? (data['data']?['otp'] ?? data['otp']) : null;
+      final otpStr = otp?.toString();
+      if (otpStr != null && otpStr.isNotEmpty) {
+        print('AuthService [getDevOtp] success: OTP received (length=${otpStr.length})');
+      } else {
+        print('AuthService [getDevOtp] no OTP in response: keys=${data is Map ? data.keys.toList() : "not map"}');
+      }
+      return otpStr;
+    } on DioException catch (e) {
+      print('AuthService [getDevOtp] failed: status=${e.response?.statusCode}, message=${e.message} (dev endpoint may be disabled in production)');
       return null;
     }
   }

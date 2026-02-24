@@ -645,6 +645,7 @@
   "verify": "Verify",
   "resend_code": "Resend code",
   "otp_resent": "New code sent",
+  "otp_didnt_receive": "Didn't receive the code?",
   "phone_verified_successfully": "Phone verified successfully",
   "session_expired_register_again": "Session expired, please try registering again",
   "code_expired_request_new": "Code expired, request a new one",

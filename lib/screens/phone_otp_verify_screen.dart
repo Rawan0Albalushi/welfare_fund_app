@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import '../constants/app_colors.dart';
-import '../constants/app_config.dart';
 import '../constants/app_text_styles.dart';
 import '../providers/auth_provider.dart';
 
@@ -44,8 +43,12 @@ class _PhoneOtpVerifyScreenState extends State<PhoneOtpVerifyScreen>
   void initState() {
     super.initState();
     _currentVerifyId = widget.verifyId;
-    if (AppConfig.isLocalConnection && (widget.devOtp == null || widget.devOtp!.isEmpty)) {
+    print('PhoneOtpVerifyScreen [init] verifyId=${widget.verifyId}, phone=${widget.phone}, maskedPhone=${widget.maskedPhone}, devOtp from route=${widget.devOtp}');
+    // Try to fetch dev OTP whenever backend might return it (local or production support)
+    if (widget.devOtp == null || widget.devOtp!.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fetchDevOtp());
+    } else {
+      print('PhoneOtpVerifyScreen [init] using devOtp from registration response (no fetch needed)');
     }
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
@@ -82,13 +85,19 @@ class _PhoneOtpVerifyScreenState extends State<PhoneOtpVerifyScreen>
   String get _displayPhone => _maskPhone(widget.phone);
 
   Future<void> _fetchDevOtp() async {
+    print('PhoneOtpVerifyScreen [_fetchDevOtp] fetching dev OTP for verifyId=$_currentVerifyId');
     try {
       final authProvider = context.read<AuthProvider>();
       final otp = await authProvider.getDevOtp(_currentVerifyId);
       if (mounted && otp != null && otp.isNotEmpty) {
+        print('PhoneOtpVerifyScreen [_fetchDevOtp] got OTP (length=${otp.length}) - will show in dev hint');
         setState(() => _fetchedDevOtp = otp);
+      } else {
+        print('PhoneOtpVerifyScreen [_fetchDevOtp] no OTP returned - check backend GET /auth/dev/otp or SMS delivery');
       }
-    } catch (_) {}
+    } catch (e) {
+      print('PhoneOtpVerifyScreen [_fetchDevOtp] error: $e');
+    }
   }
 
   String? get _effectiveDevOtp => _fetchedDevOtp ?? widget.devOtp;
@@ -387,7 +396,7 @@ class _PhoneOtpVerifyScreenState extends State<PhoneOtpVerifyScreen>
                                   color: AppColors.textSecondary,
                                 ),
                               ),
-                              if (AppConfig.isLocalConnection) ...[
+                              if (_effectiveDevOtp != null && _effectiveDevOtp!.isNotEmpty) ...[
                                 const SizedBox(height: 16),
                                 _buildDevOtpHint(),
                                 const SizedBox(height: 16),
@@ -524,6 +533,14 @@ class _PhoneOtpVerifyScreenState extends State<PhoneOtpVerifyScreen>
                                 ),
                               ),
                               const SizedBox(height: 20),
+                              Text(
+                                'otp_didnt_receive'.tr(),
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
                               Center(
                                 child: TextButton(
                                   onPressed: _isResending ? null : _handleResend,
