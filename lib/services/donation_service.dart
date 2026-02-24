@@ -104,6 +104,7 @@ class DonationService {
       final headers = <String, String>{
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'X-Client-Source': 'app',
       };
       
       // إضافة token فقط إذا كان موجوداً (للمستخدمين المسجلين)
@@ -130,6 +131,7 @@ class DonationService {
         if (itemType == 'campaign') 'campaign_id': idInt,
         'amount': amount, // هذا الإندبوينت عندك يستقبل المبلغ كريال
         'is_anonymous': isAnonymous,
+        'source': 'app',
         if (donorName != null) 'donor_name': donorName,
         if (donorEmail != null) 'donor_email': donorEmail,
         if (donorPhone != null) 'donor_phone': donorPhone,
@@ -281,6 +283,7 @@ class DonationService {
       final headers = <String, String>{
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'X-Client-Source': 'app',
       };
 
       final idInt = int.tryParse(itemId);
@@ -293,6 +296,7 @@ class DonationService {
         if (itemType == 'campaign') 'campaign_id': idInt,
         'amount': amount,
         'is_anonymous': true, // دائماً true للتبرعات المجهولة
+        'source': 'app',
         'donor_name': donorName ?? 'متبرع',
         if (donorEmail != null) 'donor_email': donorEmail,
         if (donorPhone != null) 'donor_phone': donorPhone,
@@ -365,6 +369,7 @@ class DonationService {
       final headers = <String, String>{
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'X-Client-Source': 'app',
       };
       
       // إضافة token فقط إذا كان موجوداً (للمستخدمين المسجلين)
@@ -393,8 +398,9 @@ class DonationService {
         returnOrigin: returnOrigin,
       );
 
+      final body = Map<String, dynamic>.from(req.toJson())..['source'] = 'app';
       final uri = Uri.parse('${_apiBase.replaceAll(RegExp(r"/+$"), "")}/payments/create');
-      final response = await http.post(uri, headers: headers, body: jsonEncode(req.toJson()));
+      final response = await http.post(uri, headers: headers, body: jsonEncode(body));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body) as Map<String, dynamic>;
